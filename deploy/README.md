@@ -17,7 +17,7 @@ scp deploy/provision-vm.sh deploy/deploy.sh root@vm:/root/
 ssh root@vm
 cd /root
 ./provision-vm.sh
-#   -> installe Docker, ouvre le port 3000, génère une clé SSH
+#   -> installe Docker, ouvre le port 80, génère une clé SSH
 #   -> AFFICHE une clé publique : à ajouter en "Deploy key" (lecture seule)
 #      du repo GitHub privé (Settings -> Deploy keys)
 
@@ -25,6 +25,7 @@ cd /root
 MTG_REPO_URL=git@github.com:OWNER/REPO.git ./deploy.sh
 #   -> clone /opt/mtg-collector, génère .env (secrets aléatoires),
 #      build, démarre, vérifie /api/health
+#   -> l'app est alors joignable sur http://ip-vm
 
 # 4. Charger les cartes Scryfall (une fois)
 docker compose -f /opt/mtg-collector/docker-compose.yml exec backend npm run sync:bulk
@@ -45,5 +46,5 @@ sudo /root/deploy.sh        # git reset --hard origin/main + rebuild + restart
   dès que tu sers l'app derrière HTTPS (reverse-proxy TLS).
 - **Changement de schéma** : géré par `node-pg-migrate` au démarrage du backend,
   sans `down -v`. Seul un reset destructif des volumes impose `docker compose down -v`.
-- **Pare-feu** : seul le port `3000` est ouvert. Le backend (`3001`) n'est pas
-  publié — nginx l'atteint via le réseau Docker interne.
+- **Pare-feu** : seul le port `80` est ouvert (HTTP). Le backend (`3001`) n'est pas
+  publié — nginx l'atteint via le réseau Docker interne. L'app répond sur `http://ip-vm`.

@@ -25,8 +25,9 @@ cp .env.example .env
 docker compose up --build
 ```
 
-- Frontend : http://localhost:3000
-- API (via proxy) : http://localhost:3000/api/health
+- Frontend : http://localhost (port 80)
+- API (via proxy) : http://localhost/api/health
+- Sur la VM : http://ip-vm
 
 ### Synchronisation des cartes (bulk-data Scryfall)
 
@@ -38,6 +39,27 @@ docker compose exec backend npm run sync:bulk
 À lancer une fois après le premier démarrage, puis hebdomadairement (le job prix
 quotidien du Sprint 3 le réutilisera). Entre deux syncs, les nouvelles cartes
 entrent en base via *lazy upsert* à l'ajout en collection.
+
+## Accès mobile (HTTPS local — pour le scan caméra)
+
+Le scan caméra (`getUserMedia`) et l'install PWA exigent un *secure context* :
+`localhost` suffit sur le PC, mais le téléphone a besoin de **HTTPS**.
+
+```bash
+# 1. Générer un certificat de confiance pour l'IP LAN de la machine Windows
+./deploy/local-tls.sh 192.168.1.50      # remplace par ton IP (ipconfig)
+
+# 2. Installer la racine CA mkcert sur le téléphone (chemin affiché par le script)
+
+# 3. Passer COOKIE_SECURE=true dans .env, puis démarrer en TLS
+docker compose -f docker-compose.yml -f docker-compose.tls.yml up --build
+
+# 4. (WSL2) Forwarder le 443 depuis Windows — PowerShell admin :
+#    netsh interface portproxy add v4tov4 listenport=443 \
+#      listenaddress=0.0.0.0 connectport=443 connectaddress=<IP_WSL>
+```
+
+→ Téléphone : `https://192.168.1.50`. Détails dans [deploy/local-tls.sh](deploy/local-tls.sh).
 
 ## Structure
 

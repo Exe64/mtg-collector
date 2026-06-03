@@ -15,7 +15,7 @@
 #   MTG_BRANCH      (défaut main)               branche à déployer
 #   MTG_APP_DIR     (défaut /opt/mtg-collector) répertoire cible
 #   MTG_DEPLOY_KEY  (défaut /root/.ssh/mtg_deploy) clé SSH de déploiement
-#   MTG_HEALTH_URL  (défaut http://localhost:3000/api/health)
+#   MTG_HEALTH_URL  (défaut http://localhost/api/health)
 #
 set -euo pipefail
 
@@ -23,7 +23,7 @@ REPO_URL="${MTG_REPO_URL:-git@github.com:OWNER/mtg-collector.git}"
 BRANCH="${MTG_BRANCH:-main}"
 APP_DIR="${MTG_APP_DIR:-/opt/mtg-collector}"
 DEPLOY_KEY="${MTG_DEPLOY_KEY:-/root/.ssh/mtg_deploy}"
-HEALTH_URL="${MTG_HEALTH_URL:-http://localhost:3000/api/health}"
+HEALTH_URL="${MTG_HEALTH_URL:-http://localhost/api/health}"
 
 export GIT_SSH_COMMAND="ssh -i ${DEPLOY_KEY} -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
 

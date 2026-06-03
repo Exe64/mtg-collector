@@ -9,13 +9,13 @@
 # Variables optionnelles :
 #   MTG_APP_DIR    (défaut /opt/mtg-collector)   répertoire applicatif
 #   MTG_DEPLOY_KEY (défaut /root/.ssh/mtg_deploy) clé SSH de déploiement
-#   MTG_HTTP_PORT  (défaut 3000)                 port HTTP exposé (frontend)
+#   MTG_HTTP_PORT  (défaut 80)                   port HTTP exposé (frontend)
 #
 set -euo pipefail
 
 APP_DIR="${MTG_APP_DIR:-/opt/mtg-collector}"
 DEPLOY_KEY="${MTG_DEPLOY_KEY:-/root/.ssh/mtg_deploy}"
-HTTP_PORT="${MTG_HTTP_PORT:-3000}"
+HTTP_PORT="${MTG_HTTP_PORT:-80}"
 
 log()  { printf '\033[1;34m[provision]\033[0m %s\n' "$*"; }
 err()  { printf '\033[1;31m[provision] %s\033[0m\n' "$*" >&2; }
