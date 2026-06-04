@@ -1,21 +1,45 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '../api/client';
 import CollectionTable from '../components/collection/CollectionTable';
+import { CONDITIONS } from '../constants';
+
+const TYPE_OPTIONS = [
+  ['', 'Type'], ['creature', 'Créature'], ['instant', 'Éphémère'], ['sorcery', 'Rituel'],
+  ['artifact', 'Artefact'], ['enchantment', 'Enchantement'], ['planeswalker', 'Planeswalker'],
+  ['land', 'Terrain'], ['battle', 'Bataille'],
+];
+const RARITY_OPTIONS = [
+  ['', 'Rareté'], ['common', 'Commune'], ['uncommon', 'Peu commune'], ['rare', 'Rare'], ['mythic', 'Mythique'],
+];
+const COLOR_OPTIONS = [
+  ['', 'Couleur'], ['W', 'Blanc'], ['U', 'Bleu'], ['B', 'Noir'], ['R', 'Rouge'], ['G', 'Vert'],
+  ['M', 'Multicolore'], ['C', 'Incolore'],
+];
+const CMC_OPTIONS = [['', 'Coût'], ['0', '0'], ['1', '1'], ['2', '2'], ['3', '3'], ['4', '4'], ['5', '5'], ['6', '6'], ['7+', '7+']];
+
+const EMPTY_FILTERS = { type: '', rarity: '', color: '', cmc: '', condition: '' };
 
 export default function Collection() {
   const [data, setData] = useState({ entries: [], total: 0, stats: null });
   const [q, setQ] = useState('');
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [grouped, setGrouped] = useState(true);
   const [collapsed, setCollapsed] = useState({});
 
-  const load = useCallback(async (search) => {
+  const load = useCallback(async (search, f) => {
     setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams({ sort: 'value', order: 'desc', pageSize: '200' });
       if (search) params.set('q', search);
+      if (f.type) params.set('type', f.type);
+      if (f.rarity) params.set('rarity', f.rarity);
+      if (f.color) params.set('color', f.color);
+      if (f.condition) params.set('condition', f.condition);
+      if (f.cmc === '7+') params.set('cmcMin', '7');
+      else if (f.cmc) params.set('cmc', f.cmc);
       const res = await api(`/collection?${params.toString()}`);
       setData(res);
     } catch (err) {
@@ -25,21 +49,31 @@ export default function Collection() {
     }
   }, []);
 
-  // Recherche locale avec debounce
+  // Recherche + filtres avec debounce
   useEffect(() => {
-    const t = setTimeout(() => load(q.trim()), 300);
+    const t = setTimeout(() => load(q.trim(), filters), 300);
     return () => clearTimeout(t);
-  }, [q, load]);
+  }, [q, filters, load]);
 
-  async function updateQty(id, quantity) {
-    await api(`/collection/${id}`, { method: 'PATCH', body: { quantity } });
-    load(q.trim());
+  async function update(id, patch) {
+    setError(null);
+    try {
+      await api(`/collection/${id}`, { method: 'PATCH', body: patch });
+      load(q.trim(), filters);
+    } catch (err) {
+      // ex. conflit 409 : une entrée identique (finition/état/langue) existe déjà
+      setError(err.message);
+      load(q.trim(), filters); // resynchronise l'affichage avec la base
+    }
   }
 
   async function remove(id) {
     await api(`/collection/${id}`, { method: 'DELETE' });
-    load(q.trim());
+    load(q.trim(), filters);
   }
+
+  const setFilter = (key, value) => setFilters((f) => ({ ...f, [key]: value }));
+  const hasFilters = q || Object.values(filters).some(Boolean);
 
   const groups = useMemo(() => {
     const m = new Map();
@@ -56,7 +90,7 @@ export default function Collection() {
   const stats = data.stats;
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div>
       <header className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-xl font-bold">Ma collection</h1>
         {stats && (
@@ -83,6 +117,34 @@ export default function Collection() {
         )}
       </div>
 
+      <div className="flex flex-wrap gap-2 mb-3">
+        {[['type', TYPE_OPTIONS], ['rarity', RARITY_OPTIONS], ['color', COLOR_OPTIONS], ['cmc', CMC_OPTIONS]].map(([key, opts]) => (
+          <select
+            key={key}
+            value={filters[key]}
+            onChange={(e) => setFilter(key, e.target.value)}
+            className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1.5 text-sm"
+          >
+            {opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+        ))}
+        <select
+          value={filters.condition}
+          onChange={(e) => setFilter('condition', e.target.value)}
+          className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1.5 text-sm"
+        >
+          <option value="">État</option>
+          {CONDITIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+        </select>
+        {hasFilters && (
+          <button
+            type="button"
+            onClick={() => { setQ(''); setFilters(EMPTY_FILTERS); }}
+            className="text-xs text-slate-400 hover:text-slate-200 px-2"
+          >Réinitialiser</button>
+        )}
+      </div>
+
       <label className="flex items-center gap-2 text-xs text-slate-400 mb-3">
         <input type="checkbox" checked={grouped} onChange={(e) => setGrouped(e.target.checked)} />
         Grouper par extension
@@ -94,10 +156,10 @@ export default function Collection() {
         <div className="text-center text-slate-500 py-12">Chargement…</div>
       ) : data.entries.length === 0 ? (
         <div className="text-center text-slate-500 py-12">
-          {q ? 'Aucune carte ne correspond à cette recherche.' : 'Aucune carte. Va dans « Ajouter » pour commencer.'}
+          {hasFilters ? 'Aucune carte ne correspond aux critères.' : 'Aucune carte. Va dans « Ajouter » pour commencer.'}
         </div>
       ) : !grouped ? (
-        <CollectionTable entries={data.entries} onUpdateQty={updateQty} onDelete={remove} />
+        <CollectionTable entries={data.entries} onUpdate={update} onDelete={remove} />
       ) : (
         <div className="space-y-4">
           {groups.map((g) => {
@@ -118,7 +180,7 @@ export default function Collection() {
                   </span>
                 </button>
                 {!isCollapsed && (
-                  <CollectionTable entries={g.entries} onUpdateQty={updateQty} onDelete={remove} />
+                  <CollectionTable entries={g.entries} onUpdate={update} onDelete={remove} />
                 )}
               </section>
             );

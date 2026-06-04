@@ -16,10 +16,13 @@ router.get('/search', requireAuth, async (req, res, next) => {
     scryQuery = scryQuery.trim();
     if (!scryQuery) return res.json({ cards: [], total: 0, page: 1, hasMore: false });
 
-    // unique=cards : une entrée par carte dans l'autocomplete (les versions sont
-    // listées au clic via /cards/prints).
-    const key = `scry:search:${scryQuery}:${page}`;
-    const data = await cached(key, 3600, () => scryfall.searchCards(scryQuery, page));
+    // unique=cards (défaut) pour l'autocomplete ; unique=prints pour afficher
+    // toutes les versions/éditions correspondantes (récentes d'abord).
+    const unique = req.query.unique === 'prints' ? 'prints' : 'cards';
+    const order = unique === 'prints' ? 'released' : 'name';
+    const dir = unique === 'prints' ? 'desc' : 'auto';
+    const key = `scry:search:${unique}:${scryQuery}:${page}`;
+    const data = await cached(key, 3600, () => scryfall.searchCards(scryQuery, page, { unique, order, dir }));
     if (!data) return res.json({ cards: [], total: 0, page: Number(page), hasMore: false });
 
     res.json({

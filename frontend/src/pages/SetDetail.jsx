@@ -81,7 +81,7 @@ export default function SetDetail() {
   const counts = { all: total, owned: ownedCount, missing: total - ownedCount };
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div>
       <div className="flex items-center gap-2 mb-3">
         <Link to="/sets" className="text-slate-400 hover:text-slate-200 text-sm">← Extensions</Link>
         <h1 className="text-xl font-bold">
@@ -117,7 +117,7 @@ export default function SetDetail() {
       {loading ? (
         <div className="text-center text-slate-500 py-12">Chargement de l'extension…</div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3">
           {visible.map((c) => {
             const qty = owned[c.scryfall_id] || 0;
             return (

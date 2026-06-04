@@ -1,5 +1,7 @@
 import { useCardModal } from '../../stores/cardModal';
-import { CONDITION_LABEL } from '../../constants';
+import { CONDITIONS } from '../../constants';
+
+const FINISHES = ['nonfoil', 'foil', 'etched'];
 
 const RARITY_COLORS = {
   common: 'text-slate-300',
@@ -8,11 +10,11 @@ const RARITY_COLORS = {
   mythic: 'text-orange-400',
 };
 
-export default function CollectionTable({ entries, onUpdateQty, onDelete }) {
+export default function CollectionTable({ entries, onUpdate, onDelete }) {
   const openCard = useCardModal((s) => s.open);
 
   if (!entries.length) {
-    return <div className="text-center text-slate-500 py-12">Aucune carte. Cherche une carte ci-dessus pour commencer.</div>;
+    return <div className="text-center text-slate-500 py-12">Aucune carte.</div>;
   }
 
   return (
@@ -24,8 +26,8 @@ export default function CollectionTable({ entries, onUpdateQty, onDelete }) {
             <th className="text-left p-2 hidden sm:table-cell">Ext.</th>
             <th className="text-left p-2 hidden md:table-cell">Rareté</th>
             <th className="text-right p-2">Qté</th>
-            <th className="text-left p-2 hidden sm:table-cell">Fin.</th>
-            <th className="text-left p-2 hidden md:table-cell">État</th>
+            <th className="text-left p-2">Fin.</th>
+            <th className="text-left p-2">État</th>
             <th className="text-right p-2">PU €</th>
             <th className="text-right p-2">Total €</th>
             <th className="p-2" />
@@ -49,15 +51,32 @@ export default function CollectionTable({ entries, onUpdateQty, onDelete }) {
               <td className="p-2 text-right">
                 <input
                   type="number" min="1" defaultValue={e.quantity}
+                  key={`${e.id}-qty-${e.quantity}`}
                   onBlur={(ev) => {
                     const v = Number(ev.target.value);
-                    if (v >= 1 && v !== e.quantity) onUpdateQty(e.id, v);
+                    if (v >= 1 && v !== e.quantity) onUpdate(e.id, { quantity: v });
                   }}
                   className="w-14 rounded bg-slate-900 border border-slate-700 px-1 py-0.5 text-right"
                 />
               </td>
-              <td className="p-2 hidden sm:table-cell text-slate-400">{e.finish}</td>
-              <td className="p-2 hidden md:table-cell text-slate-400">{CONDITION_LABEL[e.condition] || e.condition}</td>
+              <td className="p-2">
+                <select
+                  value={e.finish}
+                  onChange={(ev) => onUpdate(e.id, { finish: ev.target.value })}
+                  className="bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-xs"
+                >
+                  {FINISHES.map((f) => <option key={f} value={f}>{f}</option>)}
+                </select>
+              </td>
+              <td className="p-2">
+                <select
+                  value={e.condition}
+                  onChange={(ev) => onUpdate(e.id, { condition: ev.target.value })}
+                  className="bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-xs"
+                >
+                  {CONDITIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                </select>
+              </td>
               <td className="p-2 text-right text-slate-300">{e.unit_price_eur ?? '—'}</td>
               <td className="p-2 text-right text-emerald-400">{e.total_price_eur ?? '—'}</td>
               <td className="p-2 text-right">

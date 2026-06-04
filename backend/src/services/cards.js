@@ -7,7 +7,7 @@ const num = (v) => (v === undefined || v === null || v === '' ? null : Number(v)
 const CARD_COLUMNS = [
   'scryfall_id', 'oracle_id', 'name', 'set_code', 'set_name', 'collector_number',
   'image_uri', 'image_uri_small', 'card_faces', 'colors', 'color_identity',
-  'type_line', 'oracle_text', 'mana_cost', 'rarity', 'finishes',
+  'type_line', 'oracle_text', 'mana_cost', 'cmc', 'rarity', 'finishes',
   'prices_eur', 'prices_eur_foil', 'prices_eur_etched',
   'prices_usd', 'prices_usd_foil', 'prices_raw',
 ];
@@ -33,6 +33,7 @@ export function mapScryfallCard(c) {
     type_line: c.type_line || c.card_faces?.map((f) => f.type_line).join(' // ') || null,
     oracle_text: c.oracle_text ?? face0.oracle_text ?? null,
     mana_cost: c.mana_cost ?? face0.mana_cost ?? null,
+    cmc: c.cmc ?? null,
     rarity: c.rarity || null,
     finishes: c.finishes || null,
     prices_eur: num(prices.eur),

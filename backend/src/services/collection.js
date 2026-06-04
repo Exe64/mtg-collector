@@ -55,7 +55,17 @@ export async function getCollection(userId, opts = {}) {
   if (opts.finish) filter((i) => `e.finish = $${i}`, opts.finish);
   if (opts.language) filter((i) => `e.language = $${i}`, opts.language);
   if (opts.type) filter((i) => `c.type_line ILIKE $${i}`, `%${opts.type}%`);
-  if (opts.color) filter((i) => `$${i} = ANY(c.color_identity)`, opts.color);
+
+  if (opts.color === 'C') {
+    conds.push('(c.color_identity IS NULL OR array_length(c.color_identity, 1) IS NULL)');
+  } else if (opts.color === 'M') {
+    conds.push('array_length(c.color_identity, 1) > 1');
+  } else if (opts.color) {
+    filter((i) => `$${i} = ANY(c.color_identity)`, opts.color);
+  }
+
+  if (opts.cmc !== undefined && opts.cmc !== '') filter((i) => `c.cmc = $${i}`, Number(opts.cmc));
+  if (opts.cmcMin) filter((i) => `c.cmc >= $${i}`, Number(opts.cmcMin));
 
   const where = conds.join(' AND ');
   const sortCol = SORT_COLUMNS[opts.sort] || SORT_COLUMNS.added_at;

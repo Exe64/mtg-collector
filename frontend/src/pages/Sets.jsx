@@ -49,7 +49,7 @@ export default function Sets() {
   }, [sets, type, q]);
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div>
       <h1 className="text-xl font-bold mb-4">Extensions</h1>
 
       <div className="flex flex-wrap gap-2 mb-4">
@@ -69,7 +69,7 @@ export default function Sets() {
       {loading ? (
         <div className="text-center text-slate-500 py-12">Chargement…</div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2">
           {filtered.map((s) => {
             const owned = ownedBySet[s.code] || 0;
             const pct = s.card_count ? Math.min(100, Math.round((100 * owned) / s.card_count)) : 0;

@@ -62,8 +62,8 @@ export default function Layout() {
         </nav>
       </header>
 
-      {/* Contenu */}
-      <main className="flex-1 p-4">
+      {/* Contenu — largeur centralisée ici (remplit jusqu'à ~1800px) */}
+      <main className="flex-1 w-full max-w-[1800px] mx-auto p-4">
         <Outlet />
       </main>
 

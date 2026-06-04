@@ -109,7 +109,7 @@ export default function Dashboard() {
   const points = snapshots.map((s) => ({ date: s.snapshot_date, value: s.total_value_eur }));
 
   return (
-    <div className="max-w-5xl mx-auto space-y-5">
+    <div className="space-y-5">
       <h1 className="text-xl font-bold">Tableau de bord</h1>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
