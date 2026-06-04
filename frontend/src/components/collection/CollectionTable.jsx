@@ -19,18 +19,18 @@ export default function CollectionTable({ entries, onUpdate, onDelete }) {
 
   return (
     <div className="overflow-x-auto rounded-lg border border-slate-800">
-      <table className="w-full text-sm">
+      <table className="w-full text-sm table-fixed">
         <thead className="bg-slate-800 text-slate-400 text-xs uppercase">
           <tr>
             <th className="text-left p-2">Carte</th>
-            <th className="text-left p-2 hidden sm:table-cell">Ext.</th>
-            <th className="text-left p-2 hidden md:table-cell">Rareté</th>
-            <th className="text-right p-2">Qté</th>
-            <th className="text-left p-2">Fin.</th>
-            <th className="text-left p-2">État</th>
-            <th className="text-right p-2">PU €</th>
-            <th className="text-right p-2">Total €</th>
-            <th className="p-2" />
+            <th className="text-left p-2 w-16 hidden sm:table-cell">Ext.</th>
+            <th className="text-left p-2 w-28 hidden md:table-cell">Rareté</th>
+            <th className="text-right p-2 w-20">Qté</th>
+            <th className="text-left p-2 w-28">Fin.</th>
+            <th className="text-left p-2 w-36">État</th>
+            <th className="text-right p-2 w-24">PU €</th>
+            <th className="text-right p-2 w-24">Total €</th>
+            <th className="p-2 w-10" />
           </tr>
         </thead>
         <tbody>
@@ -40,10 +40,10 @@ export default function CollectionTable({ entries, onUpdate, onDelete }) {
                 <button
                   type="button"
                   onClick={() => openCard(e.card.scryfall_id)}
-                  className="flex items-center gap-2 text-left hover:text-indigo-300"
+                  className="flex items-center gap-2 text-left hover:text-indigo-300 w-full min-w-0"
                 >
-                  {e.card.image_small && <img src={e.card.image_small} alt="" className="w-8 rounded-sm" />}
-                  <span>{e.card.name}</span>
+                  {e.card.image_small && <img src={e.card.image_small} alt="" className="w-8 rounded-sm shrink-0" />}
+                  <span className="truncate">{e.card.name}</span>
                 </button>
               </td>
               <td className="p-2 hidden sm:table-cell uppercase text-slate-400">{e.card.set}</td>
