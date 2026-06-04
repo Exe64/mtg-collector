@@ -43,6 +43,11 @@ app.use('/api/collection', collectionRoutes);
 app.use('/api/import', importRoutes);
 app.use('/api/export', exportRoutes);
 
+// 404 pour les routes /api inconnues
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: 'Route introuvable' });
+});
+
 // ---------------------------------------------------------------------------
 // Gestion d'erreurs centralisée
 // ---------------------------------------------------------------------------

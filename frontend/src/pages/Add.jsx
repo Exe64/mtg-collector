@@ -1,7 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { api } from '../api/client';
 import { useCardModal } from '../stores/cardModal';
 import { CONDITIONS } from '../constants';
+
+const ScanModal = lazy(() => import('../components/scan/ScanModal'));
 
 const FINISHES = ['nonfoil', 'foil', 'etched'];
 
@@ -91,6 +93,7 @@ export default function Add() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
   const timer = useRef(null);
 
   // Autocomplétion (une entrée par carte)
@@ -140,15 +143,16 @@ export default function Add() {
         afficher toutes les versions correspondantes, puis ajoute celles que tu veux.
       </p>
 
-      <div className="relative mb-4">
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          onKeyDown={onKeyDown}
-          onFocus={() => suggestions.length && setShowSug(true)}
-          placeholder="Rechercher une carte…"
-          className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm"
-        />
+      <div className="flex gap-2 mb-4">
+        <div className="relative flex-1">
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={onKeyDown}
+            onFocus={() => suggestions.length && setShowSug(true)}
+            placeholder="Rechercher une carte…"
+            className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm"
+          />
         {showSug && suggestions.length > 0 && (
           <ul className="absolute z-10 mt-1 w-full max-h-72 overflow-auto bg-slate-800 border border-slate-700 rounded-md shadow-xl">
             {suggestions.map((c) => (
@@ -166,7 +170,23 @@ export default function Add() {
             ))}
           </ul>
         )}
+        </div>
+        <button
+          type="button"
+          onClick={() => setScanOpen(true)}
+          title="Scanner une carte"
+          className="rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 text-lg"
+        >📷</button>
       </div>
+
+      {scanOpen && (
+        <Suspense fallback={null}>
+          <ScanModal
+            onClose={() => setScanOpen(false)}
+            onResult={(text) => { setScanOpen(false); setQ(text); runSearch(text, { exact: false }, 1); }}
+          />
+        </Suspense>
+      )}
 
       {results.length > 0 && (
         <div className="overflow-x-auto rounded-lg border border-slate-800">

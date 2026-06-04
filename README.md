@@ -1,7 +1,20 @@
 # Magic Collection Manager
 
 Application web full-stack multi-utilisateur pour l'inventaire et la valorisation
-de collections Magic: The Gathering. Voir [SPECS.md](SPECS.md) pour la spec complète.
+de collections Magic: The Gathering. Voir [SPECS.md](SPECS.md) pour la spec complète
+et [backend/API.md](backend/API.md) pour la référence API.
+
+## Fonctionnalités
+
+- **Auth JWT** multi-utilisateur (access token 15 min + refresh token rotaté en cookie httpOnly), collections isolées par compte
+- **Ajouter** : recherche autocomplétée, affichage de **toutes les versions/éditions**, ajout direct par ligne (qté/finition/état), **scan caméra OCR** (Tesseract.js, best-effort)
+- **Collection** : recherche par nom + filtres (type, rareté, couleur, coût de mana, état), groupement par extension, édition inline (qté, finition, état), pagination, export
+- **Extensions** : catalogue filtrable (dont promos), **complétion par set** (liste + détail avec filtres possédées / toutes / manquantes)
+- **Détail carte** : modale image HD, texte oracle, prix, et **rulings officiels** (Wizards/Gatherer via Scryfall)
+- **Tableau de bord** : valeur EUR/USD, courbe d'évolution, donuts (couleur, rareté, état, type), top 10
+- **Import/Export** : CSV Moxfield + générique (fusion/remplacement), export CSV Moxfield + PDF
+- **Prix** : Scryfall (Cardmarket EUR), job quotidien (3h UTC) → snapshots collection/édition + historique par carte
+- **PWA** : installable, Service Worker (app shell offline), conditions **Cardmarket** (MT→PO)
 
 ## Décisions d'architecture (revue de spec)
 
@@ -36,9 +49,22 @@ docker compose up --build
 docker compose exec backend npm run sync:bulk
 ```
 
-À lancer une fois après le premier démarrage, puis hebdomadairement (le job prix
-quotidien du Sprint 3 le réutilisera). Entre deux syncs, les nouvelles cartes
-entrent en base via *lazy upsert* à l'ajout en collection.
+À lancer une fois après le premier démarrage, puis hebdomadairement. Entre deux
+syncs, les nouvelles cartes entrent en base via *lazy upsert* à l'ajout.
+
+### Autres opérations
+
+```bash
+# Job quotidien à la demande : MAJ prix des cartes possédées + snapshots + cmc
+docker compose exec backend npm run job:daily
+
+# Tests unitaires backend
+docker compose exec backend npm test
+```
+
+> Le filtre « coût de mana » s'appuie sur la colonne `cmc`, remplie au sync.
+> Après mise à jour, lance `npm run job:daily` une fois pour peupler `cmc` sur
+> les cartes déjà possédées.
 
 ## Accès mobile (HTTPS local — pour le scan caméra)
 
@@ -64,6 +90,29 @@ docker compose -f docker-compose.yml -f docker-compose.tls.yml up --build
 ## Structure
 
 ```
-backend/   Express + pg + ioredis ; migrations/ (node-pg-migrate)
-frontend/  React + Vite + Tailwind (PWA) ; nginx reverse-proxy /api
+backend/
+  migrations/            schéma + évolutions (node-pg-migrate, auto au boot)
+  test/                  tests node:test
+  src/
+    config/              pool pg, client redis
+    middleware/          requireAuth (JWT)
+    routes/              auth, cards, sets, collection, import, export
+    services/            scryfall, cards, collection, snapshots, priceSync,
+                         dailyJob, importer, bulkData, pricing, cache, tokens
+    scripts/             syncBulk, runDailyJob
+  API.md                 référence des endpoints
+frontend/
+  src/
+    api/                 client fetch (refresh auto, download authentifié)
+    stores/              auth, cardModal (zustand)
+    pages/               Dashboard, Collection, Add, Sets, SetDetail, ImportExport, Login, Register
+    components/          ui (Layout, CardModal), collection, search→Add, scan, charts
+  nginx.conf             reverse-proxy /api (prod)
+deploy/                  provision-vm.sh, deploy.sh, local-tls.sh (Rocky Linux / OVH)
 ```
+
+## État d'avancement
+
+Sprints 1 à 10 du plan SPECS réalisés (socle, cartes, collection, frontend,
+browse set, import/export, dashboard, PWA, scan OCR, polish). Reste surtout du
+durcissement (couverture de tests, observabilité).

@@ -18,59 +18,90 @@ const COLOR_OPTIONS = [
 const CMC_OPTIONS = [['', 'Coût'], ['0', '0'], ['1', '1'], ['2', '2'], ['3', '3'], ['4', '4'], ['5', '5'], ['6', '6'], ['7+', '7+']];
 
 const EMPTY_FILTERS = { type: '', rarity: '', color: '', cmc: '', condition: '' };
+const PAGE_SIZE = 100;
 
 export default function Collection() {
   const [data, setData] = useState({ entries: [], total: 0, stats: null });
   const [q, setQ] = useState('');
   const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
   const [grouped, setGrouped] = useState(true);
   const [collapsed, setCollapsed] = useState({});
 
-  const load = useCallback(async (search, f) => {
-    setLoading(true);
-    setError(null);
+  const fetchPage = useCallback(async (search, f, pageNum, size) => {
+    const params = new URLSearchParams({
+      sort: 'value', order: 'desc', page: String(pageNum), pageSize: String(size),
+    });
+    if (search) params.set('q', search);
+    if (f.type) params.set('type', f.type);
+    if (f.rarity) params.set('rarity', f.rarity);
+    if (f.color) params.set('color', f.color);
+    if (f.condition) params.set('condition', f.condition);
+    if (f.cmc === '7+') params.set('cmcMin', '7');
+    else if (f.cmc) params.set('cmc', f.cmc);
+    return api(`/collection?${params.toString()}`);
+  }, []);
+
+  // Première page : à chaque changement de recherche/filtres (debounce)
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetchPage(q.trim(), filters, 1, PAGE_SIZE);
+        setData(res);
+        setPage(1);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [q, filters, fetchPage]);
+
+  async function loadMore() {
+    setLoadingMore(true);
     try {
-      const params = new URLSearchParams({ sort: 'value', order: 'desc', pageSize: '200' });
-      if (search) params.set('q', search);
-      if (f.type) params.set('type', f.type);
-      if (f.rarity) params.set('rarity', f.rarity);
-      if (f.color) params.set('color', f.color);
-      if (f.condition) params.set('condition', f.condition);
-      if (f.cmc === '7+') params.set('cmcMin', '7');
-      else if (f.cmc) params.set('cmc', f.cmc);
-      const res = await api(`/collection?${params.toString()}`);
-      setData(res);
+      const next = page + 1;
+      const res = await fetchPage(q.trim(), filters, next, PAGE_SIZE);
+      setData((d) => ({ ...res, entries: [...d.entries, ...res.entries] }));
+      setPage(next);
     } catch (err) {
       setError(err.message);
     } finally {
-      setLoading(false);
+      setLoadingMore(false);
     }
-  }, []);
+  }
 
-  // Recherche + filtres avec debounce
-  useEffect(() => {
-    const t = setTimeout(() => load(q.trim(), filters), 300);
-    return () => clearTimeout(t);
-  }, [q, filters, load]);
+  // Recharge la même quantité d'entrées déjà affichées (après édition/suppression)
+  async function refresh() {
+    const size = Math.max(data.entries.length, PAGE_SIZE);
+    const res = await fetchPage(q.trim(), filters, 1, size);
+    setData(res);
+    setPage(Math.max(1, Math.ceil(res.entries.length / PAGE_SIZE)));
+  }
 
   async function update(id, patch) {
     setError(null);
     try {
       await api(`/collection/${id}`, { method: 'PATCH', body: patch });
-      load(q.trim(), filters);
+      await refresh();
     } catch (err) {
-      // ex. conflit 409 : une entrée identique (finition/état/langue) existe déjà
-      setError(err.message);
-      load(q.trim(), filters); // resynchronise l'affichage avec la base
+      setError(err.message); // ex. conflit 409
+      await refresh();
     }
   }
 
   async function remove(id) {
     await api(`/collection/${id}`, { method: 'DELETE' });
-    load(q.trim(), filters);
+    await refresh();
   }
+
+  const hasMore = data.entries.length < data.total;
 
   const setFilter = (key, value) => setFilters((f) => ({ ...f, [key]: value }));
   const hasFilters = q || Object.values(filters).some(Boolean);
@@ -185,6 +216,19 @@ export default function Collection() {
               </section>
             );
           })}
+        </div>
+      )}
+
+      {!loading && hasMore && (
+        <div className="text-center py-4">
+          <button
+            type="button"
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-2 text-sm disabled:opacity-50"
+          >
+            {loadingMore ? 'Chargement…' : `Charger plus (${data.entries.length} / ${data.total})`}
+          </button>
         </div>
       )}
     </div>
