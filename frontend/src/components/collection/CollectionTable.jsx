@@ -1,3 +1,5 @@
+import { useCardModal } from '../../stores/cardModal';
+
 const RARITY_COLORS = {
   common: 'text-slate-300',
   uncommon: 'text-slate-200',
@@ -6,6 +8,8 @@ const RARITY_COLORS = {
 };
 
 export default function CollectionTable({ entries, onUpdateQty, onDelete }) {
+  const openCard = useCardModal((s) => s.open);
+
   if (!entries.length) {
     return <div className="text-center text-slate-500 py-12">Aucune carte. Cherche une carte ci-dessus pour commencer.</div>;
   }
@@ -30,10 +34,14 @@ export default function CollectionTable({ entries, onUpdateQty, onDelete }) {
           {entries.map((e) => (
             <tr key={e.id} className="border-t border-slate-800 hover:bg-slate-800/50">
               <td className="p-2">
-                <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => openCard(e.card.scryfall_id)}
+                  className="flex items-center gap-2 text-left hover:text-indigo-300"
+                >
                   {e.card.image_small && <img src={e.card.image_small} alt="" className="w-8 rounded-sm" />}
                   <span>{e.card.name}</span>
-                </div>
+                </button>
               </td>
               <td className="p-2 hidden sm:table-cell uppercase text-slate-400">{e.card.set}</td>
               <td className={`p-2 hidden md:table-cell capitalize ${RARITY_COLORS[e.card.rarity] || ''}`}>{e.card.rarity}</td>

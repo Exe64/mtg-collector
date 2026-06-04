@@ -1,5 +1,6 @@
 import { Outlet, NavLink } from 'react-router-dom';
 import { useAuth } from '../../stores/auth';
+import CardModal from './CardModal';
 
 const navItems = [
   { to: '/', label: 'Tableau de bord', icon: '📊', end: true },
@@ -62,6 +63,8 @@ export default function Layout() {
           Quitter
         </button>
       </nav>
+
+      <CardModal />
     </div>
   );
 }

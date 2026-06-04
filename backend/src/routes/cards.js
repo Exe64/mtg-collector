@@ -16,10 +16,10 @@ router.get('/search', requireAuth, async (req, res, next) => {
     scryQuery = scryQuery.trim();
     if (!scryQuery) return res.json({ cards: [], total: 0, page: 1, hasMore: false });
 
-    // unique=prints : remonte TOUTES les éditions/versions de chaque carte (récentes d'abord)
-    const key = `scry:search:prints:${scryQuery}:${page}`;
-    const data = await cached(key, 3600, () =>
-      scryfall.searchCards(scryQuery, page, { unique: 'prints', order: 'released', dir: 'desc' }));
+    // unique=cards : une entrée par carte dans l'autocomplete (les versions sont
+    // listées au clic via /cards/prints).
+    const key = `scry:search:${scryQuery}:${page}`;
+    const data = await cached(key, 3600, () => scryfall.searchCards(scryQuery, page));
     if (!data) return res.json({ cards: [], total: 0, page: Number(page), hasMore: false });
 
     res.json({
@@ -41,6 +41,22 @@ router.get('/prints', requireAuth, async (req, res, next) => {
     const key = `scry:prints:${name.toLowerCase()}`;
     const data = await cached(key, 21600, () => scryfall.searchPrints(name));
     res.json({ cards: (data?.data || []).map(toClientCard) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/cards/:scryfallId/rulings   (rulings officiels via Scryfall, cache 24h)
+router.get('/:scryfallId/rulings', requireAuth, async (req, res, next) => {
+  try {
+    const id = req.params.scryfallId;
+    const data = await cached(`scry:rulings:${id}`, 86400, () => scryfall.getRulings(id));
+    const rulings = (data?.data || []).map((r) => ({
+      published_at: r.published_at,
+      comment: r.comment,
+      source: r.source,
+    }));
+    res.json({ rulings });
   } catch (err) {
     next(err);
   }

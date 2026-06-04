@@ -136,6 +136,11 @@ export function dbCardToClient(row) {
     rarity: row.rarity,
     image: row.image_uri,
     image_small: row.image_uri_small,
+    type_line: row.type_line,
+    oracle_text: row.oracle_text,
+    mana_cost: row.mana_cost,
+    card_faces: row.card_faces,
+    colors: row.colors,
     finishes: row.finishes || [],
     prices: {
       eur: row.prices_eur, eur_foil: row.prices_eur_foil, eur_etched: row.prices_eur_etched,

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../api/client';
+import { useCardModal } from '../stores/cardModal';
 
 const FILTERS = [
   { key: 'all', label: 'Toutes' },
@@ -10,6 +11,7 @@ const FILTERS = [
 
 export default function SetDetail() {
   const { code } = useParams();
+  const openCard = useCardModal((s) => s.open);
   const [cards, setCards] = useState([]);
   const [setName, setSetName] = useState('');
   const [owned, setOwned] = useState({});
@@ -129,9 +131,11 @@ export default function SetDetail() {
                   </span>
                 )}
                 {c.image ? (
-                  <img src={c.image} alt={c.name} className={`w-full ${qty > 0 ? '' : 'opacity-60'}`} loading="lazy" />
+                  <button type="button" onClick={() => openCard(c.scryfall_id)} className="block w-full">
+                    <img src={c.image} alt={c.name} className={`w-full ${qty > 0 ? '' : 'opacity-60'}`} loading="lazy" />
+                  </button>
                 ) : (
-                  <div className="aspect-[5/7] flex items-center justify-center text-xs text-slate-500 p-2 text-center">{c.name}</div>
+                  <button type="button" onClick={() => openCard(c.scryfall_id)} className="aspect-[5/7] w-full flex items-center justify-center text-xs text-slate-500 p-2 text-center">{c.name}</button>
                 )}
                 <div className="p-2">
                   <div className="text-xs truncate" title={c.name}>#{c.collector_number} {c.name}</div>

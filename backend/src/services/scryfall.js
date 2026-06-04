@@ -86,6 +86,11 @@ export function getCardBySetNumber(set, number) {
   return request(`/cards/${encodeURIComponent(set.toLowerCase())}/${encodeURIComponent(number)}`);
 }
 
+/** Rulings officiels (source Wizards/Gatherer, agrégés par Scryfall). */
+export function getRulings(scryfallId) {
+  return request(`/cards/${encodeURIComponent(scryfallId)}/rulings`);
+}
+
 export function getSets() {
   return request('/sets');
 }
