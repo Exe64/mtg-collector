@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from '../../api/client';
 import { useCardModal } from '../../stores/cardModal';
-
-const CONDITIONS = ['NM', 'LP', 'MP', 'HP', 'DMG'];
+import { CONDITIONS } from '../../constants';
 
 export default function CardSearch({ onAdded }) {
   const openCard = useCardModal((s) => s.open);
@@ -144,12 +143,13 @@ export default function CardSearch({ onAdded }) {
                       onClick={() => choosePrint(p)}
                       className={`w-full flex items-center gap-2 px-2 py-1.5 text-left ${isSel ? 'bg-indigo-600/30' : 'hover:bg-slate-700/60'}`}
                     >
-                      {p.image_small && <img src={p.image_small} alt="" className="w-7 rounded-sm" />}
-                      <span className="flex-1 text-sm">
-                        <span className="uppercase">{p.set}</span> <span className="text-slate-400">#{p.collector_number}</span>
+                      {p.image_small && <img src={p.image_small} alt="" className="w-7 rounded-sm shrink-0" />}
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-sm truncate">{p.set_name}</span>
+                        <span className="text-xs text-slate-400 uppercase">{p.set} #{p.collector_number}</span>
                       </span>
-                      {p.finishes?.includes('foil') && <span className="text-[10px] text-amber-300">foil</span>}
-                      <span className="text-xs text-emerald-400 w-16 text-right">
+                      {p.finishes?.includes('foil') && <span className="text-[10px] text-amber-300 shrink-0">foil</span>}
+                      <span className="text-xs text-emerald-400 w-16 text-right shrink-0">
                         {p.prices?.eur ? `${p.prices.eur} €` : '—'}
                       </span>
                     </button>
@@ -186,7 +186,7 @@ export default function CardSearch({ onAdded }) {
                 onChange={(e) => setForm({ ...form, condition: e.target.value })}
                 className="block rounded bg-slate-900 border border-slate-700 px-2 py-1 text-sm"
               >
-                {CONDITIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+                {CONDITIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
               </select>
             </label>
             <button type="button" onClick={add} className="rounded bg-indigo-600 hover:bg-indigo-500 px-4 py-1.5 text-sm">

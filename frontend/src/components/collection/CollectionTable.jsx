@@ -1,4 +1,5 @@
 import { useCardModal } from '../../stores/cardModal';
+import { CONDITION_LABEL } from '../../constants';
 
 const RARITY_COLORS = {
   common: 'text-slate-300',
@@ -56,7 +57,7 @@ export default function CollectionTable({ entries, onUpdateQty, onDelete }) {
                 />
               </td>
               <td className="p-2 hidden sm:table-cell text-slate-400">{e.finish}</td>
-              <td className="p-2 hidden md:table-cell text-slate-400">{e.condition}</td>
+              <td className="p-2 hidden md:table-cell text-slate-400">{CONDITION_LABEL[e.condition] || e.condition}</td>
               <td className="p-2 text-right text-slate-300">{e.unit_price_eur ?? '—'}</td>
               <td className="p-2 text-right text-emerald-400">{e.total_price_eur ?? '—'}</td>
               <td className="p-2 text-right">

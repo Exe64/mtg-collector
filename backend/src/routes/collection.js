@@ -10,7 +10,7 @@ const router = Router();
 router.use(requireAuth); // toutes les routes /api/collection sont protégées + isolées
 
 const FINISHES = ['nonfoil', 'foil', 'etched'];
-const CONDITIONS = ['NM', 'LP', 'MP', 'HP', 'DMG'];
+const CONDITIONS = ['MT', 'NM', 'EX', 'GD', 'LP', 'PL', 'PO'];
 const PATCHABLE = ['quantity', 'condition', 'notes', 'finish', 'language', 'acquired_price', 'acquired_at'];
 
 // GET /api/collection?page&pageSize&sort&order&q&set&color&type&rarity&condition&finish&language
@@ -38,6 +38,24 @@ router.get('/snapshots', async (req, res, next) => {
   try {
     const days = Math.min(Number(req.query.days) || 90, 365);
     res.json({ snapshots: await getSnapshots(req.user.id, days) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/collection/owned-by-set  → { ownedBySet: { <set_code>: nb cartes distinctes possédées } }
+router.get('/owned-by-set', async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `SELECT c.set_code, COUNT(DISTINCT c.scryfall_id)::int AS owned
+       FROM collection_entries e JOIN cards c ON c.id = e.card_id
+       WHERE e.user_id = $1 AND c.set_code IS NOT NULL
+       GROUP BY c.set_code`,
+      [req.user.id],
+    );
+    const ownedBySet = {};
+    for (const r of rows) ownedBySet[r.set_code] = r.owned;
+    res.json({ ownedBySet });
   } catch (err) {
     next(err);
   }

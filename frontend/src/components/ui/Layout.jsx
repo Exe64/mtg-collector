@@ -14,55 +14,57 @@ export default function Layout() {
   const logout = useAuth((s) => s.logout);
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col md:flex-row">
-      {/* Sidebar desktop */}
-      <aside className="hidden md:flex md:w-56 md:flex-col border-r border-slate-800 p-4">
-        <h1 className="text-lg font-bold mb-6">MTG Collection</h1>
-        <nav className="flex flex-col gap-1">
+    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col">
+      {/* Bannière + titre */}
+      <header>
+        <div
+          className="h-28 sm:h-36 bg-cover bg-center relative"
+          style={{ backgroundImage: 'url(/banner.png)' }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent flex items-end">
+            <h1 className="px-4 pb-3 text-2xl sm:text-3xl font-bold text-white drop-shadow-lg">
+              Magic Collection Manager
+            </h1>
+          </div>
+        </div>
+
+        {/* Menu horizontal */}
+        <nav className="bg-slate-800 border-b border-slate-700 flex items-stretch px-1 overflow-x-auto">
           {navItems.map((it) => (
             <NavLink
               key={it.to}
               to={it.to}
               end={it.end}
               className={({ isActive }) =>
-                `px-3 py-2 rounded-md text-sm ${isActive ? 'bg-slate-700' : 'hover:bg-slate-800'}`}
+                `flex items-center gap-1.5 px-3 sm:px-4 py-3 text-sm whitespace-nowrap border-b-2 ${
+                  isActive
+                    ? 'border-indigo-500 text-white'
+                    : 'border-transparent text-slate-300 hover:text-white hover:bg-slate-700/50'
+                }`}
             >
-              <span className="mr-2">{it.icon}</span>{it.label}
+              <span>{it.icon}</span>
+              <span>{it.label}</span>
             </NavLink>
           ))}
+          <div className="ml-auto flex items-center gap-3 pr-3 pl-4">
+            <span className="text-xs text-slate-400 hidden md:inline truncate max-w-[12rem]">
+              {user?.display_name || user?.email}
+            </span>
+            <button
+              type="button"
+              onClick={logout}
+              className="text-rose-400 hover:text-rose-300 text-sm whitespace-nowrap"
+            >
+              Déconnexion
+            </button>
+          </div>
         </nav>
-        <div className="mt-auto pt-4 text-sm text-slate-400">
-          <div className="truncate mb-2">{user?.display_name || user?.email}</div>
-          <button type="button" onClick={logout} className="text-rose-400 hover:text-rose-300">
-            Se déconnecter
-          </button>
-        </div>
-      </aside>
+      </header>
 
       {/* Contenu */}
-      <main className="flex-1 p-4 pb-20 md:pb-4 overflow-x-hidden">
+      <main className="flex-1 p-4">
         <Outlet />
       </main>
-
-      {/* Bottom nav mobile */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 bg-slate-800 border-t border-slate-700 flex">
-        {navItems.map((it) => (
-          <NavLink
-            key={it.to}
-            to={it.to}
-            end={it.end}
-            className={({ isActive }) =>
-              `flex-1 py-3 text-center text-xs ${isActive ? 'text-white' : 'text-slate-400'}`}
-          >
-            <div className="text-lg">{it.icon}</div>
-            {it.label}
-          </NavLink>
-        ))}
-        <button type="button" onClick={logout} className="flex-1 py-3 text-center text-xs text-rose-400">
-          <div className="text-lg">⎋</div>
-          Quitter
-        </button>
-      </nav>
 
       <CardModal />
     </div>

@@ -11,6 +11,10 @@ const LANG_LABEL = {
   en: 'English', fr: 'French', de: 'German', it: 'Italian', es: 'Spanish', pt: 'Portuguese',
   ja: 'Japanese', ko: 'Korean', ru: 'Russian', zhs: 'Chinese Simplified', zht: 'Chinese Traditional',
 };
+// Conditions Cardmarket -> codes Moxfield (M/NM/LP/MP/HP) pour l'export CSV.
+const COND_TO_MOXFIELD = {
+  MT: 'M', NM: 'NM', EX: 'LP', GD: 'MP', LP: 'LP', PL: 'MP', PO: 'HP',
+};
 const today = () => new Date().toISOString().slice(0, 10);
 
 async function fetchRows(userId) {
@@ -37,7 +41,7 @@ router.get('/csv', requireAuth, async (req, res, next) => {
     const rows = await fetchRows(req.user.id);
     const header = 'Count,Tradelist Count,Name,Edition,Condition,Language,Foil,Tags,Last Modified,Collector Number,Alter,Proxy,Purchase Price';
     const lines = rows.map((r) => [
-      r.quantity, '', r.name, (r.set_code || '').toUpperCase(), r.condition,
+      r.quantity, '', r.name, (r.set_code || '').toUpperCase(), COND_TO_MOXFIELD[r.condition] || 'NM',
       LANG_LABEL[r.language] || r.language,
       r.finish === 'nonfoil' ? '' : r.finish,
       '', '', r.collector_number, 'False', 'False',

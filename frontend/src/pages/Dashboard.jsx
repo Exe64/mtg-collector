@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import DonutChart from '../components/charts/DonutChart';
 import LineChart from '../components/charts/LineChart';
+import { CONDITION_ORDER, CONDITION_LABEL, CONDITION_COLOR } from '../constants';
 
 const COLOR_META = {
   W: { label: 'Blanc', color: '#e9e4b0' },
@@ -80,6 +81,13 @@ export default function Dashboard() {
     color: RARITY_META[r.bucket]?.color || '#64748b',
   }));
 
+  const conditionData = CONDITION_ORDER
+    .map((k) => {
+      const row = (stats.conditionBreakdown || []).find((r) => r.bucket === k);
+      return row ? { label: CONDITION_LABEL[k], value: row.count, color: CONDITION_COLOR[k] } : null;
+    })
+    .filter(Boolean);
+
   const points = snapshots.map((s) => ({ date: s.snapshot_date, value: s.total_value_eur }));
 
   return (
@@ -121,6 +129,10 @@ export default function Dashboard() {
         <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
           <h2 className="text-sm font-semibold text-slate-300 mb-3">Répartition par rareté</h2>
           <DonutChart data={rarityData} />
+        </section>
+        <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
+          <h2 className="text-sm font-semibold text-slate-300 mb-3">Répartition par état</h2>
+          <DonutChart data={conditionData} />
         </section>
       </div>
 

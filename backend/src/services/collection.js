@@ -155,6 +155,14 @@ export async function getStats(userId) {
     [userId],
   );
 
+  const conditions = await query(
+    `SELECT e.condition AS bucket, SUM(e.quantity)::int AS count
+     FROM collection_entries e
+     WHERE e.user_id = $1
+     GROUP BY e.condition`,
+    [userId],
+  );
+
   const t = totals.rows[0];
   return {
     totalValue: { eur: Number(t.total_value_eur), usd: Number(t.total_value_usd) },
@@ -164,5 +172,6 @@ export async function getStats(userId) {
     topCards: topCards.rows,
     colorBreakdown: colors.rows,
     rarityBreakdown: rarities.rows,
+    conditionBreakdown: conditions.rows,
   };
 }

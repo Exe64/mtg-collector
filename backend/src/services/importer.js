@@ -3,14 +3,19 @@ import * as scryfall from './scryfall.js';
 import { mapScryfallCard, upsertCard } from './cards.js';
 
 const CONDITION_MAP = {
-  M: 'NM', NM: 'NM', SP: 'LP', LP: 'LP', MP: 'MP', HP: 'HP', D: 'DMG', DMG: 'DMG', DAMAGED: 'DMG',
-  'NEAR MINT': 'NM', 'LIGHTLY PLAYED': 'LP', 'MODERATELY PLAYED': 'MP', 'HEAVILY PLAYED': 'HP',
+  M: 'MT', MT: 'MT', MINT: 'MT',
+  NM: 'NM', 'NEAR MINT': 'NM',
+  EX: 'EX', EXCELLENT: 'EX',
+  GD: 'GD', GOOD: 'GD',
+  SP: 'LP', LP: 'LP', 'LIGHT PLAYED': 'LP', 'LIGHTLY PLAYED': 'LP',
+  MP: 'PL', PL: 'PL', PLAYED: 'PL', 'MODERATELY PLAYED': 'PL',
+  HP: 'PO', PO: 'PO', POOR: 'PO', D: 'PO', DMG: 'PO', DAMAGED: 'PO', 'HEAVILY PLAYED': 'PO',
 };
 const LANG_MAP = {
   ENGLISH: 'en', FRENCH: 'fr', GERMAN: 'de', ITALIAN: 'it', SPANISH: 'es', PORTUGUESE: 'pt',
   JAPANESE: 'ja', KOREAN: 'ko', RUSSIAN: 'ru', 'CHINESE SIMPLIFIED': 'zhs', 'CHINESE TRADITIONAL': 'zht',
 };
-const VALID_CONDITIONS = ['NM', 'LP', 'MP', 'HP', 'DMG'];
+const VALID_CONDITIONS = ['MT', 'NM', 'EX', 'GD', 'LP', 'PL', 'PO'];
 
 // Lecteur insensible à la casse des en-têtes CSV.
 function pick(row, ...keys) {
