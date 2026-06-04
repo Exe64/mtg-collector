@@ -39,6 +39,31 @@ async function doFetch(path, attempt = 0) {
 
 const request = (path) => queue.add(() => doFetch(path));
 
+// POST (utilisé par /cards/collection pour la sync prix par lots de 75)
+async function doPost(path, body, attempt = 0) {
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'POST',
+    headers: { ...HEADERS, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (res.status === 429) {
+    if (attempt >= 4) throw Object.assign(new Error('Scryfall 429 (max retries)'), { status: 429 });
+    const retryAfter = Number(res.headers.get('retry-after')) || 0;
+    await sleep(retryAfter * 1000 || Math.min(2 ** attempt * 250, 4000));
+    return doPost(path, body, attempt + 1);
+  }
+  if (!res.ok) {
+    const t = await res.text();
+    throw Object.assign(new Error(`Scryfall ${res.status}: ${t.slice(0, 200)}`), { status: res.status });
+  }
+  return res.json();
+}
+
+/** POST /cards/collection — identifiers: [{ id }] (max 75). → { data[], not_found[] } */
+export function getCardsCollection(identifiers) {
+  return queue.add(() => doPost('/cards/collection', { identifiers }));
+}
+
 // --- Endpoints (§8.1) ------------------------------------------------------
 
 export function searchCards(query, page = 1) {

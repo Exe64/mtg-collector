@@ -6,6 +6,8 @@ import { redis } from './config/redis.js';
 import authRoutes from './routes/auth.js';
 import cardsRoutes from './routes/cards.js';
 import setsRoutes from './routes/sets.js';
+import collectionRoutes from './routes/collection.js';
+import { scheduleDailyJob } from './services/dailyJob.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -35,7 +37,8 @@ app.get('/api/health', async (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/cards', cardsRoutes);
 app.use('/api/sets', setsRoutes);
-// Sprints suivants : /api/collection, /api/import, /api/export
+app.use('/api/collection', collectionRoutes);
+// Sprints suivants : /api/import, /api/export
 
 // ---------------------------------------------------------------------------
 // Gestion d'erreurs centralisée
@@ -47,4 +50,5 @@ app.use((err, req, res, _next) => {
 
 app.listen(PORT, () => {
   console.log(`[backend] à l'écoute sur le port ${PORT}`);
+  scheduleDailyJob();
 });

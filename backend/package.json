@@ -10,7 +10,8 @@
     "migrate": "node-pg-migrate up -m migrations --no-check-order",
     "migrate:down": "node-pg-migrate down -m migrations",
     "migrate:create": "node-pg-migrate create -m migrations",
-    "sync:bulk": "node src/scripts/syncBulk.js"
+    "sync:bulk": "node src/scripts/syncBulk.js",
+    "job:daily": "node src/scripts/runDailyJob.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
