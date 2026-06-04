@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from '../../api/client';
 
-const FINISHES = ['nonfoil', 'foil', 'etched'];
 const CONDITIONS = ['NM', 'LP', 'MP', 'HP', 'DMG'];
 
 export default function CardSearch({ onAdded }) {
   const [q, setQ] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [selected, setSelected] = useState(null);
+  const [selected, setSelected] = useState(null); // carte de base (nom)
+  const [prints, setPrints] = useState([]); // toutes les éditions
+  const [printId, setPrintId] = useState(null); // édition choisie
   const [form, setForm] = useState({ quantity: 1, finish: 'nonfoil', condition: 'NM', language: 'en' });
   const [msg, setMsg] = useState(null);
   const timer = useRef(null);
@@ -30,16 +31,33 @@ export default function CardSearch({ onAdded }) {
     return () => clearTimeout(timer.current);
   }, [q]);
 
-  function pick(card) {
+  async function pick(card) {
     setSelected(card);
-    setForm({
-      quantity: 1,
-      finish: card.finishes?.includes('nonfoil') === false && card.finishes?.[0] ? card.finishes[0] : 'nonfoil',
-      condition: 'NM',
-      language: 'en',
-    });
+    setPrintId(card.scryfall_id);
+    setPrints([card]); // affichage immédiat avant chargement des éditions
+    setForm({ quantity: 1, finish: 'nonfoil', condition: 'NM', language: 'en' });
     setResults([]);
     setQ('');
+    try {
+      const data = await api(`/cards/prints?name=${encodeURIComponent(card.name)}`);
+      if (data.cards?.length) {
+        setPrints(data.cards);
+        // garde l'édition cliquée si présente, sinon la première
+        if (!data.cards.some((p) => p.scryfall_id === card.scryfall_id)) {
+          setPrintId(data.cards[0].scryfall_id);
+        }
+      }
+    } catch { /* on garde la carte de base */ }
+  }
+
+  const currentPrint = prints.find((p) => p.scryfall_id === printId) || selected;
+  const finishes = currentPrint?.finishes?.length ? currentPrint.finishes : ['nonfoil'];
+
+  function changePrint(id) {
+    setPrintId(id);
+    const p = prints.find((x) => x.scryfall_id === id);
+    const avail = p?.finishes?.length ? p.finishes : ['nonfoil'];
+    if (!avail.includes(form.finish)) setForm((f) => ({ ...f, finish: avail[0] }));
   }
 
   async function add() {
@@ -47,10 +65,11 @@ export default function CardSearch({ onAdded }) {
     try {
       await api('/collection', {
         method: 'POST',
-        body: { scryfall_id: selected.scryfall_id, ...form, quantity: Number(form.quantity) },
+        body: { scryfall_id: printId, ...form, quantity: Number(form.quantity) },
       });
-      setMsg(`✓ ${selected.name} ajoutée`);
+      setMsg(`✓ ${currentPrint.name} (${currentPrint.set?.toUpperCase()}) ajoutée`);
       setSelected(null);
+      setPrints([]);
       onAdded?.();
     } catch (err) {
       setMsg(err.message);
@@ -88,9 +107,28 @@ export default function CardSearch({ onAdded }) {
         </ul>
       )}
 
-      {selected && (
+      {selected && currentPrint && (
         <div className="mt-2 flex flex-wrap items-end gap-2 bg-slate-800 border border-slate-700 rounded-md p-3">
-          <div className="flex-1 min-w-[8rem] text-sm font-medium">{selected.name}</div>
+          <div className="flex-1 min-w-[8rem] text-sm font-medium">
+            {currentPrint.name}
+            <span className="ml-2 text-xs text-emerald-400">
+              {currentPrint.prices?.[form.finish === 'foil' ? 'eur_foil' : 'eur'] ?? currentPrint.prices?.eur ?? '—'} €
+            </span>
+          </div>
+          <label className="text-xs text-slate-400">
+            Édition
+            <select
+              value={printId}
+              onChange={(e) => changePrint(e.target.value)}
+              className="block max-w-[12rem] rounded bg-slate-900 border border-slate-700 px-2 py-1 text-sm"
+            >
+              {prints.map((p) => (
+                <option key={p.scryfall_id} value={p.scryfall_id}>
+                  {p.set?.toUpperCase()} #{p.collector_number}
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="text-xs text-slate-400">
             Qté
             <input
@@ -106,7 +144,7 @@ export default function CardSearch({ onAdded }) {
               onChange={(e) => setForm({ ...form, finish: e.target.value })}
               className="block rounded bg-slate-900 border border-slate-700 px-2 py-1 text-sm"
             >
-              {FINISHES.map((f) => <option key={f} value={f}>{f}</option>)}
+              {finishes.map((f) => <option key={f} value={f}>{f}</option>)}
             </select>
           </label>
           <label className="text-xs text-slate-400">
@@ -122,7 +160,7 @@ export default function CardSearch({ onAdded }) {
           <button type="button" onClick={add} className="rounded bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 text-sm">
             Ajouter
           </button>
-          <button type="button" onClick={() => setSelected(null)} className="text-slate-400 text-sm px-2">
+          <button type="button" onClick={() => { setSelected(null); setPrints([]); }} className="text-slate-400 text-sm px-2">
             Annuler
           </button>
         </div>

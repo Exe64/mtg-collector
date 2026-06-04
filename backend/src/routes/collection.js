@@ -43,6 +43,70 @@ router.get('/snapshots', async (req, res, next) => {
   }
 });
 
+// GET /api/collection/owned?set=CODE  → { owned: { <scryfall_id>: quantité } }
+router.get('/owned', async (req, res, next) => {
+  try {
+    const params = [req.user.id];
+    let setCond = '';
+    if (req.query.set) {
+      params.push(req.query.set);
+      setCond = `AND c.set_code = $${params.length}`;
+    }
+    const { rows } = await query(
+      `SELECT c.scryfall_id, SUM(e.quantity)::int AS quantity
+       FROM collection_entries e JOIN cards c ON c.id = e.card_id
+       WHERE e.user_id = $1 ${setCond}
+       GROUP BY c.scryfall_id`,
+      params,
+    );
+    const owned = {};
+    for (const r of rows) owned[r.scryfall_id] = r.quantity;
+    res.json({ owned });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/collection/adjust  (+/- rapide sur la variante par défaut nonfoil/NM/en)
+router.post('/adjust', async (req, res, next) => {
+  try {
+    const { scryfall_id, delta = 1, finish = 'nonfoil', condition = 'NM', language = 'en' } = req.body || {};
+    if (!scryfall_id) return res.status(400).json({ error: 'scryfall_id requis' });
+    const d = Number(delta);
+    if (!Number.isInteger(d) || d === 0) return res.status(400).json({ error: 'delta invalide' });
+
+    const card = await ensureCard(scryfall_id);
+    if (!card) return res.status(404).json({ error: 'Carte introuvable' });
+
+    const cur = await query(
+      `SELECT id, quantity FROM collection_entries
+       WHERE user_id = $1 AND card_id = $2 AND finish = $3 AND condition = $4 AND language = $5`,
+      [req.user.id, card.id, finish, condition, language],
+    );
+    const row = cur.rows[0];
+
+    if (!row) {
+      if (d <= 0) return res.json({ quantity: 0 });
+      const ins = await query(
+        `INSERT INTO collection_entries (user_id, card_id, quantity, finish, condition, language)
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING quantity`,
+        [req.user.id, card.id, d, finish, condition, language],
+      );
+      return res.json({ quantity: ins.rows[0].quantity });
+    }
+
+    const next = row.quantity + d;
+    if (next <= 0) {
+      await query('DELETE FROM collection_entries WHERE id = $1', [row.id]);
+      return res.json({ quantity: 0 });
+    }
+    await query('UPDATE collection_entries SET quantity = $1 WHERE id = $2', [next, row.id]);
+    return res.json({ quantity: next });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // POST /api/collection  (lazy upsert de la carte + ajout/incrément de l'entrée)
 router.post('/', async (req, res, next) => {
   try {

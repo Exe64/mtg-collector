@@ -31,6 +31,19 @@ router.get('/search', requireAuth, async (req, res, next) => {
   }
 });
 
+// GET /api/cards/prints?name=...   (toutes les éditions d'une carte)
+router.get('/prints', requireAuth, async (req, res, next) => {
+  try {
+    const name = String(req.query.name || '').trim();
+    if (!name) return res.json({ cards: [] });
+    const key = `scry:prints:${name.toLowerCase()}`;
+    const data = await cached(key, 21600, () => scryfall.searchPrints(name));
+    res.json({ cards: (data?.data || []).map(toClientCard) });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/cards/:scryfallId   (détail, DB-first + lazy upsert)
 router.get('/:scryfallId', requireAuth, async (req, res, next) => {
   try {

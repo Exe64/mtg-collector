@@ -75,6 +75,12 @@ export function getCard(scryfallId) {
   return request(`/cards/${encodeURIComponent(scryfallId)}`);
 }
 
+/** Toutes les impressions (éditions) d'une carte par nom exact, triées par date. */
+export function searchPrints(name) {
+  const q = encodeURIComponent(`!"${name}"`);
+  return request(`/cards/search?q=${q}&unique=prints&order=released&dir=asc`);
+}
+
 export function getSets() {
   return request('/sets');
 }
