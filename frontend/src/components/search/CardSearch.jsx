@@ -97,7 +97,7 @@ export default function CardSearch({ onAdded }) {
               >
                 {c.image_small && <img src={c.image_small} alt="" className="w-8 rounded-sm" />}
                 <span className="flex-1 text-sm">{c.name}</span>
-                <span className="text-xs text-slate-400 uppercase">{c.set}</span>
+                <span className="text-xs text-slate-400 uppercase whitespace-nowrap">{c.set} #{c.collector_number}</span>
                 <span className="text-xs text-emerald-400 w-14 text-right">
                   {c.prices?.eur ? `${c.prices.eur} €` : '—'}
                 </span>

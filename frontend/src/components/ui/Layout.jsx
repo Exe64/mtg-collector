@@ -2,9 +2,10 @@ import { Outlet, NavLink } from 'react-router-dom';
 import { useAuth } from '../../stores/auth';
 
 const navItems = [
-  { to: '/', label: 'Collection', icon: '🗂️', end: true },
-  { to: '/dashboard', label: 'Tableau de bord', icon: '📊', end: false },
+  { to: '/', label: 'Tableau de bord', icon: '📊', end: true },
+  { to: '/collection', label: 'Collection', icon: '🗂️', end: false },
   { to: '/sets', label: 'Extensions', icon: '📚', end: false },
+  { to: '/import', label: 'Import/Export', icon: '📥', end: false },
 ];
 
 export default function Layout() {

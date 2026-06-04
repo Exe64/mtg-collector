@@ -66,9 +66,9 @@ export function getCardsCollection(identifiers) {
 
 // --- Endpoints (§8.1) ------------------------------------------------------
 
-export function searchCards(query, page = 1) {
+export function searchCards(query, page = 1, { unique = 'cards', order = 'name', dir = 'auto' } = {}) {
   const q = encodeURIComponent(query);
-  return request(`/cards/search?q=${q}&unique=cards&order=name&page=${page}`);
+  return request(`/cards/search?q=${q}&unique=${unique}&order=${order}&dir=${dir}&page=${page}`);
 }
 
 export function getCard(scryfallId) {
@@ -79,6 +79,11 @@ export function getCard(scryfallId) {
 export function searchPrints(name) {
   const q = encodeURIComponent(`!"${name}"`);
   return request(`/cards/search?q=${q}&unique=prints&order=released&dir=asc`);
+}
+
+/** Résolution précise par set + numéro de collecteur (null si 404). */
+export function getCardBySetNumber(set, number) {
+  return request(`/cards/${encodeURIComponent(set.toLowerCase())}/${encodeURIComponent(number)}`);
 }
 
 export function getSets() {

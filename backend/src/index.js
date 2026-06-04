@@ -7,6 +7,8 @@ import authRoutes from './routes/auth.js';
 import cardsRoutes from './routes/cards.js';
 import setsRoutes from './routes/sets.js';
 import collectionRoutes from './routes/collection.js';
+import importRoutes from './routes/import.js';
+import exportRoutes from './routes/export.js';
 import { scheduleDailyJob } from './services/dailyJob.js';
 
 const app = express();
@@ -38,7 +40,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/cards', cardsRoutes);
 app.use('/api/sets', setsRoutes);
 app.use('/api/collection', collectionRoutes);
-// Sprints suivants : /api/import, /api/export
+app.use('/api/import', importRoutes);
+app.use('/api/export', exportRoutes);
 
 // ---------------------------------------------------------------------------
 // Gestion d'erreurs centralisée

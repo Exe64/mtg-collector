@@ -9,6 +9,7 @@ import Collection from './pages/Collection';
 import Dashboard from './pages/Dashboard';
 import Sets from './pages/Sets';
 import SetDetail from './pages/SetDetail';
+import ImportExport from './pages/ImportExport';
 
 function Protected({ children }) {
   const status = useAuth((s) => s.status);
@@ -39,10 +40,11 @@ export default function App() {
           </Protected>
         )}
       >
-        <Route index element={<Collection />} />
-        <Route path="dashboard" element={<Dashboard />} />
+        <Route index element={<Dashboard />} />
+        <Route path="collection" element={<Collection />} />
         <Route path="sets" element={<Sets />} />
         <Route path="sets/:code" element={<SetDetail />} />
+        <Route path="import" element={<ImportExport />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -16,8 +16,10 @@ router.get('/search', requireAuth, async (req, res, next) => {
     scryQuery = scryQuery.trim();
     if (!scryQuery) return res.json({ cards: [], total: 0, page: 1, hasMore: false });
 
-    const key = `scry:search:${scryQuery}:${page}`;
-    const data = await cached(key, 3600, () => scryfall.searchCards(scryQuery, page));
+    // unique=prints : remonte TOUTES les éditions/versions de chaque carte (récentes d'abord)
+    const key = `scry:search:prints:${scryQuery}:${page}`;
+    const data = await cached(key, 3600, () =>
+      scryfall.searchCards(scryQuery, page, { unique: 'prints', order: 'released', dir: 'desc' }));
     if (!data) return res.json({ cards: [], total: 0, page: Number(page), hasMore: false });
 
     res.json({
