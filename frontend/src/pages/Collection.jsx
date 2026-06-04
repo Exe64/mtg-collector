@@ -1,20 +1,22 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '../api/client';
-import CardSearch from '../components/search/CardSearch';
 import CollectionTable from '../components/collection/CollectionTable';
 
 export default function Collection() {
   const [data, setData] = useState({ entries: [], total: 0, stats: null });
+  const [q, setQ] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [grouped, setGrouped] = useState(true);
   const [collapsed, setCollapsed] = useState({});
 
-  const reload = useCallback(async () => {
+  const load = useCallback(async (search) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await api('/collection?sort=value&order=desc&pageSize=200');
+      const params = new URLSearchParams({ sort: 'value', order: 'desc', pageSize: '200' });
+      if (search) params.set('q', search);
+      const res = await api(`/collection?${params.toString()}`);
       setData(res);
     } catch (err) {
       setError(err.message);
@@ -23,16 +25,20 @@ export default function Collection() {
     }
   }, []);
 
-  useEffect(() => { reload(); }, [reload]);
+  // Recherche locale avec debounce
+  useEffect(() => {
+    const t = setTimeout(() => load(q.trim()), 300);
+    return () => clearTimeout(t);
+  }, [q, load]);
 
   async function updateQty(id, quantity) {
     await api(`/collection/${id}`, { method: 'PATCH', body: { quantity } });
-    reload();
+    load(q.trim());
   }
 
   async function remove(id) {
     await api(`/collection/${id}`, { method: 'DELETE' });
-    reload();
+    load(q.trim());
   }
 
   const groups = useMemo(() => {
@@ -61,7 +67,21 @@ export default function Collection() {
         )}
       </header>
 
-      <CardSearch onAdded={reload} />
+      <div className="relative mb-3">
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Rechercher dans ma collection…"
+          className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm"
+        />
+        {q && (
+          <button
+            type="button"
+            onClick={() => setQ('')}
+            className="absolute right-2 top-2 text-slate-500 hover:text-slate-300 text-sm"
+          >✕</button>
+        )}
+      </div>
 
       <label className="flex items-center gap-2 text-xs text-slate-400 mb-3">
         <input type="checkbox" checked={grouped} onChange={(e) => setGrouped(e.target.checked)} />
@@ -72,6 +92,10 @@ export default function Collection() {
 
       {loading ? (
         <div className="text-center text-slate-500 py-12">Chargement…</div>
+      ) : data.entries.length === 0 ? (
+        <div className="text-center text-slate-500 py-12">
+          {q ? 'Aucune carte ne correspond à cette recherche.' : 'Aucune carte. Va dans « Ajouter » pour commencer.'}
+        </div>
       ) : !grouped ? (
         <CollectionTable entries={data.entries} onUpdateQty={updateQty} onDelete={remove} />
       ) : (
@@ -99,9 +123,6 @@ export default function Collection() {
               </section>
             );
           })}
-          {!groups.length && (
-            <div className="text-center text-slate-500 py-12">Aucune carte. Cherche une carte ci-dessus pour commencer.</div>
-          )}
         </div>
       )}
     </div>

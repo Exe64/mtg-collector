@@ -163,6 +163,27 @@ export async function getStats(userId) {
     [userId],
   );
 
+  // Type principal (ordre de priorité : terrain > créature > planeswalker > …)
+  const types = await query(
+    `SELECT CASE
+              WHEN c.type_line ILIKE '%land%'         THEN 'Terrain'
+              WHEN c.type_line ILIKE '%creature%'     THEN 'Créature'
+              WHEN c.type_line ILIKE '%planeswalker%' THEN 'Planeswalker'
+              WHEN c.type_line ILIKE '%battle%'       THEN 'Bataille'
+              WHEN c.type_line ILIKE '%instant%'      THEN 'Éphémère'
+              WHEN c.type_line ILIKE '%sorcery%'      THEN 'Rituel'
+              WHEN c.type_line ILIKE '%artifact%'     THEN 'Artefact'
+              WHEN c.type_line ILIKE '%enchantment%'  THEN 'Enchantement'
+              ELSE 'Autre'
+            END AS bucket,
+            SUM(e.quantity)::int AS count
+     FROM collection_entries e JOIN cards c ON c.id = e.card_id
+     WHERE e.user_id = $1
+     GROUP BY bucket
+     ORDER BY count DESC`,
+    [userId],
+  );
+
   const t = totals.rows[0];
   return {
     totalValue: { eur: Number(t.total_value_eur), usd: Number(t.total_value_usd) },
@@ -173,5 +194,6 @@ export async function getStats(userId) {
     colorBreakdown: colors.rows,
     rarityBreakdown: rarities.rows,
     conditionBreakdown: conditions.rows,
+    typeBreakdown: types.rows,
   };
 }

@@ -5,6 +5,7 @@ import CardModal from './CardModal';
 const navItems = [
   { to: '/', label: 'Tableau de bord', icon: '📊', end: true },
   { to: '/collection', label: 'Collection', icon: '🗂️', end: false },
+  { to: '/add', label: 'Ajouter', icon: '➕', end: false },
   { to: '/sets', label: 'Extensions', icon: '📚', end: false },
   { to: '/import', label: 'Import/Export', icon: '📥', end: false },
 ];

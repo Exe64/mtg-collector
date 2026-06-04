@@ -24,6 +24,18 @@ const RARITY_META = {
   bonus: { label: 'Bonus', color: '#a855f7' },
 };
 
+const TYPE_COLORS = {
+  Terrain: '#a16207',
+  Créature: '#22c55e',
+  Planeswalker: '#a855f7',
+  Bataille: '#dc2626',
+  Éphémère: '#3b82f6',
+  Rituel: '#ef4444',
+  Artefact: '#94a3b8',
+  Enchantement: '#eab308',
+  Autre: '#64748b',
+};
+
 const PERIODS = [
   { days: 30, label: '30 j' },
   { days: 90, label: '90 j' },
@@ -88,6 +100,12 @@ export default function Dashboard() {
     })
     .filter(Boolean);
 
+  const typeData = (stats.typeBreakdown || []).map((r) => ({
+    label: r.bucket,
+    value: r.count,
+    color: TYPE_COLORS[r.bucket] || '#64748b',
+  }));
+
   const points = snapshots.map((s) => ({ date: s.snapshot_date, value: s.total_value_eur }));
 
   return (
@@ -133,6 +151,10 @@ export default function Dashboard() {
         <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
           <h2 className="text-sm font-semibold text-slate-300 mb-3">Répartition par état</h2>
           <DonutChart data={conditionData} />
+        </section>
+        <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
+          <h2 className="text-sm font-semibold text-slate-300 mb-3">Répartition par type</h2>
+          <DonutChart data={typeData} />
         </section>
       </div>
 

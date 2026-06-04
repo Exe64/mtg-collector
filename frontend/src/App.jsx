@@ -6,6 +6,7 @@ import Layout from './components/ui/Layout';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Collection from './pages/Collection';
+import Add from './pages/Add';
 import Dashboard from './pages/Dashboard';
 import Sets from './pages/Sets';
 import SetDetail from './pages/SetDetail';
@@ -42,6 +43,7 @@ export default function App() {
       >
         <Route index element={<Dashboard />} />
         <Route path="collection" element={<Collection />} />
+        <Route path="add" element={<Add />} />
         <Route path="sets" element={<Sets />} />
         <Route path="sets/:code" element={<SetDetail />} />
         <Route path="import" element={<ImportExport />} />
