@@ -3,6 +3,7 @@ import { useAuth } from '../../stores/auth';
 
 const navItems = [
   { to: '/', label: 'Collection', icon: '🗂️', end: true },
+  { to: '/dashboard', label: 'Tableau de bord', icon: '📊', end: false },
   { to: '/sets', label: 'Extensions', icon: '📚', end: false },
 ];
 
