@@ -12,6 +12,7 @@ import setsRoutes from './routes/sets.js';
 import collectionRoutes from './routes/collection.js';
 import importRoutes from './routes/import.js';
 import exportRoutes from './routes/export.js';
+import wishlistRoutes from './routes/wishlist.js';
 import { scheduleDailyJob } from './services/dailyJob.js';
 
 const app = express();
@@ -50,6 +51,7 @@ app.use('/api/sets', setsRoutes);
 app.use('/api/collection', collectionRoutes);
 app.use('/api/import', importRoutes);
 app.use('/api/export', exportRoutes);
+app.use('/api/wishlist', wishlistRoutes);
 
 // 404 pour les routes /api inconnues
 app.use('/api', (req, res) => {

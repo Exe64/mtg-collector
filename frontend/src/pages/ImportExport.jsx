@@ -8,6 +8,7 @@ export default function ImportExport() {
   const [location, setLocation] = useState('');
   const [busy, setBusy] = useState(false);
   const [report, setReport] = useState(null);
+  const [preview2, setPreview2] = useState(null);
   const [error, setError] = useState(null);
 
   async function onFile(f) {
@@ -20,18 +21,19 @@ export default function ImportExport() {
     setPreview({ header: lines[0], rows: lines.length - 1, sample: lines.slice(1, 4) });
   }
 
-  async function doImport() {
+  async function doImport(dryRun = false) {
     if (!file) return;
     setBusy(true);
     setError(null);
-    setReport(null);
+    if (dryRun) setReport(null); else setPreview2(null);
     try {
       const fd = new FormData();
       fd.append('file', file);
       fd.append('mode', mode);
       if (location.trim()) fd.append('location', location.trim());
+      if (dryRun) fd.append('dryRun', '1');
       const res = await api('/import/csv', { method: 'POST', body: fd });
-      setReport(res);
+      if (dryRun) setPreview2(res); else { setReport(res); setPreview2(null); }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -96,10 +98,26 @@ export default function ImportExport() {
           />
         </label>
 
-        <button type="button" onClick={doImport} disabled={!file || busy}
-          className="rounded-md bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 px-4 py-2 text-sm">
-          {busy ? 'Import en cours…' : 'Importer'}
-        </button>
+        <div className="flex gap-2">
+          <button type="button" onClick={() => doImport(true)} disabled={!file || busy}
+            className="rounded-md bg-slate-700 hover:bg-slate-600 disabled:opacity-50 px-4 py-2 text-sm">
+            Prévisualiser
+          </button>
+          <button type="button" onClick={() => doImport(false)} disabled={!file || busy}
+            className="rounded-md bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 px-4 py-2 text-sm">
+            {busy ? '…' : 'Importer'}
+          </button>
+        </div>
+
+        {preview2 && (
+          <div className="text-sm bg-slate-900 rounded p-3 space-y-1">
+            <div className="text-slate-300 font-medium">Aperçu (rien n'a été importé)</div>
+            <div className="text-emerald-400">{preview2.resolvedLocally} résolues localement (rapides)</div>
+            {preview2.needsScryfall > 0 && <div className="text-amber-400">{preview2.needsScryfall} nécessiteront un appel Scryfall (plus lent)</div>}
+            {preview2.invalid > 0 && <div className="text-rose-400">{preview2.invalid} ligne(s) invalide(s)</div>}
+            <div className="text-xs text-slate-500">Total : {preview2.total} lignes</div>
+          </div>
+        )}
 
         {report && (
           <div className="text-sm bg-slate-900 rounded p-3 space-y-2">

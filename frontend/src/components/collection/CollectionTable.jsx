@@ -39,12 +39,14 @@ function Th({ col, label, align = 'left', extra = '', sort, order, onSort }) {
   );
 }
 
-export default function CollectionTable({ entries, onUpdate, onDelete, onEdit, sort, order, onSort }) {
+export default function CollectionTable({ entries, onUpdate, onDelete, onEdit, sort, order, onSort, selected, onToggleSelect, onSetMany }) {
   const openCard = useCardModal((s) => s.open);
 
   if (!entries.length) {
     return <div className="text-center text-slate-500 py-12">Aucune carte.</div>;
   }
+
+  const allSelected = selected && entries.every((e) => selected.has(e.id));
 
   return (
     <>
@@ -53,6 +55,7 @@ export default function CollectionTable({ entries, onUpdate, onDelete, onEdit, s
         {entries.map((e) => (
           <li key={e.id} className="bg-slate-800 border border-slate-700 rounded-lg p-2">
             <div className="flex items-center gap-2">
+              {selected && <input type="checkbox" checked={selected.has(e.id)} onChange={() => onToggleSelect(e.id)} aria-label="Sélectionner" />}
               <button type="button" onClick={() => openCard(e.card.scryfall_id)} className="flex items-center gap-2 min-w-0 flex-1 text-left">
                 {e.card.image_small && <img src={e.card.image_small} alt="" className="w-9 rounded-sm shrink-0" />}
                 <span className="min-w-0">
@@ -86,6 +89,12 @@ export default function CollectionTable({ entries, onUpdate, onDelete, onEdit, s
         <table className="w-full text-sm table-fixed">
           <thead className="bg-slate-800 text-slate-400 text-xs uppercase">
             <tr>
+              {selected && (
+                <th className="p-2 w-8">
+                  <input type="checkbox" checked={allSelected}
+                    onChange={() => onSetMany(entries.map((e) => e.id), !allSelected)} aria-label="Tout sélectionner" />
+                </th>
+              )}
               <Th col="name" label="Carte" sort={sort} order={order} onSort={onSort} />
               <Th col="set" label="Ext." extra="w-16 hidden sm:table-cell" sort={sort} order={order} onSort={onSort} />
               <Th col="rarity" label="Rareté" extra="w-28 hidden md:table-cell" sort={sort} order={order} onSort={onSort} />
@@ -100,6 +109,11 @@ export default function CollectionTable({ entries, onUpdate, onDelete, onEdit, s
           <tbody>
             {entries.map((e) => (
               <tr key={e.id} className="border-t border-slate-800 hover:bg-slate-800/50">
+                {selected && (
+                  <td className="p-2">
+                    <input type="checkbox" checked={selected.has(e.id)} onChange={() => onToggleSelect(e.id)} aria-label="Sélectionner" />
+                  </td>
+                )}
                 <td className="p-2">
                   <button type="button" onClick={() => openCard(e.card.scryfall_id)}
                     className="flex items-center gap-2 text-left hover:text-indigo-300 w-full min-w-0">

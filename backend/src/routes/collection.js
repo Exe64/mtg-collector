@@ -3,10 +3,10 @@ import { Router } from 'express';
 import { query } from '../config/db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
-import { collectionAddSchema, collectionAdjustSchema, collectionPatchSchema } from '../validation/schemas.js';
+import { collectionAddSchema, collectionAdjustSchema, collectionPatchSchema, collectionBulkSchema } from '../validation/schemas.js';
 import { ensureCard } from '../services/cards.js';
 import { getCollection, getCollectionTotals, getStats, getSpikes } from '../services/collection.js';
-import { getSnapshots } from '../services/snapshots.js';
+import { getSnapshots, getSetSnapshots } from '../services/snapshots.js';
 
 const router = Router();
 router.use(requireAuth); // toutes les routes /api/collection sont protégées + isolées
@@ -49,6 +49,17 @@ router.get('/snapshots', async (req, res, next) => {
   try {
     const days = Math.min(Number(req.query.days) || 90, 365);
     res.json({ snapshots: await getSnapshots(req.user.id, days) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/collection/set-snapshots?set=CODE&days=90  (courbe de valeur d'une édition)
+router.get('/set-snapshots', async (req, res, next) => {
+  try {
+    if (!req.query.set) return res.json({ snapshots: [] });
+    const days = Math.min(Number(req.query.days) || 90, 365);
+    res.json({ snapshots: await getSetSnapshots(req.user.id, req.query.set, days) });
   } catch (err) {
     next(err);
   }
@@ -165,6 +176,33 @@ router.post('/', validateBody(collectionAddSchema), async (req, res, next) => {
       [req.user.id, card.id, qty, fin, condition, language, location, acquired_price ?? null, notes ?? null],
     );
     res.status(201).json({ entry: rows[0] });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/collection/bulk  (édition en masse d'une sélection)
+router.post('/bulk', validateBody(collectionBulkSchema), async (req, res, next) => {
+  try {
+    const { ids, patch } = req.body;
+    const cols = Object.keys(patch);
+    const setSql = cols.map((c, i) => `${c} = $${i + 1}`).join(', ');
+    const baseParams = cols.map((c) => patch[c]);
+    let updated = 0;
+    let conflicts = 0;
+    for (const id of ids) {
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        const { rowCount } = await query(
+          `UPDATE collection_entries SET ${setSql} WHERE id = $${cols.length + 1} AND user_id = $${cols.length + 2}`,
+          [...baseParams, id, req.user.id],
+        );
+        updated += rowCount;
+      } catch (e) {
+        if (e.code === '23505') conflicts += 1; else throw e;
+      }
+    }
+    res.json({ updated, conflicts });
   } catch (err) {
     next(err);
   }

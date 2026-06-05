@@ -218,12 +218,50 @@ export async function getStats(userId) {
     [userId],
   );
 
+  // Plus-value : valeur de marché vs prix d'achat (cartes avec un prix d'achat renseigné)
+  const profit = await query(
+    `SELECT COALESCE(SUM(e.acquired_price * e.quantity), 0)::numeric(14,2) AS acquired_total,
+            COALESCE(SUM(((${UNIT_EUR}) * e.quantity)) FILTER (WHERE e.acquired_price IS NOT NULL), 0)::numeric(14,2) AS market_priced,
+            COUNT(*) FILTER (WHERE e.acquired_price IS NOT NULL)::int AS priced_count
+     FROM collection_entries e JOIN cards c ON c.id = e.card_id
+     WHERE e.user_id = $1`,
+    [userId],
+  );
+  const moversSelect = `SELECT c.scryfall_id, c.name, c.set_code, c.image_uri_small, e.quantity,
+            e.acquired_price, (${UNIT_EUR})::numeric(10,2) AS unit_eur,
+            (((${UNIT_EUR}) - e.acquired_price) * e.quantity)::numeric(12,2) AS gain
+     FROM collection_entries e JOIN cards c ON c.id = e.card_id
+     WHERE e.user_id = $1 AND e.acquired_price IS NOT NULL AND (${UNIT_EUR}) IS NOT NULL`;
+  const gainers = await query(`${moversSelect} ORDER BY gain DESC NULLS LAST LIMIT 5`, [userId]);
+  const losers = await query(`${moversSelect} AND (((${UNIT_EUR}) - e.acquired_price)) < 0 ORDER BY gain ASC LIMIT 5`, [userId]);
+
+  const p = profit.rows[0];
+  const acquired = Number(p.acquired_total);
+  const market = Number(p.market_priced);
+  const profitability = {
+    acquiredTotal: acquired,
+    marketValue: market,
+    gain: Number((market - acquired).toFixed(2)),
+    gainPct: acquired > 0 ? Number((((market - acquired) / acquired) * 100).toFixed(1)) : null,
+    pricedCount: p.priced_count,
+    topGainers: gainers.rows,
+    topLosers: losers.rows,
+  };
+
+  const freshness = await query(
+    `SELECT MAX(c.updated_at) AS prices_updated_at
+     FROM collection_entries e JOIN cards c ON c.id = e.card_id WHERE e.user_id = $1`,
+    [userId],
+  );
+
   const t = totals.rows[0];
   return {
+    pricesUpdatedAt: freshness.rows[0].prices_updated_at,
     totalValue: { eur: Number(t.total_value_eur), usd: Number(t.total_value_usd) },
     cardCount: t.card_count,
     uniqueCardCount: t.unique_card_count,
     setCount: t.set_count,
+    profitability,
     topCards: topCards.rows,
     colorBreakdown: colors.rows,
     rarityBreakdown: rarities.rows,

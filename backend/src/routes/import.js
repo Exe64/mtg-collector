@@ -3,7 +3,7 @@ import multer from 'multer';
 import { parse } from 'csv-parse/sync';
 
 import { requireAuth } from '../middleware/auth.js';
-import { importCsv } from '../services/importer.js';
+import { importCsv, dryRunImport } from '../services/importer.js';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
@@ -26,6 +26,10 @@ router.post('/csv', requireAuth, upload.single('file'), async (req, res, next) =
       });
     } catch (e) {
       return res.status(400).json({ error: `CSV illisible : ${e.message}` });
+    }
+
+    if (req.body.dryRun === 'true' || req.body.dryRun === '1') {
+      return res.json({ dryRun: true, ...(await dryRunImport(rows)) });
     }
 
     const report = await importCsv(req.user.id, rows, mode, location);

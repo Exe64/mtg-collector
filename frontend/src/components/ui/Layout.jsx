@@ -7,6 +7,7 @@ const navItems = [
   { to: '/collection', label: 'Collection', short: 'Collec', icon: '🗂️', end: false },
   { to: '/add', label: 'Ajouter', short: 'Ajouter', icon: '➕', end: false },
   { to: '/sets', label: 'Extensions', short: 'Sets', icon: '📚', end: false },
+  { to: '/wishlist', label: 'Wishlist', short: 'Wishlist', icon: '★', end: false },
   { to: '/import', label: 'Import/Export', short: 'Import', icon: '📥', end: false },
 ];
 

@@ -40,7 +40,9 @@ Mot de passe : ≥ 8 caractères, 1 majuscule, 1 chiffre. Rate limit : 10 req / 
 | GET | `/api/collection/locations` | — | `{ locations[] }` (emplacements physiques distincts) |
 | GET | `/api/collection/stats` | — | `{ totalValue, cardCount, uniqueCardCount, setCount, topCards[], colorBreakdown, rarityBreakdown, conditionBreakdown, typeBreakdown }` |
 | GET | `/api/collection/snapshots` | `days?` | `{ snapshots[] }` |
+| GET | `/api/collection/set-snapshots` | `set, days?` | `{ snapshots[] }` (courbe de valeur d'une édition) |
 | GET | `/api/collection/spikes` | `days?=7, threshold?=20` | `{ spikes[] }` (variations de prix marquantes des cartes possédées) |
+| POST | `/api/collection/bulk` | `{ ids[], patch:{ finish?, condition?, language?, location? } }` | `{ updated, conflicts }` |
 | GET | `/api/collection/owned-by-set` | — | `{ ownedBySet: { code: nb } }` |
 | GET | `/api/collection/owned` | `set?` | `{ owned: { scryfall_id: qté } }` |
 | POST | `/api/collection` | `{ scryfall_id, quantity, finish, condition, language, acquired_price?, notes? }` | `{ entry }` (incrément sur conflit) |
@@ -54,7 +56,14 @@ Conditions : `MT, NM, EX, GD, LP, PL, PO`. Finitions : `nonfoil, foil, etched`.
 ## Import / Export
 | Méthode | Route | Corps | Réponse |
 |---|---|---|---|
-| POST | `/api/import/csv` | `multipart: file, mode=merge\|replace, location?` | `{ imported, skipped, errors[] }` |
+| POST | `/api/import/csv` | `multipart: file, mode=merge\|replace, location?, dryRun?` | `{ imported, skipped, errors[] }` ou `{ dryRun, total, resolvedLocally, needsScryfall, invalid, samples }` |
+
+## Wishlist
+| Méthode | Route | Corps | Réponse |
+|---|---|---|---|
+| GET | `/api/wishlist` | — | `{ items[], totalEur }` |
+| POST | `/api/wishlist` | `{ scryfall_id, note? }` | `{ id }` |
+| DELETE | `/api/wishlist/:id` | — | `204` |
 | GET | `/api/export/csv` | — | CSV Moxfield |
 | GET | `/api/export/sell.csv` | — | CSV de mise en vente (prix trend EUR, conditions Cardmarket) |
 | GET | `/api/export/pdf` | — | PDF de valorisation (inventaire daté, pour assurance) |

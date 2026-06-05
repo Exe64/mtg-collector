@@ -19,6 +19,7 @@ const COLOR_OPTIONS = [
 const CMC_OPTIONS = [['', 'Coût'], ['0', '0'], ['1', '1'], ['2', '2'], ['3', '3'], ['4', '4'], ['5', '5'], ['6', '6'], ['7+', '7+']];
 
 const EMPTY_FILTERS = { type: '', rarity: '', color: '', cmc: '', condition: '', location: '' };
+const FINISHES = ['nonfoil', 'foil', 'etched'];
 const PAGE_SIZE = 100;
 
 export default function Collection() {
@@ -35,6 +36,8 @@ export default function Collection() {
   const [collapsed, setCollapsed] = useState({});
   const [editing, setEditing] = useState(null);
   const [locations, setLocations] = useState([]);
+  const [selected, setSelected] = useState(() => new Set());
+  const [bulk, setBulk] = useState({ location: '', condition: '', finish: '', language: '' });
 
   useEffect(() => {
     api('/collection/locations').then((d) => setLocations(d.locations || [])).catch(() => {});
@@ -117,6 +120,33 @@ export default function Collection() {
   }
 
   const hasMore = data.entries.length < data.total;
+
+  const toggleSelect = (id) => setSelected((prev) => {
+    const n = new Set(prev);
+    if (n.has(id)) n.delete(id); else n.add(id);
+    return n;
+  });
+  const setMany = (ids, value) => setSelected((prev) => {
+    const n = new Set(prev);
+    ids.forEach((id) => (value ? n.add(id) : n.delete(id)));
+    return n;
+  });
+
+  async function applyBulk() {
+    const patch = {};
+    for (const k of ['location', 'condition', 'finish', 'language']) if (bulk[k]) patch[k] = bulk[k];
+    if (!Object.keys(patch).length || selected.size === 0) return;
+    setError(null);
+    try {
+      const res = await api('/collection/bulk', { method: 'POST', body: { ids: [...selected], patch } });
+      if (res.conflicts) setError(`${res.updated} modifiée(s), ${res.conflicts} en conflit (variante déjà existante)`);
+      setSelected(new Set());
+      setBulk({ location: '', condition: '', finish: '', language: '' });
+      await refresh();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
 
   const setFilter = (key, value) => setFilters((f) => ({ ...f, [key]: value }));
   const hasFilters = q || Object.values(filters).some(Boolean);
@@ -228,6 +258,31 @@ export default function Collection() {
         Grouper par extension
       </label>
 
+      {selected.size > 0 && (
+        <div className="sticky top-0 z-20 bg-slate-700 border border-slate-600 rounded-md p-2 mb-3 flex flex-wrap items-center gap-2">
+          <span className="text-sm font-medium">{selected.size} sélectionnée(s)</span>
+          <input
+            value={bulk.location} onChange={(e) => setBulk({ ...bulk, location: e.target.value })}
+            placeholder="Emplacement" aria-label="Emplacement (masse)"
+            className="rounded bg-slate-900 border border-slate-600 px-2 py-1 text-sm w-40"
+          />
+          <select value={bulk.condition} onChange={(e) => setBulk({ ...bulk, condition: e.target.value })}
+            className="rounded bg-slate-900 border border-slate-600 px-2 py-1 text-sm" aria-label="État (masse)">
+            <option value="">État…</option>
+            {CONDITIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+          </select>
+          <select value={bulk.finish} onChange={(e) => setBulk({ ...bulk, finish: e.target.value })}
+            className="rounded bg-slate-900 border border-slate-600 px-2 py-1 text-sm" aria-label="Finition (masse)">
+            <option value="">Finition…</option>
+            {FINISHES.map((f) => <option key={f} value={f}>{f}</option>)}
+          </select>
+          <button type="button" onClick={applyBulk}
+            className="rounded bg-indigo-600 hover:bg-indigo-500 px-3 py-1 text-sm">Appliquer</button>
+          <button type="button" onClick={() => setSelected(new Set())}
+            className="text-slate-300 text-sm px-2">Annuler</button>
+        </div>
+      )}
+
       {error && <div className="text-sm text-rose-400 mb-2">{error}</div>}
 
       {loading ? (
@@ -237,7 +292,7 @@ export default function Collection() {
           {hasFilters ? 'Aucune carte ne correspond aux critères.' : 'Aucune carte. Va dans « Ajouter » pour commencer.'}
         </div>
       ) : !grouped ? (
-        <CollectionTable entries={data.entries} onUpdate={update} onDelete={remove} onEdit={setEditing} sort={sort} order={order} onSort={onSort} />
+        <CollectionTable entries={data.entries} onUpdate={update} onDelete={remove} onEdit={setEditing} sort={sort} order={order} onSort={onSort} selected={selected} onToggleSelect={toggleSelect} onSetMany={setMany} />
       ) : (
         <div className="space-y-4">
           {groups.map((g) => {
@@ -258,7 +313,7 @@ export default function Collection() {
                   </span>
                 </button>
                 {!isCollapsed && (
-                  <CollectionTable entries={g.entries} onUpdate={update} onDelete={remove} onEdit={setEditing} sort={sort} order={order} onSort={onSort} />
+                  <CollectionTable entries={g.entries} onUpdate={update} onDelete={remove} onEdit={setEditing} sort={sort} order={order} onSort={onSort} selected={selected} onToggleSelect={toggleSelect} onSetMany={setMany} />
                 )}
               </section>
             );

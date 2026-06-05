@@ -36,3 +36,13 @@ export const collectionPatchSchema = z.object({
 }).refine((o) => Object.values(o).some((v) => v !== undefined), {
   message: 'aucun champ à modifier',
 });
+
+export const collectionBulkSchema = z.object({
+  ids: z.array(z.coerce.number().int()).min(1, 'aucune carte sélectionnée'),
+  patch: z.object({
+    finish: z.enum(FINISHES).optional(),
+    condition: z.enum(CONDITIONS).optional(),
+    language: z.string().min(2).max(5).optional(),
+    location: z.string().max(100).optional(),
+  }).refine((o) => Object.keys(o).length > 0, { message: 'aucun champ à modifier' }),
+});

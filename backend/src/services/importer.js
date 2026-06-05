@@ -58,11 +58,11 @@ export function normalizeRow(row) {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** Résout une carte : Scryfall ID exact d'abord, puis DB locale (set+n°, nom+set, nom), Scryfall en secours. */
-async function resolveCard(p) {
+/** Résolution DB locale uniquement (Scryfall ID, set+n°, nom+set, nom). Null si absent. */
+async function resolveLocal(p) {
   if (p.scryfall_id && UUID_RE.test(p.scryfall_id)) {
-    const card = await ensureCard(p.scryfall_id); // DB-first, Scryfall si absent
-    if (card) return card;
+    const r = await query('SELECT id FROM cards WHERE scryfall_id = $1 LIMIT 1', [p.scryfall_id]);
+    if (r.rows[0]) return r.rows[0];
   }
   if (p.set && p.collector_number) {
     const r = await query(
@@ -82,9 +82,18 @@ async function resolveCard(p) {
     'SELECT id FROM cards WHERE lower(name) = lower($1) ORDER BY updated_at DESC LIMIT 1',
     [p.name],
   );
-  if (byName.rows[0]) return byName.rows[0];
+  return byName.rows[0] || null;
+}
 
-  // Secours Scryfall
+/** Résout une carte : DB locale d'abord, Scryfall en secours (upsert). */
+async function resolveCard(p) {
+  const local = await resolveLocal(p);
+  if (local) return local;
+
+  if (p.scryfall_id && UUID_RE.test(p.scryfall_id)) {
+    const card = await ensureCard(p.scryfall_id);
+    if (card) return card;
+  }
   let raw = null;
   if (p.set && p.collector_number) raw = await scryfall.getCardBySetNumber(p.set, p.collector_number);
   if (!raw) {
@@ -94,6 +103,33 @@ async function resolveCard(p) {
   }
   if (!raw) return null;
   return upsertCard(mapScryfallCard(raw));
+}
+
+/** Aperçu sans insertion : compte résolu localement / nécessite Scryfall / invalide. */
+export async function dryRunImport(rows) {
+  let resolvedLocally = 0;
+  let needsScryfall = 0;
+  let invalid = 0;
+  const samples = { needsScryfall: [], invalid: [] };
+
+  for (let i = 0; i < rows.length; i += 1) {
+    const line = i + 2;
+    const p = normalizeRow(rows[i]);
+    if (!p.name || !Number.isFinite(p.quantity) || p.quantity < 1) {
+      invalid += 1;
+      if (samples.invalid.length < 20) samples.invalid.push({ line, name: p.name || '?' });
+      continue;
+    }
+    // eslint-disable-next-line no-await-in-loop
+    const local = await resolveLocal(p);
+    if (local) {
+      resolvedLocally += 1;
+    } else {
+      needsScryfall += 1;
+      if (samples.needsScryfall.length < 20) samples.needsScryfall.push({ line, name: p.name });
+    }
+  }
+  return { total: rows.length, resolvedLocally, needsScryfall, invalid, samples };
 }
 
 export async function importCsv(userId, rows, mode = 'merge', location = '') {

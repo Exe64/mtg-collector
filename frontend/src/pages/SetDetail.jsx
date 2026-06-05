@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useCardModal } from '../stores/cardModal';
+import LineChart from '../components/charts/LineChart';
 
 const FILTERS = [
   { key: 'all', label: 'Toutes' },
@@ -19,7 +20,16 @@ export default function SetDetail() {
   const [owned, setOwned] = useState({});
   const [filter, setFilter] = useState('all');
   const [showMissing, setShowMissing] = useState(false);
+  const [setSnaps, setSetSnaps] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    api(`/collection/set-snapshots?set=${encodeURIComponent(code)}&days=90`)
+      .then((d) => { if (!cancelled) setSetSnaps(d.snapshots || []); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [code]);
 
   const loadOwned = useCallback(async () => {
     const data = await api(`/collection/owned?set=${encodeURIComponent(code)}`);
@@ -152,6 +162,13 @@ export default function SetDetail() {
           </div>
         )}
       </div>
+
+      {setSnaps.filter((s) => s.total_value_eur != null).length >= 2 && (
+        <div className="mb-4">
+          <h2 className="text-xs text-slate-400 mb-1">Valeur de mes cartes de cette extension (90 j)</h2>
+          <LineChart points={setSnaps.map((s) => ({ date: s.snapshot_date, value: s.total_value_eur }))} />
+        </div>
+      )}
 
       {/* Filtres */}
       <div className="flex gap-1 mb-4">

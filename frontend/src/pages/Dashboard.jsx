@@ -125,7 +125,12 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-xl font-bold">Tableau de bord</h1>
+      <div className="flex items-baseline justify-between flex-wrap gap-2">
+        <h1 className="text-xl font-bold">Tableau de bord</h1>
+        {stats.pricesUpdatedAt && (
+          <span className="text-xs text-slate-500">Prix à jour le {String(stats.pricesUpdatedAt).slice(0, 10)}</span>
+        )}
+      </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
         <Stat label="Valeur (EUR)" value={`${stats.totalValue.eur.toFixed(2)} €`} accent="text-emerald-400" />
@@ -134,6 +139,48 @@ export default function Dashboard() {
         <Stat label="Uniques" value={stats.uniqueCardCount} />
         <Stat label="Extensions" value={stats.setCount} />
       </div>
+
+      {stats.profitability && stats.profitability.pricedCount > 0 && (() => {
+        const pf = stats.profitability;
+        const up = pf.gain >= 0;
+        const Mover = ({ m }) => (
+          <li className="flex items-center gap-2 py-1 text-sm">
+            {m.image_uri_small && <img src={m.image_uri_small} alt="" className="w-6 rounded-sm" />}
+            <button type="button" onClick={() => openCard(m.scryfall_id)} className="flex-1 text-left truncate hover:text-indigo-300">
+              {m.name} <span className="text-xs text-slate-500 uppercase">{m.set_code}</span>
+            </button>
+            <span className={`w-20 text-right ${Number(m.gain) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {Number(m.gain) >= 0 ? '+' : ''}{Number(m.gain).toFixed(2)} €
+            </span>
+          </li>
+        );
+        return (
+          <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
+            <h2 className="text-sm font-semibold text-slate-300 mb-2">Plus-value <span className="text-xs text-slate-500">({pf.pricedCount} cartes avec prix d'achat)</span></h2>
+            <div className="grid grid-cols-3 gap-2 mb-3 text-center">
+              <div><div className="text-xs text-slate-400">Investi</div><div className="font-bold">{pf.acquiredTotal.toFixed(2)} €</div></div>
+              <div><div className="text-xs text-slate-400">Valeur marché</div><div className="font-bold text-emerald-400">{pf.marketValue.toFixed(2)} €</div></div>
+              <div><div className="text-xs text-slate-400">Plus-value</div>
+                <div className={`font-bold ${up ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {up ? '+' : ''}{pf.gain.toFixed(2)} €{pf.gainPct != null && ` (${up ? '+' : ''}${pf.gainPct}%)`}
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h3 className="text-xs text-slate-400 mb-1">Meilleures hausses</h3>
+                <ul className="divide-y divide-slate-800">{pf.topGainers.map((m) => <Mover key={`g${m.scryfall_id}`} m={m} />)}</ul>
+              </div>
+              {pf.topLosers.length > 0 && (
+                <div>
+                  <h3 className="text-xs text-slate-400 mb-1">Plus fortes baisses</h3>
+                  <ul className="divide-y divide-slate-800">{pf.topLosers.map((m) => <Mover key={`l${m.scryfall_id}`} m={m} />)}</ul>
+                </div>
+              )}
+            </div>
+          </section>
+        );
+      })()}
 
       <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
         <div className="flex items-center justify-between mb-2">

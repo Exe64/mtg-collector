@@ -11,6 +11,7 @@ export default function CardModal() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showBack, setShowBack] = useState(false);
+  const [wishMsg, setWishMsg] = useState(null);
 
   useEffect(() => {
     if (!scryfallId) return undefined;
@@ -20,6 +21,7 @@ export default function CardModal() {
     setRulings([]);
     setHistory([]);
     setShowBack(false);
+    setWishMsg(null);
     (async () => {
       try {
         const [detail, rul, hist] = await Promise.all([
@@ -44,6 +46,16 @@ export default function CardModal() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [scryfallId, close]);
+
+  async function addToWishlist() {
+    setWishMsg(null);
+    try {
+      await api('/wishlist', { method: 'POST', body: { scryfall_id: scryfallId } });
+      setWishMsg('✓ ajoutée à la wishlist');
+    } catch (err) {
+      setWishMsg(err.message);
+    }
+  }
 
   if (!scryfallId) return null;
 
@@ -110,6 +122,12 @@ export default function CardModal() {
                 <span className="text-emerald-400">{card.prices?.eur ? `${card.prices.eur} €` : '—'}</span>
                 {card.prices?.eur_foil && <span className="text-emerald-300">{card.prices.eur_foil} € foil</span>}
                 {card.prices?.usd && <span className="text-slate-400">${card.prices.usd}</span>}
+              </div>
+
+              <div className="mt-3">
+                <button type="button" onClick={addToWishlist}
+                  className="text-sm rounded bg-slate-700 hover:bg-slate-600 px-3 py-1">★ Wishlist</button>
+                {wishMsg && <span className="ml-2 text-xs text-slate-400">{wishMsg}</span>}
               </div>
 
               {history.filter((h) => h.eur != null).length >= 2 && (
