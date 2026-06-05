@@ -26,6 +26,23 @@ export const LANGUAGES = [
   { value: 'zht', label: '繁體中文' },
 ];
 
+// Couleur d'identité Magic (pour les liserés de cartes-UI)
+const MANA_HEX = { W: '#e9e4c8', U: '#4f8df0', B: '#6b6478', R: '#e0483f', G: '#3aa45b' };
+export function identityColor(ci) {
+  if (!ci || ci.length === 0) return '#9aa0a6'; // incolore
+  if (ci.length > 1) return '#c9a227'; // multicolore → or
+  return MANA_HEX[ci[0]] || '#9aa0a6';
+}
+export function identityStyle(ci) {
+  return { boxShadow: `inset 4px 0 0 0 ${identityColor(ci)}` };
+}
+
+// Tokens d'un coût de mana "{2}{U}{U}" → classes mana-font
+export function manaSymbols(cost) {
+  if (!cost) return [];
+  return (cost.match(/\{([^}]+)\}/g) || []).map((t) => t.slice(1, -1).replace('/', '').toLowerCase());
+}
+
 export const CONDITION_COLOR = {
   MT: '#22c55e',
   NM: '#4ade80',

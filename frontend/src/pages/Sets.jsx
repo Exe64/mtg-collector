@@ -50,7 +50,7 @@ export default function Sets() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold mb-4">Extensions</h1>
+      <h1 className="font-display text-xl font-bold mb-4">Extensions</h1>
 
       <div className="flex flex-wrap gap-2 mb-4">
         <select
@@ -78,7 +78,7 @@ export default function Sets() {
                 key={s.code} to={`/sets/${s.code}`}
                 className="flex items-center gap-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg p-3"
               >
-                {s.icon && <img src={s.icon} alt="" className="w-6 h-6 shrink-0" />}
+                <i className={`ss ss-${s.code} ss-2x shrink-0 text-slate-300`} aria-hidden="true" />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">{s.name}</div>
                   <div className="text-xs text-slate-400 uppercase">

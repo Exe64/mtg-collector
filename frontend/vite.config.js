@@ -26,7 +26,9 @@ export default defineConfig({
         // Pas de cache des réponses /api (données authentifiées, multi-utilisateur).
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//],
-        globPatterns: ['**/*.{js,css,html,png,svg,woff2}'],
+        // woff2 uniquement (pas les .svg/.ttf/.eot legacy des fonts d'icônes, lourds)
+        globPatterns: ['**/*.{js,css,html,png,woff2}'],
+        maximumFileSizeToCacheInBytes: 700 * 1024,
       },
     }),
   ],

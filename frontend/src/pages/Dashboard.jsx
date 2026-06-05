@@ -126,7 +126,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-5">
       <div className="flex items-baseline justify-between flex-wrap gap-2">
-        <h1 className="text-xl font-bold">Tableau de bord</h1>
+        <h1 className="font-display text-xl font-bold">Tableau de bord</h1>
         {stats.pricesUpdatedAt && (
           <span className="text-xs text-slate-500">Prix à jour le {String(stats.pricesUpdatedAt).slice(0, 10)}</span>
         )}

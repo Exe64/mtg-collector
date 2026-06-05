@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useCardModal } from '../stores/cardModal';
 import LineChart from '../components/charts/LineChart';
+import { identityStyle } from '../constants';
 
 const FILTERS = [
   { key: 'all', label: 'Toutes' },
@@ -125,7 +126,8 @@ export default function SetDetail() {
     <div>
       <div className="flex items-center gap-2 mb-3">
         <Link to="/sets" className="text-slate-400 hover:text-slate-200 text-sm">← Extensions</Link>
-        <h1 className="text-xl font-bold">
+        <i className={`ss ss-${code} ss-2x text-gold-400`} aria-hidden="true" />
+        <h1 className="font-display text-xl font-bold">
           {setName || code.toUpperCase()} <span className="text-slate-500 text-sm uppercase">({code})</span>
         </h1>
       </div>
@@ -193,6 +195,7 @@ export default function SetDetail() {
             return (
               <div
                 key={c.scryfall_id}
+                style={identityStyle(c.color_identity)}
                 className={`relative rounded-lg overflow-hidden border ${qty > 0 ? 'border-emerald-500' : 'border-slate-700'} bg-slate-800`}
               >
                 {qty > 0 && (

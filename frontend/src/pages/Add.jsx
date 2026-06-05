@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { api } from '../api/client';
 import { useCardModal } from '../stores/cardModal';
-import { CONDITIONS } from '../constants';
+import { CONDITIONS, identityStyle } from '../constants';
 
 const ScanModal = lazy(() => import('../components/scan/ScanModal'));
 
@@ -55,7 +55,7 @@ function ResultRow({ card }) {
   const openCard = useCardModal((s) => s.open);
   const c = useAddControls(card);
   return (
-    <tr className="border-t border-slate-800 hover:bg-slate-800/40">
+    <tr style={identityStyle(card.color_identity)} className="border-t border-slate-800 hover:bg-slate-800/40">
       <td className="p-2">
         <button type="button" onClick={() => openCard(card.scryfall_id)} className="flex items-center gap-2 text-left hover:text-indigo-300">
           {card.image_small && <img src={card.image_small} alt="" className="w-9 rounded-sm" />}
@@ -88,7 +88,7 @@ function ResultCard({ card }) {
   const openCard = useCardModal((s) => s.open);
   const c = useAddControls(card);
   return (
-    <li className="bg-slate-800 border border-slate-700 rounded-lg p-2">
+    <li style={identityStyle(card.color_identity)} className="bg-slate-800 border border-slate-700 rounded-lg p-2 pl-3">
       <div className="flex items-center gap-2">
         <button type="button" onClick={() => openCard(card.scryfall_id)} className="flex items-center gap-2 min-w-0 flex-1 text-left">
           {card.image_small && <img src={card.image_small} alt="" className="w-9 rounded-sm shrink-0" />}
@@ -178,7 +178,7 @@ export default function Add() {
 
   return (
     <div className="max-w-5xl mx-auto">
-      <h1 className="text-xl font-bold mb-1">Ajouter des cartes</h1>
+      <h1 className="font-display text-xl font-bold mb-1">Ajouter des cartes</h1>
       <p className="text-sm text-slate-400 mb-4">
         Tape un nom : choisis une suggestion ou valide avec <kbd className="px-1 bg-slate-700 rounded">Entrée</kbd> pour
         afficher toutes les versions correspondantes, puis ajoute celles que tu veux.

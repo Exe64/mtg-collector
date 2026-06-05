@@ -26,7 +26,7 @@ export default function Wishlist() {
   return (
     <div>
       <header className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-xl font-bold">Liste de souhaits</h1>
+        <h1 className="font-display text-xl font-bold">Liste de souhaits</h1>
         {data.items.length > 0 && (
           <div className="text-sm text-slate-400">
             Coût estimé : <span className="text-emerald-400 font-semibold">{data.totalEur.toFixed(2)} €</span> · {data.items.length} carte(s)

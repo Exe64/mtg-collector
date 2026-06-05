@@ -2,6 +2,13 @@ import { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { useCardModal } from '../../stores/cardModal';
 import LineChart from '../charts/LineChart';
+import { manaSymbols } from '../../constants';
+
+function Mana({ cost }) {
+  const syms = manaSymbols(cost);
+  if (!syms.length) return null;
+  return <span>{syms.map((s, i) => <i key={i} className={`ms ms-${s} ms-cost`} aria-hidden="true" />)}</span>;
+}
 
 export default function CardModal() {
   const scryfallId = useCardModal((s) => s.scryfallId);
@@ -96,8 +103,8 @@ export default function CardModal() {
             })()}
             <div className="flex-1 min-w-0">
               <div className="flex items-baseline justify-between gap-2">
-                <h2 className="text-lg font-bold">{card.name}</h2>
-                <span className="text-sm text-slate-400">{card.mana_cost}</span>
+                <h2 className="font-display text-lg font-bold">{card.name}</h2>
+                <span className="text-sm text-slate-400"><Mana cost={card.mana_cost} /></span>
               </div>
               <div className="text-xs text-slate-400 mt-0.5">
                 {card.type_line} · <span className="uppercase">{card.set} #{card.collector_number}</span> · <span className="capitalize">{card.rarity}</span>
@@ -110,7 +117,7 @@ export default function CardModal() {
                 <div className="mt-3 space-y-2">
                   {faces.map((f, i) => (
                     <div key={i} className="border-t border-slate-700 pt-2">
-                      <div className="text-sm font-semibold">{f.name} <span className="text-xs text-slate-400">{f.mana_cost}</span></div>
+                      <div className="text-sm font-semibold">{f.name} <span className="text-xs text-slate-400"><Mana cost={f.mana_cost} /></span></div>
                       <div className="text-xs text-slate-400">{f.type_line}</div>
                       {f.oracle_text && <p className="text-sm text-slate-200 whitespace-pre-line mt-1">{f.oracle_text}</p>}
                     </div>

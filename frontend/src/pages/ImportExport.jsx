@@ -52,7 +52,7 @@ export default function ImportExport() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <h1 className="text-xl font-bold">Import / Export</h1>
+      <h1 className="font-display text-xl font-bold">Import / Export</h1>
       {error && <div className="text-sm text-rose-400 bg-rose-950/40 rounded p-2">{error}</div>}
 
       {/* IMPORT */}

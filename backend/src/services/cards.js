@@ -119,6 +119,7 @@ export function toClientCard(raw) {
     rarity: raw.rarity,
     image: img.normal || img.large || null,
     image_small: img.small || null,
+    color_identity: raw.color_identity || raw.card_faces?.[0]?.color_identity || [],
     finishes: raw.finishes || [],
     prices: {
       eur: num(p.eur), eur_foil: num(p.eur_foil), eur_etched: num(p.eur_etched),
@@ -142,6 +143,7 @@ export function dbCardToClient(row) {
     mana_cost: row.mana_cost,
     card_faces: row.card_faces,
     colors: row.colors,
+    color_identity: row.color_identity || [],
     finishes: row.finishes || [],
     prices: {
       eur: row.prices_eur, eur_foil: row.prices_eur_foil, eur_etched: row.prices_eur_etched,

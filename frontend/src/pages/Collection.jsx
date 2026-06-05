@@ -168,7 +168,7 @@ export default function Collection() {
   return (
     <div>
       <header className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-xl font-bold">Ma collection</h1>
+        <h1 className="font-display text-xl font-bold">Ma collection</h1>
         {stats && (
           <div className="text-sm text-slate-400">
             <span className="text-emerald-400 font-semibold">{stats.totalValueEur.toFixed(2)} €</span>
