@@ -55,5 +55,6 @@ Conditions : `MT, NM, EX, GD, LP, PL, PO`. Finitions : `nonfoil, foil, etched`.
 | Méthode | Route | Corps | Réponse |
 |---|---|---|---|
 | POST | `/api/import/csv` | `multipart: file, mode=merge\|replace, location?` | `{ imported, skipped, errors[] }` |
-| GET | `/api/export/csv` | — | Fichier CSV (Moxfield) |
-| GET | `/api/export/pdf` | — | Fichier PDF |
+| GET | `/api/export/csv` | — | CSV Moxfield |
+| GET | `/api/export/sell.csv` | — | CSV de mise en vente (prix trend EUR, conditions Cardmarket) |
+| GET | `/api/export/pdf` | — | PDF de valorisation (inventaire daté, pour assurance) |

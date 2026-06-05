@@ -61,7 +61,16 @@ Nécessite Docker Compose ≥ 2.24 (directive `!reset`).
 0 2 * * * /opt/mtg-collector/deploy/backup-db.sh >> /var/log/mtg-backup.log 2>&1
 ```
 
-Restauration : `gunzip -c <fichier>.sql.gz | docker compose exec -T postgres psql -U magic_user magic_collection`.
+**Chiffrement (recommandé)** : crée un fichier passphrase (chmod 600) et exporte
+`MTG_BACKUP_PASSPHRASE_FILE` → les sauvegardes sont chiffrées AES256 (`.sql.gz.gpg`).
+
+```bash
+echo 'ma-passphrase-robuste' > /root/.mtg-backup-pass && chmod 600 /root/.mtg-backup-pass
+MTG_BACKUP_PASSPHRASE_FILE=/root/.mtg-backup-pass ./deploy/backup-db.sh
+```
+
+Restauration (chiffré) :
+`gpg --batch --passphrase-file <fichier> -d <backup>.sql.gz.gpg | gunzip | docker compose exec -T postgres psql -U magic_user magic_collection`
 
 ## Points d'attention
 

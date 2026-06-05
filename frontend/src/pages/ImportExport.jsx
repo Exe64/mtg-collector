@@ -119,16 +119,24 @@ export default function ImportExport() {
       {/* EXPORT */}
       <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4 space-y-3">
         <h2 className="text-sm font-semibold text-slate-300">Exporter</h2>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button type="button" onClick={() => download('csv')}
             className="rounded-md bg-slate-700 hover:bg-slate-600 px-4 py-2 text-sm">
             CSV (Moxfield)
           </button>
+          <button type="button" onClick={() => download('sell.csv')}
+            className="rounded-md bg-slate-700 hover:bg-slate-600 px-4 py-2 text-sm">
+            CSV (mise en vente)
+          </button>
           <button type="button" onClick={() => download('pdf')}
             className="rounded-md bg-slate-700 hover:bg-slate-600 px-4 py-2 text-sm">
-            PDF
+            PDF (valorisation)
           </button>
         </div>
+        <p className="text-xs text-slate-500">
+          « Mise en vente » : prix indexés sur la tendance (EUR), conditions Cardmarket — à adapter au template de ton vendeur.
+          « Valorisation » : inventaire daté + valeurs de marché, pour assurance.
+        </p>
       </section>
     </div>
   );

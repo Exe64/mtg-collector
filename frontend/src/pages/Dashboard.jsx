@@ -37,6 +37,8 @@ const TYPE_COLORS = {
   Autre: '#64748b',
 };
 
+const VALUE_ORDER = ['≥ 20 €', '5–19,99 €', '1–4,99 €', '0,10–0,99 €', '< 0,10 €', 'Sans prix'];
+
 const PERIODS = [
   { days: 30, label: '30 j' },
   { days: 90, label: '90 j' },
@@ -113,6 +115,11 @@ export default function Dashboard() {
     value: r.count,
     color: TYPE_COLORS[r.bucket] || '#64748b',
   }));
+
+  const valueRows = VALUE_ORDER
+    .map((b) => (stats.valueBreakdown || []).find((r) => r.bucket === b))
+    .filter(Boolean);
+  const maxTierValue = Math.max(1, ...valueRows.map((r) => Number(r.value)));
 
   const points = snapshots.map((s) => ({ date: s.snapshot_date, value: s.total_value_eur }));
 
@@ -202,6 +209,23 @@ export default function Dashboard() {
           <DonutChart data={typeData} />
         </section>
       </div>
+
+      <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
+        <h2 className="text-sm font-semibold text-slate-300 mb-3">Répartition par valeur (ce qui dort dans les cartons)</h2>
+        <ul className="space-y-1.5">
+          {valueRows.map((r) => (
+            <li key={r.bucket} className="flex items-center gap-2 text-sm">
+              <span className="w-24 text-xs text-slate-400 shrink-0">{r.bucket}</span>
+              <div className="flex-1 h-3 bg-slate-800 rounded overflow-hidden">
+                <div className="h-full bg-indigo-500" style={{ width: `${(Number(r.value) / maxTierValue) * 100}%` }} />
+              </div>
+              <span className="w-16 text-right text-xs text-slate-400 shrink-0">{r.count}</span>
+              <span className="w-24 text-right text-emerald-400 shrink-0">{Number(r.value).toFixed(2)} €</span>
+            </li>
+          ))}
+          {!valueRows.length && <li className="text-slate-500 text-sm">Aucune donnée.</li>}
+        </ul>
+      </section>
 
       <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
         <h2 className="text-sm font-semibold text-slate-300 mb-3">Top 10 cartes</h2>

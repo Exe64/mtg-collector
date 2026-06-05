@@ -196,6 +196,28 @@ export async function getStats(userId) {
     [userId],
   );
 
+  // Répartition par paliers de valeur unitaire (« ce qui dort dans les cartons »)
+  const values = await query(
+    `SELECT bucket, SUM(quantity)::int AS count, COALESCE(SUM(quantity * unit), 0)::numeric(14,2) AS value
+     FROM (
+       SELECT e.quantity, (${UNIT_EUR}) AS unit
+       FROM collection_entries e JOIN cards c ON c.id = e.card_id
+       WHERE e.user_id = $1
+     ) x
+     CROSS JOIN LATERAL (
+       SELECT CASE
+         WHEN unit IS NULL          THEN 'Sans prix'
+         WHEN unit < 0.10           THEN '< 0,10 €'
+         WHEN unit < 1              THEN '0,10–0,99 €'
+         WHEN unit < 5              THEN '1–4,99 €'
+         WHEN unit < 20             THEN '5–19,99 €'
+         ELSE '≥ 20 €'
+       END AS bucket
+     ) b
+     GROUP BY bucket`,
+    [userId],
+  );
+
   const t = totals.rows[0];
   return {
     totalValue: { eur: Number(t.total_value_eur), usd: Number(t.total_value_usd) },
@@ -207,6 +229,7 @@ export async function getStats(userId) {
     rarityBreakdown: rarities.rows,
     conditionBreakdown: conditions.rows,
     typeBreakdown: types.rows,
+    valueBreakdown: values.rows,
   };
 }
 
