@@ -1,7 +1,7 @@
 // Génère des icônes PWA PNG (couleur unie indigo). Remplaçables par un vrai logo.
 //   node scripts/gen-icons.mjs
 import zlib from 'node:zlib';
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 
 function crc32(buf) {
   let c = ~0;
@@ -65,12 +65,16 @@ function bannerPng(w, h, stops) {
 }
 
 mkdirSync('public/icons', { recursive: true });
-writeFileSync('public/icons/icon-192.png', png(192, [59, 123, 176])); // bleu acier
-writeFileSync('public/icons/icon-512.png', png(512, [59, 123, 176]));
-writeFileSync('public/banner.png', bannerPng(1600, 280, [
-  [45, 49, 56],    // anthracite
-  [63, 110, 160],  // bleu acier
-  [40, 58, 82],    // bleu ardoise
-  [23, 24, 26],    // charbon
-]));
-console.log('Icônes + bannière générées dans public/');
+writeFileSync('public/icons/icon-192.png', png(192, [197, 149, 58])); // ambre
+writeFileSync('public/icons/icon-512.png', png(512, [197, 149, 58]));
+
+// Ne JAMAIS écraser une bannière existante (potentiellement personnalisée).
+if (!existsSync('public/banner.png')) {
+  writeFileSync('public/banner.png', bannerPng(1600, 280, [
+    [45, 42, 38], [120, 90, 45], [70, 55, 35], [23, 21, 19],
+  ]));
+  console.log('Bannière par défaut générée.');
+} else {
+  console.log('Bannière existante conservée.');
+}
+console.log('Icônes générées dans public/icons/');

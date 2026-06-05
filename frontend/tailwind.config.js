@@ -22,21 +22,21 @@ export default {
           900: '#17181a', // fond
           950: '#0f1011',
         },
-        // Accent primaire : bleu acier (boutons, liens actifs)
+        // Accent primaire : ambre/miel chaud (boutons, liens actifs)
         indigo: {
-          300: '#9cc6e8',
-          400: '#74acdb',
-          500: '#4f93cc',
-          600: '#3b7bb0',
-          700: '#2f6695',
+          300: '#e3c178',
+          400: '#d4ab55',
+          500: '#c2953a',
+          600: '#a87f2e',
+          700: '#8a6824',
         },
-        // Signature : bleu acier clair (titre, états actifs)
+        // Signature : or chaud (titre, états actifs)
         gold: {
-          300: '#bcd4ea',
-          400: '#9cc6e8',
-          500: '#4f93cc',
-          600: '#3b7bb0',
-          700: '#2f6695',
+          300: '#e8cd8a',
+          400: '#d9b85f',
+          500: '#c2953a',
+          600: '#a87f2e',
+          700: '#8a6824',
         },
         // Valeur / gains : vert net
         emerald: {
