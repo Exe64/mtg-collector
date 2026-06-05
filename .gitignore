@@ -5,3 +5,6 @@ dist/
 .DS_Store
 backend/bulk-data/
 certs/
+
+# Script de déploiement VPS (révèle la topologie d'infra) — gardé hors du repo public
+deploy/deploy-vps.sh
