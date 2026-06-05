@@ -26,7 +26,7 @@ export default function Layout() {
         >
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900/85 to-transparent flex items-end">
             <h1 className="px-4 pb-3 font-display text-xl sm:text-3xl font-bold text-gold-300 drop-shadow-lg tracking-wide">
-              Magic Collection Manager
+              MTG Collection Manager
             </h1>
           </div>
           {/* Déconnexion (mobile) */}

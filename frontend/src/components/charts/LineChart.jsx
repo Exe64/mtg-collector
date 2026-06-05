@@ -29,14 +29,14 @@ export default function LineChart({ points }) {
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full">
         <defs>
           <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#34d399" stopOpacity="0.35" />
-            <stop offset="100%" stopColor="#34d399" stopOpacity="0" />
+            <stop offset="0%" stopColor="#00b4ff" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="#00b4ff" stopOpacity="0" />
           </linearGradient>
         </defs>
         <polygon points={area} fill="url(#areaGrad)" />
-        <polyline points={line} fill="none" stroke="#34d399" strokeWidth="2" />
+        <polyline points={line} fill="none" stroke="#00b4ff" strokeWidth="2" />
         {points.map((p, i) => (
-          <circle key={i} cx={x(i)} cy={y(values[i])} r="2.5" fill="#34d399" />
+          <circle key={i} cx={x(i)} cy={y(values[i])} r="2.5" fill="#00b4ff" />
         ))}
         <text x={pad} y={16} fill="#64748b" fontSize="11">{max.toFixed(0)} €</text>
         <text x={pad} y={height - 8} fill="#64748b" fontSize="11">{fmtDate(points[0].date)}</text>

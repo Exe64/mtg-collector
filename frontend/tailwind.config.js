@@ -38,12 +38,18 @@ export default {
           600: '#a87f2e',
           700: '#8a6824',
         },
-        // Valeur / gains : vert net
+        // Valeurs / prix / courbes : bleu vif (#00b4ff)
         emerald: {
+          300: '#5cccff',
+          400: '#00b4ff',
+          500: '#0098e0',
+          600: '#0078b3',
+        },
+        // Variations à la hausse uniquement : vert (les baisses restent en rose)
+        gain: {
           300: '#6ee7b7',
           400: '#34d399',
           500: '#10b981',
-          600: '#059669',
         },
         // Identité couleur Magic (liserés de cartes)
         mana: {

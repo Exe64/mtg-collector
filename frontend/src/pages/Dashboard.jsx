@@ -149,7 +149,7 @@ export default function Dashboard() {
             <button type="button" onClick={() => openCard(m.scryfall_id)} className="flex-1 text-left truncate hover:text-indigo-300">
               {m.name} <span className="text-xs text-slate-500 uppercase">{m.set_code}</span>
             </button>
-            <span className={`w-20 text-right ${Number(m.gain) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+            <span className={`w-20 text-right ${Number(m.gain) >= 0 ? 'text-gain-400' : 'text-rose-400'}`}>
               {Number(m.gain) >= 0 ? '+' : ''}{Number(m.gain).toFixed(2)} €
             </span>
           </li>
@@ -161,7 +161,7 @@ export default function Dashboard() {
               <div><div className="text-xs text-slate-400">Investi</div><div className="font-bold">{pf.acquiredTotal.toFixed(2)} €</div></div>
               <div><div className="text-xs text-slate-400">Valeur marché</div><div className="font-bold text-emerald-400">{pf.marketValue.toFixed(2)} €</div></div>
               <div><div className="text-xs text-slate-400">Plus-value</div>
-                <div className={`font-bold ${up ? 'text-emerald-400' : 'text-rose-400'}`}>
+                <div className={`font-bold ${up ? 'text-gain-400' : 'text-rose-400'}`}>
                   {up ? '+' : ''}{pf.gain.toFixed(2)} €{pf.gainPct != null && ` (${up ? '+' : ''}${pf.gainPct}%)`}
                 </div>
               </div>
@@ -209,7 +209,7 @@ export default function Dashboard() {
                     {s.name} <span className="text-xs text-slate-500 uppercase">{s.set_code}</span>
                   </button>
                   <span className="text-xs text-slate-400 whitespace-nowrap">{s.past_eur} € → {s.current_eur} €</span>
-                  <span className={`w-16 text-right font-semibold ${up ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  <span className={`w-16 text-right font-semibold ${up ? 'text-gain-400' : 'text-rose-400'}`}>
                     {up ? '▲' : '▼'} {Math.abs(Number(s.pct))}%
                   </span>
                 </li>
