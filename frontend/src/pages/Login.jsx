@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../stores/auth';
+import { api } from '../api/client';
 
 export default function Login() {
   const login = useAuth((s) => s.login);
@@ -9,6 +10,11 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [needsSetup, setNeedsSetup] = useState(false);
+
+  useEffect(() => {
+    api('/auth/setup-status').then((d) => setNeedsSetup(d.needsSetup)).catch(() => {});
+  }, []);
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -27,7 +33,7 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center p-4">
       <form onSubmit={onSubmit} className="w-full max-w-sm bg-slate-800 rounded-xl p-6 space-y-4">
-        <h1 className="text-xl font-bold text-center">Connexion</h1>
+        <h1 className="font-display text-xl font-bold text-center">Connexion</h1>
         {error && <div className="text-sm text-rose-400 bg-rose-950/50 rounded p-2">{error}</div>}
         <input
           type="email" required placeholder="Email" value={email}
@@ -45,9 +51,11 @@ export default function Login() {
         >
           {busy ? '…' : 'Se connecter'}
         </button>
-        <p className="text-center text-sm text-slate-400">
-          Pas de compte ? <Link to="/register" className="text-indigo-400">Créer un compte</Link>
-        </p>
+        {needsSetup && (
+          <p className="text-center text-sm text-slate-400">
+            Première installation ? <Link to="/register" className="text-indigo-400">Créer le compte administrateur</Link>
+          </p>
+        )}
       </form>
     </div>
   );

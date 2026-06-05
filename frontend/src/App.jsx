@@ -12,6 +12,7 @@ import Sets from './pages/Sets';
 import SetDetail from './pages/SetDetail';
 import ImportExport from './pages/ImportExport';
 import Wishlist from './pages/Wishlist';
+import Accounts from './pages/Accounts';
 
 function Protected({ children }) {
   const status = useAuth((s) => s.status);
@@ -49,6 +50,7 @@ export default function App() {
         <Route path="sets/:code" element={<SetDetail />} />
         <Route path="import" element={<ImportExport />} />
         <Route path="wishlist" element={<Wishlist />} />
+        <Route path="accounts" element={<Accounts />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

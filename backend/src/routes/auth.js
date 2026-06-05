@@ -31,7 +31,18 @@ function clearRefreshCookie(res) {
 }
 
 function publicUser(u) {
-  return { id: u.id, email: u.email, display_name: u.display_name };
+  return { id: u.id, email: u.email, display_name: u.display_name, is_admin: u.is_admin === true };
+}
+
+// Réservé à l'administrateur (vérifie le drapeau en base)
+async function requireAdmin(req, res, next) {
+  try {
+    const { rows } = await query('SELECT is_admin FROM users WHERE id = $1', [req.user.id]);
+    if (!rows[0]?.is_admin) return res.status(403).json({ error: "Réservé à l'administrateur" });
+    return next();
+  } catch (err) {
+    return next(err);
+  }
 }
 
 // Spec §6.5 : 10 tentatives / 15 min par IP (s'appuie sur trust proxy)
@@ -43,9 +54,24 @@ const authLimiter = rateLimit({
   message: { error: 'Trop de tentatives, réessayez plus tard' },
 });
 
-// POST /api/auth/register
+// GET /api/auth/setup-status  (public) — true tant qu'aucun compte n'existe
+router.get('/setup-status', async (req, res, next) => {
+  try {
+    const { rows } = await query('SELECT COUNT(*)::int AS n FROM users');
+    res.json({ needsSetup: rows[0].n === 0 });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/auth/register  (uniquement à la 1re installation → crée l'admin)
 router.post('/register', authLimiter, async (req, res, next) => {
   try {
+    const countRes = await query('SELECT COUNT(*)::int AS n FROM users');
+    if (countRes.rows[0].n > 0) {
+      return res.status(403).json({ error: "Inscription fermée. Demande un compte à l'administrateur." });
+    }
+
     const { email, password, display_name } = req.body || {};
     const errors = validateCredentials(email, password);
     if (errors.length) return res.status(400).json({ error: errors.join(' ; ') });
@@ -56,9 +82,9 @@ router.post('/register', authLimiter, async (req, res, next) => {
 
     const password_hash = await hashPassword(password);
     const { rows } = await query(
-      `INSERT INTO users (email, password_hash, display_name)
-       VALUES ($1, $2, $3)
-       RETURNING id, email, display_name`,
+      `INSERT INTO users (email, password_hash, display_name, is_admin)
+       VALUES ($1, $2, $3, TRUE)
+       RETURNING id, email, display_name, is_admin`,
       [normalizedEmail, password_hash, display_name || null],
     );
     const user = rows[0];
@@ -80,7 +106,7 @@ router.post('/login', authLimiter, async (req, res, next) => {
     }
 
     const { rows } = await query(
-      'SELECT id, email, display_name, password_hash FROM users WHERE email = $1',
+      'SELECT id, email, display_name, is_admin, password_hash FROM users WHERE email = $1',
       [email.toLowerCase()],
     );
     const user = rows[0];
@@ -142,11 +168,63 @@ router.post('/logout', async (req, res, next) => {
 router.get('/me', requireAuth, async (req, res, next) => {
   try {
     const { rows } = await query(
-      'SELECT id, email, display_name FROM users WHERE id = $1',
+      'SELECT id, email, display_name, is_admin FROM users WHERE id = $1',
       [req.user.id],
     );
     if (!rows[0]) return res.status(404).json({ error: 'Utilisateur introuvable' });
     res.json({ user: publicUser(rows[0]) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// --- Gestion des comptes (administrateur) ---------------------------------
+
+// GET /api/auth/users
+router.get('/users', requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      'SELECT id, email, display_name, is_admin, created_at, last_login FROM users ORDER BY id',
+    );
+    res.json({ users: rows });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/auth/users  (crée un compte sans connecter l'admin)
+router.post('/users', requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const { email, password, display_name, is_admin } = req.body || {};
+    const errors = validateCredentials(email, password);
+    if (errors.length) return res.status(400).json({ error: errors.join(' ; ') });
+
+    const normalizedEmail = email.toLowerCase();
+    const exists = await query('SELECT 1 FROM users WHERE email = $1', [normalizedEmail]);
+    if (exists.rowCount) return res.status(409).json({ error: 'Email déjà utilisé' });
+
+    const password_hash = await hashPassword(password);
+    const { rows } = await query(
+      `INSERT INTO users (email, password_hash, display_name, is_admin)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, email, display_name, is_admin`,
+      [normalizedEmail, password_hash, display_name || null, is_admin === true],
+    );
+    res.status(201).json({ user: publicUser(rows[0]) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /api/auth/users/:id  (pas son propre compte)
+router.delete('/users/:id', requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    if (Number(req.params.id) === req.user.id) {
+      return res.status(400).json({ error: 'Impossible de supprimer son propre compte' });
+    }
+    const { rowCount } = await query('DELETE FROM users WHERE id = $1', [req.params.id]);
+    if (!rowCount) return res.status(404).json({ error: 'Introuvable' });
+    res.status(204).end();
   } catch (err) {
     next(err);
   }

@@ -1,9 +1,9 @@
 import { Outlet, NavLink } from 'react-router-dom';
-import { LayoutDashboard, Boxes, PlusCircle, Library, Star, Download } from 'lucide-react';
+import { LayoutDashboard, Boxes, PlusCircle, Library, Star, Download, Users } from 'lucide-react';
 import { useAuth } from '../../stores/auth';
 import CardModal from './CardModal';
 
-const navItems = [
+const baseNav = [
   { to: '/', label: 'Tableau de bord', short: 'Bord', Icon: LayoutDashboard, end: true },
   { to: '/collection', label: 'Collection', short: 'Collec', Icon: Boxes, end: false },
   { to: '/add', label: 'Ajouter', short: 'Ajouter', Icon: PlusCircle, end: false },
@@ -15,6 +15,9 @@ const navItems = [
 export default function Layout() {
   const user = useAuth((s) => s.user);
   const logout = useAuth((s) => s.logout);
+  const navItems = user?.is_admin
+    ? [...baseNav, { to: '/accounts', label: 'Comptes', short: 'Comptes', Icon: Users, end: false }]
+    : baseNav;
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col">
