@@ -65,12 +65,12 @@ function bannerPng(w, h, stops) {
 }
 
 mkdirSync('public/icons', { recursive: true });
-writeFileSync('public/icons/icon-192.png', png(192, [160, 125, 73])); // bronze
-writeFileSync('public/icons/icon-512.png', png(512, [160, 125, 73]));
+writeFileSync('public/icons/icon-192.png', png(192, [59, 123, 176])); // bleu acier
+writeFileSync('public/icons/icon-512.png', png(512, [59, 123, 176]));
 writeFileSync('public/banner.png', bannerPng(1600, 280, [
-  [58, 42, 28],    // brun profond
-  [120, 90, 52],   // bronze
-  [74, 54, 34],    // brun
-  [26, 20, 16],    // encre chaude
+  [45, 49, 56],    // anthracite
+  [63, 110, 160],  // bleu acier
+  [40, 58, 82],    // bleu ardoise
+  [23, 24, 26],    // charbon
 ]));
 console.log('Icônes + bannière générées dans public/');

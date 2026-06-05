@@ -8,42 +8,42 @@ export default {
         display: ['Cinzel', 'Georgia', 'serif'],
       },
       colors: {
-        // "Encre chaude" : brun-noir feutré (re-skin sans toucher aux classes bg-slate-*)
+        // Anthracite : charbon neutre (re-skin sans toucher aux classes bg-slate-*)
         slate: {
-          50: '#f5efe4',
-          100: '#e8ddc8', // texte crème
-          200: '#ddd2c0',
-          300: '#c4b5a0',
-          400: '#9a8a76', // texte atténué
-          500: '#6b5847',
-          600: '#3a2d22', // bordures
-          700: '#33271d',
-          800: '#261d16', // panneaux
-          900: '#1a1410', // fond
-          950: '#120d0a',
+          50: '#f5f6f7',
+          100: '#e8eaed', // texte
+          200: '#d2d6db',
+          300: '#b4bac1',
+          400: '#8a9099', // texte atténué
+          500: '#565b62',
+          600: '#3a3e44', // bordures
+          700: '#2c2f33',
+          800: '#202225', // panneaux
+          900: '#17181a', // fond
+          950: '#0f1011',
         },
-        // Accent primaire : bronze (boutons, liens actifs)
+        // Accent primaire : bleu acier (boutons, liens actifs)
         indigo: {
-          300: '#d8be94',
-          400: '#c4a574',
-          500: '#b08d57',
-          600: '#8f6d3c',
-          700: '#74562f',
+          300: '#9cc6e8',
+          400: '#74acdb',
+          500: '#4f93cc',
+          600: '#3b7bb0',
+          700: '#2f6695',
         },
-        // Signature : or chaud (titre, états actifs)
+        // Signature : bleu acier clair (titre, états actifs)
         gold: {
-          300: '#e0c89a',
-          400: '#cdaf76',
-          500: '#b08d57',
-          600: '#947341',
-          700: '#7a5e34',
+          300: '#bcd4ea',
+          400: '#9cc6e8',
+          500: '#4f93cc',
+          600: '#3b7bb0',
+          700: '#2f6695',
         },
-        // Valeur / gains : vert doux (au lieu de l'émeraude vive)
+        // Valeur / gains : vert net
         emerald: {
-          300: '#9ccc8f',
-          400: '#7bbf78',
-          500: '#5fa45f',
-          600: '#4d8a4d',
+          300: '#6ee7b7',
+          400: '#34d399',
+          500: '#10b981',
+          600: '#059669',
         },
         // Identité couleur Magic (liserés de cartes)
         mana: {
