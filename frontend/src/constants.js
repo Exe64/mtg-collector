@@ -12,6 +12,20 @@ export const CONDITIONS = [
 export const CONDITION_ORDER = CONDITIONS.map((c) => c.value);
 export const CONDITION_LABEL = Object.fromEntries(CONDITIONS.map((c) => [c.value, c.label]));
 
+export const LANGUAGES = [
+  { value: 'en', label: 'English' },
+  { value: 'fr', label: 'Français' },
+  { value: 'de', label: 'Deutsch' },
+  { value: 'it', label: 'Italiano' },
+  { value: 'es', label: 'Español' },
+  { value: 'pt', label: 'Português' },
+  { value: 'ja', label: '日本語' },
+  { value: 'ko', label: '한국어' },
+  { value: 'ru', label: 'Русский' },
+  { value: 'zhs', label: '简体中文' },
+  { value: 'zht', label: '繁體中文' },
+];
+
 export const CONDITION_COLOR = {
   MT: '#22c55e',
   NM: '#4ade80',

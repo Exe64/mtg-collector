@@ -1,5 +1,6 @@
 import { Router } from 'express';
 
+import { query } from '../config/db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { cached } from '../services/cache.js';
 import * as scryfall from '../services/scryfall.js';
@@ -60,6 +61,22 @@ router.get('/:scryfallId/rulings', requireAuth, async (req, res, next) => {
       source: r.source,
     }));
     res.json({ rulings });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/cards/:scryfallId/price-history   (courbe de prix par carte)
+router.get('/:scryfallId/price-history', requireAuth, async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `SELECT h.snapshot_date, h.eur, h.eur_foil, h.usd
+       FROM card_price_history h JOIN cards c ON c.id = h.card_id
+       WHERE c.scryfall_id = $1
+       ORDER BY h.snapshot_date`,
+      [req.params.scryfallId],
+    );
+    res.json({ history: rows });
   } catch (err) {
     next(err);
   }

@@ -1,0 +1,32 @@
+# Override PROD : Caddy en façade + HTTPS automatique (Let's Encrypt).
+#
+#   1. Renseigne DOMAIN, ACME_EMAIL et COOKIE_SECURE=true dans .env
+#   2. Fais pointer le DNS du domaine vers l'IP du serveur (A/AAAA)
+#   3. docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Nécessite Docker Compose ≥ 2.24 (pour `!reset`).
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      frontend:
+        condition: service_started
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+      - caddyconfig:/config
+
+  # Le frontend n'est plus publié directement : Caddy est l'unique entrée publique.
+  frontend:
+    ports: !reset []
+
+volumes:
+  caddydata:
+  caddyconfig:

@@ -37,6 +37,32 @@ docker compose -f /opt/mtg-collector/docker-compose.yml exec backend npm run syn
 sudo /root/deploy.sh        # git reset --hard origin/main + rebuild + restart
 ```
 
+## Production HTTPS (domaine + Let's Encrypt)
+
+Une fois un nom de domaine pointé sur l'IP du serveur :
+
+```bash
+# Dans /opt/mtg-collector/.env : renseigner
+#   DOMAIN=mtg.mondomaine.fr
+#   ACME_EMAIL=moi@exemple.fr
+#   COOKIE_SECURE=true
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+```
+
+Caddy ([deploy/Caddyfile](Caddyfile)) obtient et renouvelle le certificat automatiquement,
+et devient l'unique entrée publique (80/443). Le frontend n'est plus exposé directement.
+Nécessite Docker Compose ≥ 2.24 (directive `!reset`).
+
+## Sauvegardes base de données
+
+```bash
+./deploy/backup-db.sh            # dump compressé + rotation (14 par défaut)
+# en cron (2h du matin) :
+0 2 * * * /opt/mtg-collector/deploy/backup-db.sh >> /var/log/mtg-backup.log 2>&1
+```
+
+Restauration : `gunzip -c <fichier>.sql.gz | docker compose exec -T postgres psql -U magic_user magic_collection`.
+
 ## Points d'attention
 
 - **Exécuter `deploy.sh` depuis `/root`** (pas depuis `/opt/mtg-collector`) : le

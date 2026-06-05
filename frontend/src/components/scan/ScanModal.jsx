@@ -78,7 +78,7 @@ export default function ScanModal({ onResult, onClose }) {
       <div className="bg-slate-800 rounded-xl max-w-lg w-full p-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-2">
           <h2 className="text-sm font-semibold">Scanner une carte</h2>
-          <button type="button" onClick={onClose} className="text-slate-400 hover:text-white text-xl leading-none">✕</button>
+          <button type="button" onClick={onClose} aria-label="Fermer" className="text-slate-400 hover:text-white text-xl leading-none">✕</button>
         </div>
 
         {status === 'error' ? (

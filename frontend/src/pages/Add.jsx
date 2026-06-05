@@ -5,16 +5,13 @@ import { CONDITIONS } from '../constants';
 
 const ScanModal = lazy(() => import('../components/scan/ScanModal'));
 
-const FINISHES = ['nonfoil', 'foil', 'etched'];
-
-// Une ligne de résultat avec ses propres contrôles d'ajout.
-function ResultRow({ card }) {
-  const openCard = useCardModal((s) => s.open);
+// Logique d'ajout partagée entre la ligne (desktop) et la carte (mobile).
+function useAddControls(card) {
   const finishes = card.finishes?.length ? card.finishes : ['nonfoil'];
   const [qty, setQty] = useState(1);
   const [finish, setFinish] = useState(finishes.includes('nonfoil') ? 'nonfoil' : finishes[0]);
   const [condition, setCondition] = useState('NM');
-  const [status, setStatus] = useState(null); // 'ok' | message d'erreur
+  const [status, setStatus] = useState(null);
   const [busy, setBusy] = useState(false);
 
   async function add() {
@@ -33,15 +30,34 @@ function ResultRow({ card }) {
       setBusy(false);
     }
   }
+  return { qty, setQty, finish, setFinish, condition, setCondition, status, busy, finishes, add };
+}
 
+function FinishSel({ value, onChange, finishes }) {
+  return (
+    <select value={value} onChange={onChange} aria-label="Finition"
+      className="bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-xs">
+      {finishes.map((f) => <option key={f} value={f}>{f}</option>)}
+    </select>
+  );
+}
+function CondSel({ value, onChange }) {
+  return (
+    <select value={value} onChange={onChange} aria-label="État"
+      className="bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-xs">
+      {CONDITIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+    </select>
+  );
+}
+
+// Ligne de résultat (desktop)
+function ResultRow({ card }) {
+  const openCard = useCardModal((s) => s.open);
+  const c = useAddControls(card);
   return (
     <tr className="border-t border-slate-800 hover:bg-slate-800/40">
       <td className="p-2">
-        <button
-          type="button"
-          onClick={() => openCard(card.scryfall_id)}
-          className="flex items-center gap-2 text-left hover:text-indigo-300"
-        >
+        <button type="button" onClick={() => openCard(card.scryfall_id)} className="flex items-center gap-2 text-left hover:text-indigo-300">
           {card.image_small && <img src={card.image_small} alt="" className="w-9 rounded-sm" />}
           <span className="text-sm">{card.name}</span>
         </button>
@@ -50,37 +66,50 @@ function ResultRow({ card }) {
         <div className="truncate max-w-[14rem]">{card.set_name}</div>
         <div className="text-xs text-slate-500 uppercase">{card.set} #{card.collector_number}</div>
       </td>
-      <td className="p-2 text-right text-emerald-400 text-sm whitespace-nowrap">
-        {card.prices?.eur ? `${card.prices.eur} €` : '—'}
-      </td>
+      <td className="p-2 text-right text-emerald-400 text-sm whitespace-nowrap">{card.prices?.eur ? `${card.prices.eur} €` : '—'}</td>
       <td className="p-2">
-        <input
-          type="number" min="1" value={qty}
-          onChange={(e) => setQty(e.target.value)}
-          className="w-14 rounded bg-slate-900 border border-slate-700 px-1 py-0.5 text-right text-sm"
-        />
+        <input type="number" min="1" value={c.qty} onChange={(e) => c.setQty(e.target.value)} aria-label="Quantité"
+          className="w-14 rounded bg-slate-900 border border-slate-700 px-1 py-0.5 text-right text-sm" />
       </td>
-      <td className="p-2">
-        <select value={finish} onChange={(e) => setFinish(e.target.value)}
-          className="bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-xs">
-          {finishes.map((f) => <option key={f} value={f}>{f}</option>)}
-        </select>
-      </td>
-      <td className="p-2">
-        <select value={condition} onChange={(e) => setCondition(e.target.value)}
-          className="bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-xs">
-          {CONDITIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-        </select>
-      </td>
+      <td className="p-2"><FinishSel value={c.finish} onChange={(e) => c.setFinish(e.target.value)} finishes={c.finishes} /></td>
+      <td className="p-2"><CondSel value={c.condition} onChange={(e) => c.setCondition(e.target.value)} /></td>
       <td className="p-2 whitespace-nowrap">
-        <button type="button" onClick={add} disabled={busy}
-          className="rounded bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 px-3 py-1 text-sm">
-          Ajouter
-        </button>
-        {status === 'ok' && <span className="ml-2 text-emerald-400 text-xs">✓ ajouté</span>}
-        {status && status !== 'ok' && <span className="ml-2 text-rose-400 text-xs">{status}</span>}
+        <button type="button" onClick={c.add} disabled={c.busy}
+          className="rounded bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 px-3 py-1 text-sm">Ajouter</button>
+        {c.status === 'ok' && <span className="ml-2 text-emerald-400 text-xs">✓</span>}
+        {c.status && c.status !== 'ok' && <span className="ml-2 text-rose-400 text-xs">{c.status}</span>}
       </td>
     </tr>
+  );
+}
+
+// Carte de résultat (mobile)
+function ResultCard({ card }) {
+  const openCard = useCardModal((s) => s.open);
+  const c = useAddControls(card);
+  return (
+    <li className="bg-slate-800 border border-slate-700 rounded-lg p-2">
+      <div className="flex items-center gap-2">
+        <button type="button" onClick={() => openCard(card.scryfall_id)} className="flex items-center gap-2 min-w-0 flex-1 text-left">
+          {card.image_small && <img src={card.image_small} alt="" className="w-9 rounded-sm shrink-0" />}
+          <span className="min-w-0">
+            <span className="block truncate text-sm">{card.name}</span>
+            <span className="block text-xs text-slate-500 truncate">{card.set_name} · {card.set?.toUpperCase()} #{card.collector_number}</span>
+          </span>
+        </button>
+        <span className="text-emerald-400 text-sm whitespace-nowrap">{card.prices?.eur ? `${card.prices.eur} €` : '—'}</span>
+      </div>
+      <div className="flex items-center gap-2 mt-2 flex-wrap">
+        <input type="number" min="1" value={c.qty} onChange={(e) => c.setQty(e.target.value)} aria-label="Quantité"
+          className="w-14 rounded bg-slate-900 border border-slate-700 px-1 py-0.5 text-right text-sm" />
+        <FinishSel value={c.finish} onChange={(e) => c.setFinish(e.target.value)} finishes={c.finishes} />
+        <CondSel value={c.condition} onChange={(e) => c.setCondition(e.target.value)} />
+        <button type="button" onClick={c.add} disabled={c.busy}
+          className="ml-auto rounded bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 px-3 py-1 text-sm">Ajouter</button>
+        {c.status === 'ok' && <span className="text-emerald-400 text-xs">✓</span>}
+        {c.status && c.status !== 'ok' && <span className="text-rose-400 text-xs w-full">{c.status}</span>}
+      </div>
+    </li>
   );
 }
 
@@ -94,6 +123,8 @@ export default function Add() {
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
+  const [setF, setSetF] = useState('');
+  const [colorF, setColorF] = useState('');
   const timer = useRef(null);
 
   // Autocomplétion (une entrée par carte)
@@ -112,11 +143,15 @@ export default function Add() {
     return () => clearTimeout(timer.current);
   }, [q]);
 
+  const COLOR_Q = { W: 'w', U: 'u', B: 'b', R: 'r', G: 'g', M: 'm', C: 'c' };
+
   async function runSearch(term, { exact = false } = {}, pageNum = 1) {
     if (!term.trim()) return;
     setShowSug(false);
     setLoading(true);
-    const queryStr = exact ? `!"${term}"` : term.trim();
+    let queryStr = exact ? `!"${term}"` : term.trim();
+    if (setF) queryStr += ` set:${setF}`;
+    if (colorF) queryStr += ` c:${COLOR_Q[colorF]}`;
     try {
       const data = await api(`/cards/search?q=${encodeURIComponent(queryStr)}&unique=prints&page=${pageNum}`);
       setResults((prev) => (pageNum === 1 ? data.cards : [...prev, ...data.cards]));
@@ -127,6 +162,12 @@ export default function Add() {
       setLoading(false);
     }
   }
+
+  // Re-déclenche la recherche quand un filtre change (si une recherche est active)
+  useEffect(() => {
+    if (lastSearch) runSearch(lastSearch.term, { exact: lastSearch.exact }, 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setF, colorF]);
 
   function onKeyDown(e) {
     if (e.key === 'Enter') {
@@ -175,8 +216,39 @@ export default function Add() {
           type="button"
           onClick={() => setScanOpen(true)}
           title="Scanner une carte"
+          aria-label="Scanner une carte"
           className="rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 text-lg"
         >📷</button>
+      </div>
+
+      <div className="flex flex-wrap gap-2 mb-4 -mt-2">
+        <input
+          value={setF}
+          onChange={(e) => setSetF(e.target.value.trim())}
+          placeholder="Code extension (ex. MH3)"
+          aria-label="Filtrer par extension"
+          className="w-44 rounded-md bg-slate-800 border border-slate-700 px-2 py-1.5 text-sm"
+        />
+        <select
+          value={colorF}
+          onChange={(e) => setColorF(e.target.value)}
+          aria-label="Filtrer par couleur"
+          className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1.5 text-sm"
+        >
+          <option value="">Couleur</option>
+          <option value="W">Blanc</option>
+          <option value="U">Bleu</option>
+          <option value="B">Noir</option>
+          <option value="R">Rouge</option>
+          <option value="G">Vert</option>
+          <option value="M">Multicolore</option>
+          <option value="C">Incolore</option>
+        </select>
+        {(setF || colorF) && (
+          <button type="button" onClick={() => { setSetF(''); setColorF(''); }} className="text-xs text-slate-400 hover:text-slate-200 px-2">
+            Réinitialiser
+          </button>
+        )}
       </div>
 
       {scanOpen && (
@@ -189,24 +261,31 @@ export default function Add() {
       )}
 
       {results.length > 0 && (
-        <div className="overflow-x-auto rounded-lg border border-slate-800">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-800 text-slate-400 text-xs uppercase">
-              <tr>
-                <th className="text-left p-2">Carte</th>
-                <th className="text-left p-2">Édition</th>
-                <th className="text-right p-2">Prix</th>
-                <th className="text-left p-2">Qté</th>
-                <th className="text-left p-2">Fin.</th>
-                <th className="text-left p-2">État</th>
-                <th className="p-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {results.map((c) => <ResultRow key={c.scryfall_id} card={c} />)}
-            </tbody>
-          </table>
-        </div>
+        <>
+          {/* Mobile : cartes */}
+          <ul className="sm:hidden space-y-2">
+            {results.map((c) => <ResultCard key={c.scryfall_id} card={c} />)}
+          </ul>
+          {/* Desktop : tableau */}
+          <div className="hidden sm:block overflow-x-auto rounded-lg border border-slate-800">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-800 text-slate-400 text-xs uppercase">
+                <tr>
+                  <th className="text-left p-2">Carte</th>
+                  <th className="text-left p-2">Édition</th>
+                  <th className="text-right p-2">Prix</th>
+                  <th className="text-left p-2">Qté</th>
+                  <th className="text-left p-2">Fin.</th>
+                  <th className="text-left p-2">État</th>
+                  <th className="p-2" />
+                </tr>
+              </thead>
+              <tbody>
+                {results.map((c) => <ResultRow key={c.scryfall_id} card={c} />)}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {loading && <div className="text-center text-slate-500 py-6">Recherche…</div>}

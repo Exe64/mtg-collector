@@ -1,0 +1,11 @@
+# Reverse-proxy public avec HTTPS automatique (Let's Encrypt).
+# DOMAIN et ACME_EMAIL viennent de l'environnement (cf. docker-compose.prod.yml).
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+	# Le frontend nginx sert la SPA et reverse-proxy déjà /api vers le backend.
+	reverse_proxy frontend:80
+}

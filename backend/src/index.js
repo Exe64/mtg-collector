@@ -1,8 +1,11 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
+import pinoHttp from 'pino-http';
 
 import { pool } from './config/db.js';
 import { redis } from './config/redis.js';
+import { logger } from './config/logger.js';
 import authRoutes from './routes/auth.js';
 import cardsRoutes from './routes/cards.js';
 import setsRoutes from './routes/sets.js';
@@ -17,6 +20,11 @@ const PORT = process.env.PORT || 3001;
 // Derrière nginx : indispensable pour que express-rate-limit voie la vraie IP (#vigilance)
 app.set('trust proxy', 1);
 
+app.use(helmet());
+app.use(pinoHttp({
+  logger,
+  autoLogging: { ignore: (req) => req.url === '/api/health' },
+}));
 app.use(express.json({ limit: '2mb' }));
 app.use(cookieParser());
 
@@ -52,11 +60,11 @@ app.use('/api', (req, res) => {
 // Gestion d'erreurs centralisée
 // ---------------------------------------------------------------------------
 app.use((err, req, res, _next) => {
-  console.error('[error]', err);
+  (req.log || logger).error({ err }, 'erreur requête');
   res.status(err.status || 500).json({ error: err.message || 'Erreur interne' });
 });
 
 app.listen(PORT, () => {
-  console.log(`[backend] à l'écoute sur le port ${PORT}`);
+  logger.info(`backend à l'écoute sur le port ${PORT}`);
   scheduleDailyJob();
 });

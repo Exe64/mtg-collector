@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '../api/client';
 import CollectionTable from '../components/collection/CollectionTable';
+import EntryEditModal from '../components/collection/EntryEditModal';
 import { CONDITIONS } from '../constants';
 
 const TYPE_OPTIONS = [
@@ -25,15 +26,18 @@ export default function Collection() {
   const [q, setQ] = useState('');
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [page, setPage] = useState(1);
+  const [sort, setSort] = useState('value');
+  const [order, setOrder] = useState('desc');
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
   const [grouped, setGrouped] = useState(true);
   const [collapsed, setCollapsed] = useState({});
+  const [editing, setEditing] = useState(null);
 
   const fetchPage = useCallback(async (search, f, pageNum, size) => {
     const params = new URLSearchParams({
-      sort: 'value', order: 'desc', page: String(pageNum), pageSize: String(size),
+      sort, order, page: String(pageNum), pageSize: String(size),
     });
     if (search) params.set('q', search);
     if (f.type) params.set('type', f.type);
@@ -43,7 +47,12 @@ export default function Collection() {
     if (f.cmc === '7+') params.set('cmcMin', '7');
     else if (f.cmc) params.set('cmc', f.cmc);
     return api(`/collection?${params.toString()}`);
-  }, []);
+  }, [sort, order]);
+
+  function onSort(col) {
+    if (col === sort) setOrder((o) => (o === 'asc' ? 'desc' : 'asc'));
+    else { setSort(col); setOrder(col === 'name' || col === 'set' ? 'asc' : 'desc'); }
+  }
 
   // Première page : à chaque changement de recherche/filtres (debounce)
   useEffect(() => {
@@ -142,7 +151,7 @@ export default function Collection() {
         {q && (
           <button
             type="button"
-            onClick={() => setQ('')}
+            onClick={() => setQ('')} aria-label="Effacer la recherche"
             className="absolute right-2 top-2 text-slate-500 hover:text-slate-300 text-sm"
           >✕</button>
         )}
@@ -176,6 +185,28 @@ export default function Collection() {
         )}
       </div>
 
+      {/* Tri (mobile) — le desktop trie via les en-têtes de colonnes */}
+      <div className="sm:hidden flex items-center gap-2 mb-3">
+        <span className="text-xs text-slate-400">Trier :</span>
+        <select
+          value={sort}
+          onChange={(e) => { setSort(e.target.value); setOrder(e.target.value === 'name' || e.target.value === 'set' ? 'asc' : 'desc'); }}
+          className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1 text-sm"
+        >
+          <option value="value">Valeur</option>
+          <option value="name">Nom</option>
+          <option value="quantity">Quantité</option>
+          <option value="rarity">Rareté</option>
+          <option value="added_at">Ajout</option>
+        </select>
+        <button
+          type="button"
+          onClick={() => setOrder((o) => (o === 'asc' ? 'desc' : 'asc'))}
+          aria-label="Inverser l'ordre"
+          className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1 text-sm"
+        >{order === 'asc' ? '▲' : '▼'}</button>
+      </div>
+
       <label className="flex items-center gap-2 text-xs text-slate-400 mb-3">
         <input type="checkbox" checked={grouped} onChange={(e) => setGrouped(e.target.checked)} />
         Grouper par extension
@@ -190,7 +221,7 @@ export default function Collection() {
           {hasFilters ? 'Aucune carte ne correspond aux critères.' : 'Aucune carte. Va dans « Ajouter » pour commencer.'}
         </div>
       ) : !grouped ? (
-        <CollectionTable entries={data.entries} onUpdate={update} onDelete={remove} />
+        <CollectionTable entries={data.entries} onUpdate={update} onDelete={remove} onEdit={setEditing} sort={sort} order={order} onSort={onSort} />
       ) : (
         <div className="space-y-4">
           {groups.map((g) => {
@@ -211,7 +242,7 @@ export default function Collection() {
                   </span>
                 </button>
                 {!isCollapsed && (
-                  <CollectionTable entries={g.entries} onUpdate={update} onDelete={remove} />
+                  <CollectionTable entries={g.entries} onUpdate={update} onDelete={remove} onEdit={setEditing} sort={sort} order={order} onSort={onSort} />
                 )}
               </section>
             );
@@ -230,6 +261,14 @@ export default function Collection() {
             {loadingMore ? 'Chargement…' : `Charger plus (${data.entries.length} / ${data.total})`}
           </button>
         </div>
+      )}
+
+      {editing && (
+        <EntryEditModal
+          entry={editing}
+          onClose={() => setEditing(null)}
+          onSave={(patch) => update(editing.id, patch)}
+        />
       )}
     </div>
   );

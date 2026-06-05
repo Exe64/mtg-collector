@@ -14,6 +14,7 @@ export default function SetDetail() {
   const openCard = useCardModal((s) => s.open);
   const [cards, setCards] = useState([]);
   const [setName, setSetName] = useState('');
+  const [cardCount, setCardCount] = useState(null);
   const [owned, setOwned] = useState({});
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
@@ -21,6 +22,19 @@ export default function SetDetail() {
   const loadOwned = useCallback(async () => {
     const data = await api(`/collection/owned?set=${encodeURIComponent(code)}`);
     setOwned(data.owned || {});
+  }, [code]);
+
+  // card_count officiel du set (même dénominateur que la liste des extensions)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await api('/sets');
+        const s = (data.sets || []).find((x) => x.code === code);
+        if (!cancelled) { setCardCount(s?.card_count ?? null); if (s?.name) setSetName(s.name); }
+      } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
   }, [code]);
 
   useEffect(() => {
@@ -64,12 +78,13 @@ export default function SetDetail() {
     }
   }
 
+  // Possédées distinctes dans le set (même calcul que la liste des extensions)
   const ownedCount = useMemo(
-    () => cards.reduce((n, c) => n + ((owned[c.scryfall_id] || 0) > 0 ? 1 : 0), 0),
-    [cards, owned],
+    () => Object.values(owned).filter((qrt) => qrt > 0).length,
+    [owned],
   );
-  const total = cards.length;
-  const pct = total ? Math.round((100 * ownedCount) / total) : 0;
+  const total = cardCount ?? cards.length;
+  const pct = total ? Math.min(100, Math.round((100 * ownedCount) / total)) : 0;
 
   const visible = useMemo(() => cards.filter((c) => {
     const has = (owned[c.scryfall_id] || 0) > 0;
@@ -78,7 +93,9 @@ export default function SetDetail() {
     return true;
   }), [cards, owned, filter]);
 
-  const counts = { all: total, owned: ownedCount, missing: total - ownedCount };
+  // Compteurs des filtres : basés sur les cartes réellement affichées (impressions)
+  const ownedDisplayed = cards.filter((c) => (owned[c.scryfall_id] || 0) > 0).length;
+  const counts = { all: cards.length, owned: ownedDisplayed, missing: cards.length - ownedDisplayed };
 
   return (
     <div>
@@ -143,11 +160,11 @@ export default function SetDetail() {
                     <span className="text-xs text-emerald-400">{c.prices?.eur ? `${c.prices.eur} €` : '—'}</span>
                     <div className="flex items-center gap-1">
                       <button
-                        type="button" onClick={() => adjust(c, -1)} disabled={qty === 0}
+                        type="button" onClick={() => adjust(c, -1)} disabled={qty === 0} aria-label="Retirer un exemplaire"
                         className="w-6 h-6 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-30 text-sm leading-none"
                       >−</button>
                       <button
-                        type="button" onClick={() => adjust(c, 1)}
+                        type="button" onClick={() => adjust(c, 1)} aria-label="Ajouter un exemplaire"
                         className="w-6 h-6 rounded bg-indigo-600 hover:bg-indigo-500 text-sm leading-none"
                       >+</button>
                     </div>

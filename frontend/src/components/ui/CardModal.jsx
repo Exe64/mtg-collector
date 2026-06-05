@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { useCardModal } from '../../stores/cardModal';
+import LineChart from '../charts/LineChart';
 
 export default function CardModal() {
   const scryfallId = useCardModal((s) => s.scryfallId);
   const close = useCardModal((s) => s.close);
   const [card, setCard] = useState(null);
   const [rulings, setRulings] = useState([]);
+  const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [showBack, setShowBack] = useState(false);
 
   useEffect(() => {
     if (!scryfallId) return undefined;
@@ -15,15 +18,19 @@ export default function CardModal() {
     setLoading(true);
     setCard(null);
     setRulings([]);
+    setHistory([]);
+    setShowBack(false);
     (async () => {
       try {
-        const [detail, rul] = await Promise.all([
+        const [detail, rul, hist] = await Promise.all([
           api(`/cards/${scryfallId}`),
           api(`/cards/${scryfallId}/rulings`).catch(() => ({ rulings: [] })),
+          api(`/cards/${scryfallId}/price-history`).catch(() => ({ history: [] })),
         ]);
         if (cancelled) return;
         setCard(detail.card);
         setRulings(rul.rulings || []);
+        setHistory(hist.history || []);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -52,16 +59,29 @@ export default function CardModal() {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-end">
-          <button type="button" onClick={close} className="text-slate-400 hover:text-white text-xl leading-none">✕</button>
+          <button type="button" onClick={close} aria-label="Fermer" className="text-slate-400 hover:text-white text-xl leading-none">✕</button>
         </div>
 
         {loading || !card ? (
           <div className="text-center text-slate-500 py-12">Chargement…</div>
         ) : (
           <div className="flex flex-col md:flex-row gap-4">
-            {card.image && (
-              <img src={card.image} alt={card.name} className="w-full md:w-64 rounded-lg self-start" />
-            )}
+            {(() => {
+              const back = faces?.[1]?.image_uris?.normal || faces?.[1]?.image_uris?.large;
+              const src = showBack && back ? back : card.image;
+              if (!src) return null;
+              return (
+                <div className="md:w-64 shrink-0 self-start">
+                  <img src={src} alt={card.name} className="w-full rounded-lg" />
+                  {back && (
+                    <button type="button" onClick={() => setShowBack((v) => !v)}
+                      className="mt-1 w-full rounded bg-slate-700 hover:bg-slate-600 text-xs py-1">
+                      ↻ Retourner la carte
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
             <div className="flex-1 min-w-0">
               <div className="flex items-baseline justify-between gap-2">
                 <h2 className="text-lg font-bold">{card.name}</h2>
@@ -91,6 +111,13 @@ export default function CardModal() {
                 {card.prices?.eur_foil && <span className="text-emerald-300">{card.prices.eur_foil} € foil</span>}
                 {card.prices?.usd && <span className="text-slate-400">${card.prices.usd}</span>}
               </div>
+
+              {history.filter((h) => h.eur != null).length >= 2 && (
+                <div className="mt-4">
+                  <h3 className="text-sm font-semibold text-slate-300 mb-1">Évolution du prix (EUR)</h3>
+                  <LineChart points={history.map((h) => ({ date: h.snapshot_date, value: h.eur }))} />
+                </div>
+              )}
 
               <div className="mt-4">
                 <h3 className="text-sm font-semibold text-slate-300 mb-1">

@@ -2,6 +2,8 @@ import { Router } from 'express';
 
 import { query } from '../config/db.js';
 import { requireAuth } from '../middleware/auth.js';
+import { validateBody } from '../middleware/validate.js';
+import { collectionAddSchema, collectionAdjustSchema, collectionPatchSchema } from '../validation/schemas.js';
 import { ensureCard } from '../services/cards.js';
 import { getCollection, getCollectionTotals, getStats } from '../services/collection.js';
 import { getSnapshots } from '../services/snapshots.js';
@@ -9,8 +11,6 @@ import { getSnapshots } from '../services/snapshots.js';
 const router = Router();
 router.use(requireAuth); // toutes les routes /api/collection sont protégées + isolées
 
-const FINISHES = ['nonfoil', 'foil', 'etched'];
-const CONDITIONS = ['MT', 'NM', 'EX', 'GD', 'LP', 'PL', 'PO'];
 const PATCHABLE = ['quantity', 'condition', 'notes', 'finish', 'language', 'acquired_price', 'acquired_at'];
 
 // GET /api/collection?page&pageSize&sort&order&q&set&color&type&rarity&condition&finish&language
@@ -86,13 +86,9 @@ router.get('/owned', async (req, res, next) => {
 });
 
 // POST /api/collection/adjust  (+/- rapide sur la variante par défaut nonfoil/NM/en)
-router.post('/adjust', async (req, res, next) => {
+router.post('/adjust', validateBody(collectionAdjustSchema), async (req, res, next) => {
   try {
-    const { scryfall_id, delta = 1, finish = 'nonfoil', condition = 'NM', language = 'en' } = req.body || {};
-    if (!scryfall_id) return res.status(400).json({ error: 'scryfall_id requis' });
-    const d = Number(delta);
-    if (!Number.isInteger(d) || d === 0) return res.status(400).json({ error: 'delta invalide' });
-
+    const { scryfall_id, delta: d, finish, condition, language } = req.body;
     const card = await ensureCard(scryfall_id);
     if (!card) return res.status(404).json({ error: 'Carte introuvable' });
 
@@ -126,16 +122,10 @@ router.post('/adjust', async (req, res, next) => {
 });
 
 // POST /api/collection  (lazy upsert de la carte + ajout/incrément de l'entrée)
-router.post('/', async (req, res, next) => {
+router.post('/', validateBody(collectionAddSchema), async (req, res, next) => {
   try {
-    const { scryfall_id, quantity = 1, finish, foil, condition = 'NM', language = 'en', acquired_price, notes } = req.body || {};
-    if (!scryfall_id) return res.status(400).json({ error: 'scryfall_id requis' });
-
+    const { scryfall_id, quantity: qty, finish, foil, condition, language, acquired_price, notes } = req.body;
     const fin = finish || (foil ? 'foil' : 'nonfoil');
-    const qty = Number(quantity);
-    if (!Number.isInteger(qty) || qty < 1) return res.status(400).json({ error: 'quantité invalide' });
-    if (!FINISHES.includes(fin)) return res.status(400).json({ error: 'finish invalide' });
-    if (!CONDITIONS.includes(condition)) return res.status(400).json({ error: 'condition invalide' });
 
     const card = await ensureCard(scryfall_id);
     if (!card) return res.status(404).json({ error: 'Carte introuvable sur Scryfall' });
@@ -156,15 +146,8 @@ router.post('/', async (req, res, next) => {
 });
 
 // PATCH /api/collection/:id
-router.patch('/:id', async (req, res, next) => {
+router.patch('/:id', validateBody(collectionPatchSchema), async (req, res, next) => {
   try {
-    if (req.body.finish && !FINISHES.includes(req.body.finish)) {
-      return res.status(400).json({ error: 'finish invalide' });
-    }
-    if (req.body.condition && !CONDITIONS.includes(req.body.condition)) {
-      return res.status(400).json({ error: 'condition invalide' });
-    }
-
     const sets = [];
     const params = [];
     for (const key of PATCHABLE) {

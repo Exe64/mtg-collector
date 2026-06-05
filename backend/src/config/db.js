@@ -1,4 +1,5 @@
 import pg from 'pg';
+import { logger } from './logger.js';
 
 const { Pool } = pg;
 
@@ -9,7 +10,7 @@ export const pool = new Pool({
 });
 
 pool.on('error', (err) => {
-  console.error('[db] erreur inattendue du pool PostgreSQL', err);
+  logger.error({ err }, 'erreur inattendue du pool PostgreSQL');
 });
 
 export const query = (text, params) => pool.query(text, params);
