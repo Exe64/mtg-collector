@@ -18,7 +18,7 @@ const COLOR_OPTIONS = [
 ];
 const CMC_OPTIONS = [['', 'Coût'], ['0', '0'], ['1', '1'], ['2', '2'], ['3', '3'], ['4', '4'], ['5', '5'], ['6', '6'], ['7+', '7+']];
 
-const EMPTY_FILTERS = { type: '', rarity: '', color: '', cmc: '', condition: '' };
+const EMPTY_FILTERS = { type: '', rarity: '', color: '', cmc: '', condition: '', location: '' };
 const PAGE_SIZE = 100;
 
 export default function Collection() {
@@ -34,6 +34,11 @@ export default function Collection() {
   const [grouped, setGrouped] = useState(true);
   const [collapsed, setCollapsed] = useState({});
   const [editing, setEditing] = useState(null);
+  const [locations, setLocations] = useState([]);
+
+  useEffect(() => {
+    api('/collection/locations').then((d) => setLocations(d.locations || [])).catch(() => {});
+  }, [data.total]);
 
   const fetchPage = useCallback(async (search, f, pageNum, size) => {
     const params = new URLSearchParams({
@@ -44,6 +49,7 @@ export default function Collection() {
     if (f.rarity) params.set('rarity', f.rarity);
     if (f.color) params.set('color', f.color);
     if (f.condition) params.set('condition', f.condition);
+    if (f.location) params.set('location', f.location);
     if (f.cmc === '7+') params.set('cmcMin', '7');
     else if (f.cmc) params.set('cmc', f.cmc);
     return api(`/collection?${params.toString()}`);
@@ -176,6 +182,16 @@ export default function Collection() {
           <option value="">État</option>
           {CONDITIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
         </select>
+        {locations.length > 0 && (
+          <select
+            value={filters.location}
+            onChange={(e) => setFilter('location', e.target.value)}
+            className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1.5 text-sm"
+          >
+            <option value="">Emplacement</option>
+            {locations.map((l) => <option key={l} value={l}>{l}</option>)}
+          </select>
+        )}
         {hasFilters && (
           <button
             type="button"

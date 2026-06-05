@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
+import { useCardModal } from '../stores/cardModal';
 import DonutChart from '../components/charts/DonutChart';
 import LineChart from '../components/charts/LineChart';
 import { CONDITION_ORDER, CONDITION_LABEL, CONDITION_COLOR } from '../constants';
@@ -55,7 +56,14 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [snapshots, setSnapshots] = useState([]);
   const [days, setDays] = useState(90);
+  const [spikes, setSpikes] = useState([]);
+  const [spikeDays, setSpikeDays] = useState(7);
   const [loading, setLoading] = useState(true);
+  const openCard = useCardModal((s) => s.open);
+
+  useEffect(() => {
+    api(`/collection/spikes?days=${spikeDays}&threshold=20`).then((d) => setSpikes(d.spikes || [])).catch(() => {});
+  }, [spikeDays]);
 
   useEffect(() => {
     (async () => {
@@ -119,6 +127,43 @@ export default function Dashboard() {
         <Stat label="Uniques" value={stats.uniqueCardCount} />
         <Stat label="Extensions" value={stats.setCount} />
       </div>
+
+      <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-sm font-semibold text-slate-300">⚡ Mouvements de prix</h2>
+          <div className="flex gap-1">
+            {[7, 30].map((d) => (
+              <button key={d} type="button" onClick={() => setSpikeDays(d)}
+                className={`text-xs rounded px-2 py-1 ${spikeDays === d ? 'bg-slate-600' : 'bg-slate-800 hover:bg-slate-700'}`}>
+                {d} j
+              </button>
+            ))}
+          </div>
+        </div>
+        {spikes.length === 0 ? (
+          <p className="text-xs text-slate-500">
+            Aucun mouvement ≥ 20% sur la période (ou historique insuffisant — il s'enrichit chaque jour).
+          </p>
+        ) : (
+          <ul className="divide-y divide-slate-800">
+            {spikes.map((s) => {
+              const up = Number(s.pct) >= 0;
+              return (
+                <li key={s.scryfall_id} className="flex items-center gap-2 py-1.5 text-sm">
+                  {s.image_uri_small && <img src={s.image_uri_small} alt="" className="w-7 rounded-sm" />}
+                  <button type="button" onClick={() => openCard(s.scryfall_id)} className="flex-1 text-left truncate hover:text-indigo-300">
+                    {s.name} <span className="text-xs text-slate-500 uppercase">{s.set_code}</span>
+                  </button>
+                  <span className="text-xs text-slate-400 whitespace-nowrap">{s.past_eur} € → {s.current_eur} €</span>
+                  <span className={`w-16 text-right font-semibold ${up ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {up ? '▲' : '▼'} {Math.abs(Number(s.pct))}%
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
 
       <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
         <div className="flex items-center justify-between mb-2">

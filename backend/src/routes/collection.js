@@ -5,13 +5,13 @@ import { requireAuth } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
 import { collectionAddSchema, collectionAdjustSchema, collectionPatchSchema } from '../validation/schemas.js';
 import { ensureCard } from '../services/cards.js';
-import { getCollection, getCollectionTotals, getStats } from '../services/collection.js';
+import { getCollection, getCollectionTotals, getStats, getSpikes } from '../services/collection.js';
 import { getSnapshots } from '../services/snapshots.js';
 
 const router = Router();
 router.use(requireAuth); // toutes les routes /api/collection sont protégées + isolées
 
-const PATCHABLE = ['quantity', 'condition', 'notes', 'finish', 'language', 'acquired_price', 'acquired_at'];
+const PATCHABLE = ['quantity', 'condition', 'notes', 'finish', 'language', 'location', 'acquired_price', 'acquired_at'];
 
 // GET /api/collection?page&pageSize&sort&order&q&set&color&type&rarity&condition&finish&language
 router.get('/', async (req, res, next) => {
@@ -33,11 +33,36 @@ router.get('/stats', async (req, res, next) => {
   }
 });
 
+// GET /api/collection/spikes?days=7&threshold=20  → mouvements de prix marquants
+router.get('/spikes', async (req, res, next) => {
+  try {
+    const days = Math.min(Math.max(Number(req.query.days) || 7, 1), 365);
+    const threshold = Math.min(Math.max(Number(req.query.threshold) || 20, 1), 1000);
+    res.json({ spikes: await getSpikes(req.user.id, days, threshold) });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/collection/snapshots?days=90
 router.get('/snapshots', async (req, res, next) => {
   try {
     const days = Math.min(Number(req.query.days) || 90, 365);
     res.json({ snapshots: await getSnapshots(req.user.id, days) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/collection/locations  → { locations: [...] } (emplacements physiques distincts)
+router.get('/locations', async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `SELECT DISTINCT location FROM collection_entries
+       WHERE user_id = $1 AND location <> '' ORDER BY location`,
+      [req.user.id],
+    );
+    res.json({ locations: rows.map((r) => r.location) });
   } catch (err) {
     next(err);
   }
@@ -88,23 +113,23 @@ router.get('/owned', async (req, res, next) => {
 // POST /api/collection/adjust  (+/- rapide sur la variante par défaut nonfoil/NM/en)
 router.post('/adjust', validateBody(collectionAdjustSchema), async (req, res, next) => {
   try {
-    const { scryfall_id, delta: d, finish, condition, language } = req.body;
+    const { scryfall_id, delta: d, finish, condition, language, location } = req.body;
     const card = await ensureCard(scryfall_id);
     if (!card) return res.status(404).json({ error: 'Carte introuvable' });
 
     const cur = await query(
       `SELECT id, quantity FROM collection_entries
-       WHERE user_id = $1 AND card_id = $2 AND finish = $3 AND condition = $4 AND language = $5`,
-      [req.user.id, card.id, finish, condition, language],
+       WHERE user_id = $1 AND card_id = $2 AND finish = $3 AND condition = $4 AND language = $5 AND location = $6`,
+      [req.user.id, card.id, finish, condition, language, location],
     );
     const row = cur.rows[0];
 
     if (!row) {
       if (d <= 0) return res.json({ quantity: 0 });
       const ins = await query(
-        `INSERT INTO collection_entries (user_id, card_id, quantity, finish, condition, language)
-         VALUES ($1, $2, $3, $4, $5, $6) RETURNING quantity`,
-        [req.user.id, card.id, d, finish, condition, language],
+        `INSERT INTO collection_entries (user_id, card_id, quantity, finish, condition, language, location)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING quantity`,
+        [req.user.id, card.id, d, finish, condition, language, location],
       );
       return res.json({ quantity: ins.rows[0].quantity });
     }
@@ -124,7 +149,7 @@ router.post('/adjust', validateBody(collectionAdjustSchema), async (req, res, ne
 // POST /api/collection  (lazy upsert de la carte + ajout/incrément de l'entrée)
 router.post('/', validateBody(collectionAddSchema), async (req, res, next) => {
   try {
-    const { scryfall_id, quantity: qty, finish, foil, condition, language, acquired_price, notes } = req.body;
+    const { scryfall_id, quantity: qty, finish, foil, condition, language, location, acquired_price, notes } = req.body;
     const fin = finish || (foil ? 'foil' : 'nonfoil');
 
     const card = await ensureCard(scryfall_id);
@@ -132,12 +157,12 @@ router.post('/', validateBody(collectionAddSchema), async (req, res, next) => {
 
     const { rows } = await query(
       `INSERT INTO collection_entries
-         (user_id, card_id, quantity, finish, condition, language, acquired_price, notes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       ON CONFLICT (user_id, card_id, finish, condition, language)
+         (user_id, card_id, quantity, finish, condition, language, location, acquired_price, notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       ON CONFLICT (user_id, card_id, finish, condition, language, location)
        DO UPDATE SET quantity = collection_entries.quantity + EXCLUDED.quantity
        RETURNING *`,
-      [req.user.id, card.id, qty, fin, condition, language, acquired_price ?? null, notes ?? null],
+      [req.user.id, card.id, qty, fin, condition, language, location, acquired_price ?? null, notes ?? null],
     );
     res.status(201).json({ entry: rows[0] });
   } catch (err) {

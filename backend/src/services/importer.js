@@ -1,6 +1,6 @@
 import { query } from '../config/db.js';
 import * as scryfall from './scryfall.js';
-import { mapScryfallCard, upsertCard } from './cards.js';
+import { mapScryfallCard, upsertCard, ensureCard } from './cards.js';
 
 const CONDITION_MAP = {
   M: 'MT', MT: 'MT', MINT: 'MT',
@@ -30,10 +30,13 @@ function pick(row, ...keys) {
 export function normalizeRow(row) {
   const quantity = parseInt(pick(row, 'Count', 'Quantity', 'quantity', 'qty') || '', 10);
   const name = String(pick(row, 'Name', 'name') || '').trim();
-  const set = String(pick(row, 'Edition', 'Set', 'set', 'set_code') || '').trim();
+  const set = String(pick(row, 'Edition', 'Set', 'Set code', 'set', 'set_code') || '').trim();
   const collector = String(pick(row, 'Collector Number', 'collector_number') || '').trim();
+  // Résolution exacte si un identifiant Scryfall est présent (export ManaBox, etc.)
+  const scryfallId = String(pick(row, 'Scryfall ID', 'scryfall_id', 'scryfallId') || '').trim();
 
-  const condRaw = String(pick(row, 'Condition', 'condition') || '').trim().toUpperCase();
+  // Underscores ManaBox (near_mint, light_played…) → espaces, puis mapping commun
+  const condRaw = String(pick(row, 'Condition', 'condition') || '').trim().toUpperCase().replace(/_/g, ' ');
   const condition = CONDITION_MAP[condRaw] || (VALID_CONDITIONS.includes(condRaw) ? condRaw : 'NM');
 
   const langRaw = String(pick(row, 'Language', 'language', 'lang') || '').trim();
@@ -48,13 +51,19 @@ export function normalizeRow(row) {
 
   return {
     quantity: Number.isFinite(quantity) ? quantity : NaN,
-    name, set, collector_number: collector, condition, language, finish,
+    name, set, collector_number: collector, scryfall_id: scryfallId, condition, language, finish,
     acquired_price: Number.isFinite(price) ? price : null,
   };
 }
 
-/** Résout une carte : DB locale d'abord (set+n°, puis nom+set, puis nom), Scryfall en secours. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Résout une carte : Scryfall ID exact d'abord, puis DB locale (set+n°, nom+set, nom), Scryfall en secours. */
 async function resolveCard(p) {
+  if (p.scryfall_id && UUID_RE.test(p.scryfall_id)) {
+    const card = await ensureCard(p.scryfall_id); // DB-first, Scryfall si absent
+    if (card) return card;
+  }
   if (p.set && p.collector_number) {
     const r = await query(
       'SELECT id FROM cards WHERE lower(set_code) = lower($1) AND collector_number = $2 LIMIT 1',
@@ -87,7 +96,7 @@ async function resolveCard(p) {
   return upsertCard(mapScryfallCard(raw));
 }
 
-export async function importCsv(userId, rows, mode = 'merge') {
+export async function importCsv(userId, rows, mode = 'merge', location = '') {
   if (mode === 'replace') {
     await query('DELETE FROM collection_entries WHERE user_id = $1', [userId]);
   }
@@ -110,11 +119,11 @@ export async function importCsv(userId, rows, mode = 'merge') {
       }
       await query(
         `INSERT INTO collection_entries
-           (user_id, card_id, quantity, finish, condition, language, acquired_price)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
-         ON CONFLICT (user_id, card_id, finish, condition, language)
+           (user_id, card_id, quantity, finish, condition, language, location, acquired_price)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         ON CONFLICT (user_id, card_id, finish, condition, language, location)
          DO UPDATE SET quantity = collection_entries.quantity + EXCLUDED.quantity`,
-        [userId, card.id, p.quantity, p.finish, p.condition, p.language, p.acquired_price],
+        [userId, card.id, p.quantity, p.finish, p.condition, p.language, location, p.acquired_price],
       );
       imported += 1;
     } catch (err) {

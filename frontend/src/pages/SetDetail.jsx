@@ -15,8 +15,10 @@ export default function SetDetail() {
   const [cards, setCards] = useState([]);
   const [setName, setSetName] = useState('');
   const [cardCount, setCardCount] = useState(null);
+  const [printedSize, setPrintedSize] = useState(null);
   const [owned, setOwned] = useState({});
   const [filter, setFilter] = useState('all');
+  const [showMissing, setShowMissing] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const loadOwned = useCallback(async () => {
@@ -31,7 +33,11 @@ export default function SetDetail() {
       try {
         const data = await api('/sets');
         const s = (data.sets || []).find((x) => x.code === code);
-        if (!cancelled) { setCardCount(s?.card_count ?? null); if (s?.name) setSetName(s.name); }
+        if (!cancelled) {
+          setCardCount(s?.card_count ?? null);
+          setPrintedSize(s?.printed_size ?? null);
+          if (s?.name) setSetName(s.name);
+        }
       } catch { /* ignore */ }
     })();
     return () => { cancelled = true; };
@@ -78,13 +84,21 @@ export default function SetDetail() {
     }
   }
 
-  // Possédées distinctes dans le set (même calcul que la liste des extensions)
-  const ownedCount = useMemo(
-    () => Object.values(owned).filter((qrt) => qrt > 0).length,
-    [owned],
-  );
-  const total = cardCount ?? cards.length;
+  // Base set strict : cartes au numéro de collecteur ≤ printed_size (hors variants/promos)
+  const baseCards = useMemo(() => {
+    const limit = printedSize || cardCount || Infinity;
+    return cards
+      .filter((c) => {
+        const n = Number(c.collector_number);
+        return Number.isInteger(n) && n >= 1 && n <= limit;
+      })
+      .sort((a, b) => Number(a.collector_number) - Number(b.collector_number));
+  }, [cards, printedSize, cardCount]);
+
+  const ownedCount = baseCards.filter((c) => (owned[c.scryfall_id] || 0) > 0).length;
+  const total = baseCards.length || (printedSize ?? cardCount ?? cards.length);
   const pct = total ? Math.min(100, Math.round((100 * ownedCount) / total)) : 0;
+  const missingBase = baseCards.filter((c) => !(owned[c.scryfall_id] > 0));
 
   const visible = useMemo(() => cards.filter((c) => {
     const has = (owned[c.scryfall_id] || 0) > 0;
@@ -106,15 +120,37 @@ export default function SetDetail() {
         </h1>
       </div>
 
-      {/* Complétion */}
+      {/* Complétion (base set strict) */}
       <div className="mb-4">
         <div className="flex justify-between text-xs text-slate-400 mb-1">
-          <span>Complétion</span>
+          <span>Complétion (set de base)</span>
           <span>{ownedCount} / {total} cartes · <span className="text-emerald-400">{pct}%</span></span>
         </div>
         <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
           <div className="h-full bg-emerald-500" style={{ width: `${pct}%` }} />
         </div>
+        {missingBase.length > 0 && (
+          <div className="mt-1">
+            <button type="button" onClick={() => setShowMissing((v) => !v)} className="text-xs text-slate-400 hover:text-slate-200">
+              {showMissing ? '▾' : '▸'} {missingBase.length} numéro{missingBase.length > 1 ? 's' : ''} manquant{missingBase.length > 1 ? 's' : ''}
+            </button>
+            {showMissing && (
+              <div className="mt-1 flex flex-wrap gap-1 max-h-40 overflow-auto">
+                {missingBase.map((c) => (
+                  <button
+                    key={c.scryfall_id}
+                    type="button"
+                    onClick={() => openCard(c.scryfall_id)}
+                    title={c.name}
+                    className="text-[11px] bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded px-1.5 py-0.5"
+                  >
+                    #{c.collector_number}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Filtres */}

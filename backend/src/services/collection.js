@@ -17,6 +17,7 @@ function mapEntry(r) {
     finish: r.finish,
     condition: r.condition,
     language: r.language,
+    location: r.location,
     acquired_price: r.acquired_price,
     acquired_at: r.acquired_at,
     notes: r.notes,
@@ -54,6 +55,7 @@ export async function getCollection(userId, opts = {}) {
   if (opts.condition) filter((i) => `e.condition = $${i}`, opts.condition);
   if (opts.finish) filter((i) => `e.finish = $${i}`, opts.finish);
   if (opts.language) filter((i) => `e.language = $${i}`, opts.language);
+  if (opts.location) filter((i) => `e.location = $${i}`, opts.location);
   if (opts.type) filter((i) => `c.type_line ILIKE $${i}`, `%${opts.type}%`);
 
   if (opts.color === 'C') {
@@ -87,7 +89,7 @@ export async function getCollection(userId, opts = {}) {
   const offIdx = params.length;
 
   const rowsRes = await query(
-    `SELECT e.id, e.quantity, e.finish, e.condition, e.language, e.acquired_price,
+    `SELECT e.id, e.quantity, e.finish, e.condition, e.language, e.location, e.acquired_price,
             e.acquired_at, e.notes, e.added_at,
             c.scryfall_id, c.name, c.set_code, c.set_name, c.collector_number, c.rarity,
             c.image_uri, c.image_uri_small, c.colors, c.color_identity, c.type_line,
@@ -206,4 +208,43 @@ export async function getStats(userId) {
     conditionBreakdown: conditions.rows,
     typeBreakdown: types.rows,
   };
+}
+
+/**
+ * Détection de « spikes » : cartes possédées dont le prix EUR a varié de ≥ threshold %
+ * sur les `days` derniers jours (compare le dernier snapshot au plus récent ≤ date-days).
+ */
+export async function getSpikes(userId, days = 7, threshold = 20) {
+  const { rows } = await query(
+    `WITH owned AS (
+       SELECT DISTINCT c.id AS card_id, c.scryfall_id, c.name, c.set_code, c.image_uri_small
+       FROM cards c JOIN collection_entries e ON e.card_id = c.id
+       WHERE e.user_id = $1
+     ),
+     latest AS (
+       SELECT h.card_id, h.snapshot_date, h.eur
+       FROM card_price_history h
+       JOIN owned o ON o.card_id = h.card_id
+       WHERE h.snapshot_date = (SELECT MAX(snapshot_date) FROM card_price_history h2 WHERE h2.card_id = h.card_id)
+     ),
+     ref AS (
+       SELECT DISTINCT ON (h.card_id) h.card_id, h.eur
+       FROM card_price_history h
+       JOIN latest l ON l.card_id = h.card_id
+       WHERE h.snapshot_date <= l.snapshot_date - $2::int
+       ORDER BY h.card_id, h.snapshot_date DESC
+     )
+     SELECT o.scryfall_id, o.name, o.set_code, o.image_uri_small,
+            l.eur AS current_eur, r.eur AS past_eur,
+            round(((l.eur - r.eur) / NULLIF(r.eur, 0)) * 100, 1) AS pct
+     FROM owned o
+     JOIN latest l ON l.card_id = o.card_id
+     JOIN ref r ON r.card_id = o.card_id
+     WHERE r.eur > 0 AND l.eur IS NOT NULL
+       AND abs(((l.eur - r.eur) / NULLIF(r.eur, 0)) * 100) >= $3
+     ORDER BY pct DESC
+     LIMIT 50`,
+    [userId, days, threshold],
+  );
+  return rows;
 }

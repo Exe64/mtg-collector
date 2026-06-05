@@ -42,3 +42,16 @@ test('condition Mint → MT, etched', () => {
   assert.equal(r.condition, 'MT');
   assert.equal(r.finish, 'etched');
 });
+
+test('format ManaBox : Scryfall ID + condition underscore + Set code', () => {
+  const r = normalizeRow({
+    Name: 'Counterspell', Quantity: '2', 'Set code': 'mh2', 'Collector number': '267',
+    'Scryfall ID': 'abcd1234-5678-90ab-cdef-1234567890ab', Condition: 'near_mint',
+    Foil: 'normal', Language: 'en',
+  });
+  assert.equal(r.quantity, 2);
+  assert.equal(r.set, 'mh2');
+  assert.equal(r.scryfall_id, 'abcd1234-5678-90ab-cdef-1234567890ab');
+  assert.equal(r.condition, 'NM');
+  assert.equal(r.finish, 'nonfoil');
+});

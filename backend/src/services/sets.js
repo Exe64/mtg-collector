@@ -4,12 +4,12 @@ import * as scryfall from './scryfall.js';
 /** Upsert en lot des extensions dans la table `sets`. */
 export async function upsertSets(sets) {
   if (!sets.length) return 0;
-  const cols = ['code', 'name', 'released_at', 'card_count', 'icon_uri', 'set_type'];
+  const cols = ['code', 'name', 'released_at', 'card_count', 'icon_uri', 'set_type', 'printed_size'];
   const params = [];
   const rowsSql = sets.map((s) => {
     const vals = [
       s.code, s.name, s.released_at || null, s.card_count ?? null,
-      s.icon_svg_uri || null, s.set_type || null,
+      s.icon_svg_uri || null, s.set_type || null, s.printed_size ?? null,
     ];
     const ph = vals.map((v) => {
       params.push(v);
@@ -23,7 +23,7 @@ export async function upsertSets(sets) {
      ON CONFLICT (code) DO UPDATE SET
        name = EXCLUDED.name, released_at = EXCLUDED.released_at,
        card_count = EXCLUDED.card_count, icon_uri = EXCLUDED.icon_uri,
-       set_type = EXCLUDED.set_type, updated_at = NOW()`,
+       set_type = EXCLUDED.set_type, printed_size = EXCLUDED.printed_size, updated_at = NOW()`,
     params,
   );
   return sets.length;
@@ -42,6 +42,7 @@ export function toClientSet(s) {
     name: s.name,
     released_at: s.released_at || null,
     card_count: s.card_count ?? null,
+    printed_size: s.printed_size ?? null,
     icon: s.icon_svg_uri || s.icon_uri || null,
     set_type: s.set_type || null,
   };

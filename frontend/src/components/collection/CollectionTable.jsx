@@ -60,6 +60,7 @@ export default function CollectionTable({ entries, onUpdate, onDelete, onEdit, s
                   <span className={`text-xs uppercase ${RARITY_COLORS[e.card.rarity] || 'text-slate-400'}`}>
                     {e.card.set} · {e.card.rarity}
                   </span>
+                  {e.location && <span className="block text-[10px] text-slate-500 truncate">📍 {e.location}</span>}
                 </span>
               </button>
               <span className="text-emerald-400 text-sm whitespace-nowrap">{e.total_price_eur ?? '—'} €</span>
@@ -103,7 +104,10 @@ export default function CollectionTable({ entries, onUpdate, onDelete, onEdit, s
                   <button type="button" onClick={() => openCard(e.card.scryfall_id)}
                     className="flex items-center gap-2 text-left hover:text-indigo-300 w-full min-w-0">
                     {e.card.image_small && <img src={e.card.image_small} alt="" className="w-8 rounded-sm shrink-0" />}
-                    <span className="truncate">{e.card.name}</span>
+                    <span className="min-w-0">
+                      <span className="block truncate">{e.card.name}</span>
+                      {e.location && <span className="block text-[10px] text-slate-500 truncate">📍 {e.location}</span>}
+                    </span>
                   </button>
                 </td>
                 <td className="p-2 hidden sm:table-cell uppercase text-slate-400">{e.card.set}</td>

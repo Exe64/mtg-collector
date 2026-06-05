@@ -9,6 +9,7 @@ export default function EntryEditModal({ entry, onSave, onClose }) {
     finish: entry.finish,
     condition: entry.condition,
     language: entry.language,
+    location: entry.location ?? '',
     acquired_price: entry.acquired_price ?? '',
     acquired_at: entry.acquired_at ? String(entry.acquired_at).slice(0, 10) : '',
     notes: entry.notes ?? '',
@@ -27,6 +28,7 @@ export default function EntryEditModal({ entry, onSave, onClose }) {
         finish: form.finish,
         condition: form.condition,
         language: form.language,
+        location: form.location,
         acquired_price: form.acquired_price === '' ? null : Number(form.acquired_price),
         acquired_at: form.acquired_at || null,
         notes: form.notes || null,
@@ -76,6 +78,10 @@ export default function EntryEditModal({ entry, onSave, onClose }) {
             <input type="date" value={form.acquired_at} onChange={(e) => set('acquired_at', e.target.value)} className={field} />
           </label>
         </div>
+        <label className="text-xs text-slate-400 block">Emplacement
+          <input type="text" value={form.location} onChange={(e) => set('location', e.target.value)}
+            placeholder="ex. Classeur Rares Bleues" className={field} />
+        </label>
         <label className="text-xs text-slate-400 block">Notes
           <textarea value={form.notes} onChange={(e) => set('notes', e.target.value)} rows={2} className={field} />
         </label>

@@ -13,6 +13,7 @@ router.post('/csv', requireAuth, upload.single('file'), async (req, res, next) =
   try {
     if (!req.file) return res.status(400).json({ error: 'Fichier CSV manquant (champ "file")' });
     const mode = req.body.mode === 'replace' ? 'replace' : 'merge';
+    const location = String(req.body.location || '').slice(0, 100);
 
     let rows;
     try {
@@ -27,7 +28,7 @@ router.post('/csv', requireAuth, upload.single('file'), async (req, res, next) =
       return res.status(400).json({ error: `CSV illisible : ${e.message}` });
     }
 
-    const report = await importCsv(req.user.id, rows, mode);
+    const report = await importCsv(req.user.id, rows, mode, location);
     res.json(report);
   } catch (err) {
     next(err);

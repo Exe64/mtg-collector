@@ -10,6 +10,7 @@ export const collectionAddSchema = z.object({
   foil: z.boolean().optional(),
   condition: z.enum(CONDITIONS, { message: 'condition invalide' }).default('NM'),
   language: z.string().min(2).max(5).default('en'),
+  location: z.string().max(100).default(''),
   acquired_price: z.coerce.number().nonnegative().nullish(),
   notes: z.string().max(2000).nullish(),
 });
@@ -20,6 +21,7 @@ export const collectionAdjustSchema = z.object({
   finish: z.enum(FINISHES).default('nonfoil'),
   condition: z.enum(CONDITIONS).default('NM'),
   language: z.string().min(2).max(5).default('en'),
+  location: z.string().max(100).default(''),
 });
 
 export const collectionPatchSchema = z.object({
@@ -27,6 +29,7 @@ export const collectionPatchSchema = z.object({
   finish: z.enum(FINISHES).optional(),
   condition: z.enum(CONDITIONS).optional(),
   language: z.string().min(2).max(5).optional(),
+  location: z.string().max(100).optional(),
   acquired_price: z.coerce.number().nonnegative().nullish(),
   acquired_at: z.string().nullish(),
   notes: z.string().max(2000).nullish(),

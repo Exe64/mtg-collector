@@ -12,7 +12,9 @@ et [backend/API.md](backend/API.md) pour la référence API.
 - **Extensions** : catalogue filtrable (dont promos), **complétion par set** (liste + détail avec filtres possédées / toutes / manquantes)
 - **Détail carte** : modale image HD, texte oracle, prix, et **rulings officiels** (Wizards/Gatherer via Scryfall)
 - **Tableau de bord** : valeur EUR/USD, courbe d'évolution, donuts (couleur, rareté, état, type), top 10
-- **Import/Export** : CSV Moxfield + générique (fusion/remplacement), export CSV Moxfield + PDF
+- **Import/Export** : CSV Moxfield + **ManaBox** (résolution exacte par Scryfall ID) + générique, **tag emplacement par lot**, export CSV Moxfield + PDF
+- **Onboarding masse** : scanner via une app tierce (ex. ManaBox) → export CSV → import ; chaque lot taggé à un emplacement physique
+- **Complétion** : suivi par extension avec % et **numéros manquants** (set de base strict via `printed_size`), emplacement physique des cartes
 - **Prix** : Scryfall (Cardmarket EUR), job quotidien (3h UTC) → snapshots collection/édition + historique par carte
 - **PWA** : installable, Service Worker (app shell offline), conditions **Cardmarket** (MT→PO)
 

@@ -5,6 +5,7 @@ export default function ImportExport() {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [mode, setMode] = useState('merge');
+  const [location, setLocation] = useState('');
   const [busy, setBusy] = useState(false);
   const [report, setReport] = useState(null);
   const [error, setError] = useState(null);
@@ -28,6 +29,7 @@ export default function ImportExport() {
       const fd = new FormData();
       fd.append('file', file);
       fd.append('mode', mode);
+      if (location.trim()) fd.append('location', location.trim());
       const res = await api('/import/csv', { method: 'POST', body: fd });
       setReport(res);
     } catch (err) {
@@ -84,6 +86,15 @@ export default function ImportExport() {
             Remplacer la collection
           </label>
         </div>
+
+        <label className="block text-xs text-slate-400">
+          Emplacement à appliquer à tout le lot (optionnel)
+          <input
+            type="text" value={location} onChange={(e) => setLocation(e.target.value)}
+            placeholder="ex. Classeur Rares Bleues"
+            className="block w-full max-w-sm mt-1 rounded bg-slate-900 border border-slate-700 px-2 py-1.5 text-sm"
+          />
+        </label>
 
         <button type="button" onClick={doImport} disabled={!file || busy}
           className="rounded-md bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 px-4 py-2 text-sm">
