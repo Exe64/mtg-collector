@@ -37,17 +37,16 @@ export default function SetDetail() {
     setOwned(data.owned || {});
   }, [code]);
 
-  // card_count officiel du set (même dénominateur que la liste des extensions)
+  // Métadonnées du set (un seul appel, pas toute la liste)
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const data = await api('/sets');
-        const s = (data.sets || []).find((x) => x.code === code);
-        if (!cancelled) {
-          setCardCount(s?.card_count ?? null);
-          setPrintedSize(s?.printed_size ?? null);
-          if (s?.name) setSetName(s.name);
+        const { set: s } = await api(`/sets/${encodeURIComponent(code)}`);
+        if (!cancelled && s) {
+          setCardCount(s.card_count ?? null);
+          setPrintedSize(s.printed_size ?? null);
+          if (s.name) setSetName(s.name);
         }
       } catch { /* ignore */ }
     })();

@@ -47,3 +47,16 @@ export function toClientSet(s) {
     set_type: s.set_type || null,
   };
 }
+
+// Depuis une ligne de la table `sets` (servie en local, pas via Scryfall)
+export function dbSetToClient(r) {
+  return {
+    code: r.code,
+    name: r.name,
+    released_at: r.released_at || null,
+    card_count: r.card_count ?? null,
+    printed_size: r.printed_size ?? null,
+    icon: r.icon_uri || null,
+    set_type: r.set_type || null,
+  };
+}
