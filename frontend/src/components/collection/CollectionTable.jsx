@@ -42,6 +42,12 @@ function Th({ col, label, align = 'left', extra = '', sort, order, onSort }) {
 export default function CollectionTable({ entries, onUpdate, onDelete, onEdit, sort, order, onSort, selected, onToggleSelect, onSetMany }) {
   const openCard = useCardModal((s) => s.open);
 
+  const confirmDelete = (e) => {
+    if (window.confirm(`Supprimer « ${e.card.name} » (${e.finish}, ${e.condition}) de ta collection ?`)) {
+      onDelete(e.id);
+    }
+  };
+
   if (!entries.length) {
     return <div className="text-center text-slate-500 py-12">Aucune carte.</div>;
   }
@@ -68,7 +74,7 @@ export default function CollectionTable({ entries, onUpdate, onDelete, onEdit, s
               </button>
               <span className="text-emerald-400 text-sm whitespace-nowrap">{e.total_price_eur ?? '—'} €</span>
               <button type="button" onClick={() => onEdit(e)} aria-label="Éditer" className="text-slate-300 px-1">✎</button>
-              <button type="button" onClick={() => onDelete(e.id)} aria-label="Supprimer" className="text-rose-400 px-1">✕</button>
+              <button type="button" onClick={() => confirmDelete(e)} aria-label="Supprimer" className="text-rose-400 px-1">✕</button>
             </div>
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               <label className="text-[10px] text-slate-400">Qté
@@ -138,7 +144,7 @@ export default function CollectionTable({ entries, onUpdate, onDelete, onEdit, s
                 <td className="p-2 text-right text-emerald-400">{e.total_price_eur ?? '—'}</td>
                 <td className="p-2 text-right whitespace-nowrap">
                   <button type="button" onClick={() => onEdit(e)} aria-label="Éditer" className="text-slate-300 hover:text-white mr-1">✎</button>
-                  <button type="button" onClick={() => onDelete(e.id)} aria-label="Supprimer" className="text-rose-400 hover:text-rose-300">✕</button>
+                  <button type="button" onClick={() => confirmDelete(e)} aria-label="Supprimer" className="text-rose-400 hover:text-rose-300">✕</button>
                 </td>
               </tr>
             ))}
