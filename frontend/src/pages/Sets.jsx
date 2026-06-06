@@ -82,7 +82,7 @@ export default function Sets() {
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">{s.name}</div>
                   <div className="text-xs text-slate-400 uppercase">
-                    {s.code} · {s.card_count ?? '?'} cartes · {s.released_at || '—'}
+                    {s.code} · {s.card_count ?? '?'} cartes · {s.released_at ? String(s.released_at).slice(0, 10) : '—'}
                   </div>
                   {owned > 0 && (
                     <div className="mt-1.5">
