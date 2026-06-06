@@ -40,8 +40,8 @@ function mapEntry(r) {
   };
 }
 
-/** Liste paginée + filtrée + triée de la collection d'un utilisateur. */
-export async function getCollection(userId, opts = {}) {
+// Construit le WHERE + params partagés (liste, comptes, groupes).
+function buildFilters(userId, opts) {
   const conds = ['e.user_id = $1'];
   const params = [userId];
   const filter = (sql, value) => {
@@ -69,7 +69,27 @@ export async function getCollection(userId, opts = {}) {
   if (opts.cmc !== undefined && opts.cmc !== '') filter((i) => `c.cmc = $${i}`, Number(opts.cmc));
   if (opts.cmcMin) filter((i) => `c.cmc >= $${i}`, Number(opts.cmcMin));
 
-  const where = conds.join(' AND ');
+  return { where: conds.join(' AND '), params };
+}
+
+/** Agrégats par extension sur TOUTE la collection (filtres appliqués). */
+export async function getCollectionGroups(userId, opts = {}) {
+  const { where, params } = buildFilters(userId, opts);
+  const { rows } = await query(
+    `SELECT c.set_code, MAX(c.set_name) AS set_name, COUNT(*)::int AS count,
+            COALESCE(SUM((${UNIT_EUR}) * e.quantity), 0)::numeric(12,2) AS total_eur
+     FROM collection_entries e JOIN cards c ON c.id = e.card_id
+     WHERE ${where}
+     GROUP BY c.set_code
+     ORDER BY total_eur DESC NULLS LAST`,
+    params,
+  );
+  return rows;
+}
+
+/** Liste paginée + filtrée + triée de la collection d'un utilisateur. */
+export async function getCollection(userId, opts = {}) {
+  const { where, params } = buildFilters(userId, opts);
   const sortCol = SORT_COLUMNS[opts.sort] || SORT_COLUMNS.added_at;
   const order = String(opts.order).toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
@@ -81,7 +101,7 @@ export async function getCollection(userId, opts = {}) {
   );
   const total = countRes.rows[0].total;
 
-  const pageSize = Math.min(Number(opts.pageSize) || 50, 200);
+  const pageSize = Math.min(Number(opts.pageSize) || 50, 500);
   const page = Math.max(Number(opts.page) || 1, 1);
   params.push(pageSize);
   const limIdx = params.length;

@@ -5,7 +5,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
 import { collectionAddSchema, collectionAdjustSchema, collectionPatchSchema, collectionBulkSchema } from '../validation/schemas.js';
 import { ensureCard } from '../services/cards.js';
-import { getCollection, getCollectionTotals, getStats, getSpikes } from '../services/collection.js';
+import { getCollection, getCollectionTotals, getStats, getSpikes, getCollectionGroups } from '../services/collection.js';
 import { getSnapshots, getSetSnapshots } from '../services/snapshots.js';
 
 const router = Router();
@@ -19,6 +19,19 @@ router.get('/', async (req, res, next) => {
     const result = await getCollection(req.user.id, req.query);
     const stats = await getCollectionTotals(req.user.id);
     res.json({ ...result, stats });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/collection/by-set  → groupes par extension (toute la collection) + stats globales
+router.get('/by-set', async (req, res, next) => {
+  try {
+    const [groups, stats] = await Promise.all([
+      getCollectionGroups(req.user.id, req.query),
+      getCollectionTotals(req.user.id),
+    ]);
+    res.json({ groups, stats });
   } catch (err) {
     next(err);
   }

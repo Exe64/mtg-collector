@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { api } from '../api/client';
 import CollectionTable from '../components/collection/CollectionTable';
 import EntryEditModal from '../components/collection/EntryEditModal';
@@ -20,58 +20,81 @@ const CMC_OPTIONS = [['', 'Coût'], ['0', '0'], ['1', '1'], ['2', '2'], ['3', '3
 
 const EMPTY_FILTERS = { type: '', rarity: '', color: '', cmc: '', condition: '', location: '' };
 const FINISHES = ['nonfoil', 'foil', 'etched'];
-const PAGE_SIZE = 100;
+const PAGE_SIZE = 100;   // mode "plat"
+const GROUP_PAGE = 500;  // cartes chargées par extension à l'ouverture
 
 export default function Collection() {
-  const [data, setData] = useState({ entries: [], total: 0, stats: null });
+  const [stats, setStats] = useState(null);
   const [q, setQ] = useState('');
   const [filters, setFilters] = useState(EMPTY_FILTERS);
-  const [page, setPage] = useState(1);
   const [sort, setSort] = useState('value');
   const [order, setOrder] = useState('desc');
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState(null);
   const [grouped, setGrouped] = useState(true);
-  const [collapsed, setCollapsed] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Mode plat
+  const [flat, setFlat] = useState({ entries: [], total: 0 });
+  const [flatPage, setFlatPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  // Mode groupé (serveur)
+  const [groups, setGroups] = useState([]);
+  const [groupEntries, setGroupEntries] = useState({});
+  const [expanded, setExpanded] = useState({});
+
   const [editing, setEditing] = useState(null);
   const [locations, setLocations] = useState([]);
   const [selected, setSelected] = useState(() => new Set());
   const [bulk, setBulk] = useState({ location: '', condition: '', finish: '', language: '' });
 
+  // Paramètres communs (q + filtres)
+  const commonParams = useCallback(() => {
+    const p = new URLSearchParams();
+    if (q.trim()) p.set('q', q.trim());
+    if (filters.type) p.set('type', filters.type);
+    if (filters.rarity) p.set('rarity', filters.rarity);
+    if (filters.color) p.set('color', filters.color);
+    if (filters.condition) p.set('condition', filters.condition);
+    if (filters.location) p.set('location', filters.location);
+    if (filters.cmc === '7+') p.set('cmcMin', '7');
+    else if (filters.cmc) p.set('cmc', filters.cmc);
+    return p.toString();
+  }, [q, filters]);
+
+  const fetchGroupEntries = useCallback(async (code) => {
+    const res = await api(`/collection?${commonParams()}&set=${encodeURIComponent(code)}&sort=${sort}&order=${order}&pageSize=${GROUP_PAGE}`);
+    return res.entries;
+  }, [commonParams, sort, order]);
+
   useEffect(() => {
     api('/collection/locations').then((d) => setLocations(d.locations || [])).catch(() => {});
-  }, [data.total]);
+  }, [stats]);
 
-  const fetchPage = useCallback(async (search, f, pageNum, size) => {
-    const params = new URLSearchParams({
-      sort, order, page: String(pageNum), pageSize: String(size),
-    });
-    if (search) params.set('q', search);
-    if (f.type) params.set('type', f.type);
-    if (f.rarity) params.set('rarity', f.rarity);
-    if (f.color) params.set('color', f.color);
-    if (f.condition) params.set('condition', f.condition);
-    if (f.location) params.set('location', f.location);
-    if (f.cmc === '7+') params.set('cmcMin', '7');
-    else if (f.cmc) params.set('cmc', f.cmc);
-    return api(`/collection?${params.toString()}`);
-  }, [sort, order]);
-
-  function onSort(col) {
-    if (col === sort) setOrder((o) => (o === 'asc' ? 'desc' : 'asc'));
-    else { setSort(col); setOrder(col === 'name' || col === 'set' ? 'asc' : 'desc'); }
-  }
-
-  // Première page : à chaque changement de recherche/filtres (debounce)
+  // Chargement principal (debounce) — selon le mode
   useEffect(() => {
     const t = setTimeout(async () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetchPage(q.trim(), filters, 1, PAGE_SIZE);
-        setData(res);
-        setPage(1);
+        if (grouped) {
+          const res = await api(`/collection/by-set?${commonParams()}`);
+          setGroups(res.groups || []);
+          setStats(res.stats);
+          // recharge les groupes déjà ouverts (filtres/tri changés)
+          const open = Object.keys(expanded).filter((c) => expanded[c]);
+          const next = {};
+          for (const code of open) {
+            // eslint-disable-next-line no-await-in-loop
+            next[code] = await fetchGroupEntries(code);
+          }
+          setGroupEntries(next);
+        } else {
+          const res = await api(`/collection?${commonParams()}&sort=${sort}&order=${order}&page=1&pageSize=${PAGE_SIZE}`);
+          setFlat(res);
+          setStats(res.stats);
+          setFlatPage(1);
+        }
       } catch (err) {
         setError(err.message);
       } finally {
@@ -79,15 +102,26 @@ export default function Collection() {
       }
     }, 300);
     return () => clearTimeout(t);
-  }, [q, filters, fetchPage]);
+    // expanded volontairement hors deps (géré au toggle)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, filters, sort, order, grouped, commonParams, fetchGroupEntries]);
+
+  async function toggleGroup(code) {
+    const willOpen = !expanded[code];
+    setExpanded((e) => ({ ...e, [code]: willOpen }));
+    if (willOpen && !groupEntries[code]) {
+      const entries = await fetchGroupEntries(code);
+      setGroupEntries((g) => ({ ...g, [code]: entries }));
+    }
+  }
 
   async function loadMore() {
     setLoadingMore(true);
     try {
-      const next = page + 1;
-      const res = await fetchPage(q.trim(), filters, next, PAGE_SIZE);
-      setData((d) => ({ ...res, entries: [...d.entries, ...res.entries] }));
-      setPage(next);
+      const next = flatPage + 1;
+      const res = await api(`/collection?${commonParams()}&sort=${sort}&order=${order}&page=${next}&pageSize=${PAGE_SIZE}`);
+      setFlat((d) => ({ ...res, entries: [...d.entries, ...res.entries] }));
+      setFlatPage(next);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -95,12 +129,30 @@ export default function Collection() {
     }
   }
 
-  // Recharge la même quantité d'entrées déjà affichées (après édition/suppression)
+  // Rafraîchit l'affichage après une mutation
   async function refresh() {
-    const size = Math.max(data.entries.length, PAGE_SIZE);
-    const res = await fetchPage(q.trim(), filters, 1, size);
-    setData(res);
-    setPage(Math.max(1, Math.ceil(res.entries.length / PAGE_SIZE)));
+    if (grouped) {
+      const res = await api(`/collection/by-set?${commonParams()}`);
+      setGroups(res.groups || []);
+      setStats(res.stats);
+      const open = Object.keys(expanded).filter((c) => expanded[c]);
+      const next = {};
+      for (const code of open) {
+        // eslint-disable-next-line no-await-in-loop
+        next[code] = await fetchGroupEntries(code);
+      }
+      setGroupEntries(next);
+    } else {
+      const size = Math.max(flat.entries.length, PAGE_SIZE);
+      const res = await api(`/collection?${commonParams()}&sort=${sort}&order=${order}&page=1&pageSize=${size}`);
+      setFlat(res);
+      setStats(res.stats);
+    }
+  }
+
+  function onSort(col) {
+    if (col === sort) setOrder((o) => (o === 'asc' ? 'desc' : 'asc'));
+    else { setSort(col); setOrder(col === 'name' || col === 'set' ? 'asc' : 'desc'); }
   }
 
   async function update(id, patch) {
@@ -109,7 +161,7 @@ export default function Collection() {
       await api(`/collection/${id}`, { method: 'PATCH', body: patch });
       await refresh();
     } catch (err) {
-      setError(err.message); // ex. conflit 409
+      setError(err.message);
       await refresh();
     }
   }
@@ -118,8 +170,6 @@ export default function Collection() {
     await api(`/collection/${id}`, { method: 'DELETE' });
     await refresh();
   }
-
-  const hasMore = data.entries.length < data.total;
 
   const toggleSelect = (id) => setSelected((prev) => {
     const n = new Set(prev);
@@ -150,20 +200,9 @@ export default function Collection() {
 
   const setFilter = (key, value) => setFilters((f) => ({ ...f, [key]: value }));
   const hasFilters = q || Object.values(filters).some(Boolean);
-
-  const groups = useMemo(() => {
-    const m = new Map();
-    for (const e of data.entries) {
-      const key = e.card.set_name || e.card.set || '—';
-      if (!m.has(key)) m.set(key, { name: key, code: e.card.set, entries: [], total: 0 });
-      const g = m.get(key);
-      g.entries.push(e);
-      g.total += Number(e.total_price_eur) || 0;
-    }
-    return [...m.values()].sort((a, b) => b.total - a.total);
-  }, [data.entries]);
-
-  const stats = data.stats;
+  const hasMore = flat.entries.length < flat.total;
+  const tableProps = { onUpdate: update, onDelete: remove, onEdit: setEditing, sort, order, onSort, selected, onToggleSelect: toggleSelect, onSetMany: setMany };
+  const isEmpty = grouped ? groups.length === 0 : flat.entries.length === 0;
 
   return (
     <div>
@@ -185,72 +224,50 @@ export default function Collection() {
           className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm"
         />
         {q && (
-          <button
-            type="button"
-            onClick={() => setQ('')} aria-label="Effacer la recherche"
-            className="absolute right-2 top-2 text-slate-500 hover:text-slate-300 text-sm"
-          >✕</button>
+          <button type="button" onClick={() => setQ('')} aria-label="Effacer la recherche"
+            className="absolute right-2 top-2 text-slate-500 hover:text-slate-300 text-sm">✕</button>
         )}
       </div>
 
       <div className="flex flex-wrap gap-2 mb-3">
         {[['type', TYPE_OPTIONS], ['rarity', RARITY_OPTIONS], ['color', COLOR_OPTIONS], ['cmc', CMC_OPTIONS]].map(([key, opts]) => (
-          <select
-            key={key}
-            value={filters[key]}
-            onChange={(e) => setFilter(key, e.target.value)}
-            className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1.5 text-sm"
-          >
+          <select key={key} value={filters[key]} onChange={(e) => setFilter(key, e.target.value)}
+            className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1.5 text-sm">
             {opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
         ))}
-        <select
-          value={filters.condition}
-          onChange={(e) => setFilter('condition', e.target.value)}
-          className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1.5 text-sm"
-        >
+        <select value={filters.condition} onChange={(e) => setFilter('condition', e.target.value)}
+          className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1.5 text-sm">
           <option value="">État</option>
           {CONDITIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
         </select>
         {locations.length > 0 && (
-          <select
-            value={filters.location}
-            onChange={(e) => setFilter('location', e.target.value)}
-            className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1.5 text-sm"
-          >
+          <select value={filters.location} onChange={(e) => setFilter('location', e.target.value)}
+            className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1.5 text-sm">
             <option value="">Emplacement</option>
             {locations.map((l) => <option key={l} value={l}>{l}</option>)}
           </select>
         )}
         {hasFilters && (
-          <button
-            type="button"
-            onClick={() => { setQ(''); setFilters(EMPTY_FILTERS); }}
-            className="text-xs text-slate-400 hover:text-slate-200 px-2"
-          >Réinitialiser</button>
+          <button type="button" onClick={() => { setQ(''); setFilters(EMPTY_FILTERS); }}
+            className="text-xs text-slate-400 hover:text-slate-200 px-2">Réinitialiser</button>
         )}
       </div>
 
-      {/* Tri (mobile) — le desktop trie via les en-têtes de colonnes */}
+      {/* Tri (mobile) — le desktop trie via les en-têtes */}
       <div className="sm:hidden flex items-center gap-2 mb-3">
         <span className="text-xs text-slate-400">Trier :</span>
-        <select
-          value={sort}
+        <select value={sort}
           onChange={(e) => { setSort(e.target.value); setOrder(e.target.value === 'name' || e.target.value === 'set' ? 'asc' : 'desc'); }}
-          className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1 text-sm"
-        >
+          className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1 text-sm">
           <option value="value">Valeur</option>
           <option value="name">Nom</option>
           <option value="quantity">Quantité</option>
           <option value="rarity">Rareté</option>
           <option value="added_at">Ajout</option>
         </select>
-        <button
-          type="button"
-          onClick={() => setOrder((o) => (o === 'asc' ? 'desc' : 'asc'))}
-          aria-label="Inverser l'ordre"
-          className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1 text-sm"
-        >{order === 'asc' ? '▲' : '▼'}</button>
+        <button type="button" onClick={() => setOrder((o) => (o === 'asc' ? 'desc' : 'asc'))} aria-label="Inverser l'ordre"
+          className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1 text-sm">{order === 'asc' ? '▲' : '▼'}</button>
       </div>
 
       <label className="flex items-center gap-2 text-xs text-slate-400 mb-3">
@@ -261,11 +278,9 @@ export default function Collection() {
       {selected.size > 0 && (
         <div className="sticky top-0 z-20 bg-slate-700 border border-slate-600 rounded-md p-2 mb-3 flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium">{selected.size} sélectionnée(s)</span>
-          <input
-            value={bulk.location} onChange={(e) => setBulk({ ...bulk, location: e.target.value })}
+          <input value={bulk.location} onChange={(e) => setBulk({ ...bulk, location: e.target.value })}
             placeholder="Emplacement" aria-label="Emplacement (masse)"
-            className="rounded bg-slate-900 border border-slate-600 px-2 py-1 text-sm w-40"
-          />
+            className="rounded bg-slate-900 border border-slate-600 px-2 py-1 text-sm w-40" />
           <select value={bulk.condition} onChange={(e) => setBulk({ ...bulk, condition: e.target.value })}
             className="rounded bg-slate-900 border border-slate-600 px-2 py-1 text-sm" aria-label="État (masse)">
             <option value="">État…</option>
@@ -276,10 +291,8 @@ export default function Collection() {
             <option value="">Finition…</option>
             {FINISHES.map((f) => <option key={f} value={f}>{f}</option>)}
           </select>
-          <button type="button" onClick={applyBulk}
-            className="rounded bg-indigo-600 hover:bg-indigo-500 px-3 py-1 text-sm">Appliquer</button>
-          <button type="button" onClick={() => setSelected(new Set())}
-            className="text-slate-300 text-sm px-2">Annuler</button>
+          <button type="button" onClick={applyBulk} className="rounded bg-indigo-600 hover:bg-indigo-500 px-3 py-1 text-sm">Appliquer</button>
+          <button type="button" onClick={() => setSelected(new Set())} className="text-slate-300 text-sm px-2">Annuler</button>
         </div>
       )}
 
@@ -287,59 +300,52 @@ export default function Collection() {
 
       {loading ? (
         <div className="text-center text-slate-500 py-12">Chargement…</div>
-      ) : data.entries.length === 0 ? (
+      ) : isEmpty ? (
         <div className="text-center text-slate-500 py-12">
           {hasFilters ? 'Aucune carte ne correspond aux critères.' : 'Aucune carte. Va dans « Ajouter » pour commencer.'}
         </div>
-      ) : !grouped ? (
-        <CollectionTable entries={data.entries} onUpdate={update} onDelete={remove} onEdit={setEditing} sort={sort} order={order} onSort={onSort} selected={selected} onToggleSelect={toggleSelect} onSetMany={setMany} />
-      ) : (
-        <div className="space-y-4">
+      ) : grouped ? (
+        <div className="space-y-2">
           {groups.map((g) => {
-            const isCollapsed = collapsed[g.name];
+            const open = expanded[g.set_code];
+            const entries = groupEntries[g.set_code];
             return (
-              <section key={g.name}>
-                <button
-                  type="button"
-                  onClick={() => setCollapsed((c) => ({ ...c, [g.name]: !c[g.name] }))}
-                  className="w-full flex items-center justify-between bg-slate-800 hover:bg-slate-700 rounded-md px-3 py-2 mb-1"
-                >
+              <section key={g.set_code}>
+                <button type="button" onClick={() => toggleGroup(g.set_code)}
+                  className="w-full flex items-center justify-between bg-slate-800 hover:bg-slate-700 rounded-md px-3 py-2">
                   <span className="text-sm font-medium">
-                    <span className="text-slate-500 mr-2">{isCollapsed ? '▸' : '▾'}</span>
-                    {g.name} <span className="text-slate-500 uppercase text-xs">({g.code})</span>
+                    <span className="text-slate-500 mr-2">{open ? '▾' : '▸'}</span>
+                    {g.set_name || g.set_code} <span className="text-slate-500 uppercase text-xs">({g.set_code})</span>
                   </span>
                   <span className="text-xs text-slate-400">
-                    {g.entries.length} · <span className="text-emerald-400">{g.total.toFixed(2)} €</span>
+                    {g.count} · <span className="text-emerald-400">{Number(g.total_eur).toFixed(2)} €</span>
                   </span>
                 </button>
-                {!isCollapsed && (
-                  <CollectionTable entries={g.entries} onUpdate={update} onDelete={remove} onEdit={setEditing} sort={sort} order={order} onSort={onSort} selected={selected} onToggleSelect={toggleSelect} onSetMany={setMany} />
+                {open && (
+                  entries
+                    ? <div className="mt-1"><CollectionTable entries={entries} {...tableProps} /></div>
+                    : <div className="text-center text-slate-500 py-3 text-sm">Chargement…</div>
                 )}
               </section>
             );
           })}
         </div>
-      )}
-
-      {!loading && hasMore && (
-        <div className="text-center py-4">
-          <button
-            type="button"
-            onClick={loadMore}
-            disabled={loadingMore}
-            className="rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-2 text-sm disabled:opacity-50"
-          >
-            {loadingMore ? 'Chargement…' : `Charger plus (${data.entries.length} / ${data.total})`}
-          </button>
-        </div>
+      ) : (
+        <>
+          <CollectionTable entries={flat.entries} {...tableProps} />
+          {hasMore && (
+            <div className="text-center py-4">
+              <button type="button" onClick={loadMore} disabled={loadingMore}
+                className="rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-2 text-sm disabled:opacity-50">
+                {loadingMore ? 'Chargement…' : `Charger plus (${flat.entries.length} / ${flat.total})`}
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {editing && (
-        <EntryEditModal
-          entry={editing}
-          onClose={() => setEditing(null)}
-          onSave={(patch) => update(editing.id, patch)}
-        />
+        <EntryEditModal entry={editing} onClose={() => setEditing(null)} onSave={(patch) => update(editing.id, patch)} />
       )}
     </div>
   );
