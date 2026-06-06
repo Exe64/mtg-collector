@@ -24,14 +24,15 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-// GET /api/collection/by-set  → groupes par extension (toute la collection) + stats globales
-router.get('/by-set', async (req, res, next) => {
+// GET /api/collection/groups?by=set|color|rarity|location  → groupes (toute la collection) + stats
+router.get('/groups', async (req, res, next) => {
   try {
+    const by = ['set', 'color', 'rarity', 'location'].includes(req.query.by) ? req.query.by : 'set';
     const [groups, stats] = await Promise.all([
-      getCollectionGroups(req.user.id, req.query),
+      getCollectionGroups(req.user.id, req.query, by),
       getCollectionTotals(req.user.id),
     ]);
-    res.json({ groups, stats });
+    res.json({ by, groups, stats });
   } catch (err) {
     next(err);
   }

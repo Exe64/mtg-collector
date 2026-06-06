@@ -18,8 +18,8 @@ import { scheduleDailyJob } from './services/dailyJob.js';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Derrière nginx : indispensable pour que express-rate-limit voie la vraie IP (#vigilance)
-app.set('trust proxy', 1);
+// Derrière Traefik → nginx (2 hops) : pour voir la vraie IP client (rate-limit, logs).
+app.set('trust proxy', 2);
 
 app.use(helmet());
 app.use(pinoHttp({

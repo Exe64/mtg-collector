@@ -30,6 +30,7 @@ export default function Collection() {
   const [sort, setSort] = useState('value');
   const [order, setOrder] = useState('desc');
   const [grouped, setGrouped] = useState(true);
+  const [groupBy, setGroupBy] = useState('set');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -62,10 +63,24 @@ export default function Collection() {
     return p.toString();
   }, [q, filters]);
 
-  const fetchGroupEntries = useCallback(async (code) => {
-    const res = await api(`/collection?${commonParams()}&set=${encodeURIComponent(code)}&sort=${sort}&order=${order}&pageSize=${GROUP_PAGE}`);
+  const fetchGroupEntries = useCallback(async (key) => {
+    const p = new URLSearchParams(commonParams());
+    p.set(groupBy, key); // set | color | rarity | location (override éventuel du filtre)
+    p.set('sort', sort);
+    p.set('order', order);
+    p.set('pageSize', String(GROUP_PAGE));
+    const res = await api(`/collection?${p.toString()}`);
     return res.entries;
-  }, [commonParams, sort, order]);
+  }, [commonParams, sort, order, groupBy]);
+
+  const COLOR_LABELS = Object.fromEntries(COLOR_OPTIONS.slice(1).map(([v, l]) => [v, l]));
+  const RARITY_LABELS = Object.fromEntries(RARITY_OPTIONS.slice(1).map(([v, l]) => [v, l]));
+  const groupLabel = (g) => {
+    if (groupBy === 'set') return `${g.label || g.key} (${(g.key || '').toUpperCase()})`;
+    if (groupBy === 'color') return COLOR_LABELS[g.key] || g.key;
+    if (groupBy === 'rarity') return RARITY_LABELS[g.key] || g.key || '—';
+    return g.key || 'Non classé'; // location
+  };
 
   useEffect(() => {
     api('/collection/locations').then((d) => setLocations(d.locations || [])).catch(() => {});
@@ -78,17 +93,12 @@ export default function Collection() {
       setError(null);
       try {
         if (grouped) {
-          const res = await api(`/collection/by-set?${commonParams()}`);
+          const res = await api(`/collection/groups?by=${groupBy}&${commonParams()}`);
           setGroups(res.groups || []);
           setStats(res.stats);
-          // recharge les groupes déjà ouverts (filtres/tri changés)
-          const open = Object.keys(expanded).filter((c) => expanded[c]);
-          const next = {};
-          for (const code of open) {
-            // eslint-disable-next-line no-await-in-loop
-            next[code] = await fetchGroupEntries(code);
-          }
-          setGroupEntries(next);
+          // changement de filtre/dimension → on replie tout (réouverture = chargement frais)
+          setExpanded({});
+          setGroupEntries({});
         } else {
           const res = await api(`/collection?${commonParams()}&sort=${sort}&order=${order}&page=1&pageSize=${PAGE_SIZE}`);
           setFlat(res);
@@ -102,9 +112,7 @@ export default function Collection() {
       }
     }, 300);
     return () => clearTimeout(t);
-    // expanded volontairement hors deps (géré au toggle)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, filters, sort, order, grouped, commonParams, fetchGroupEntries]);
+  }, [q, filters, sort, order, grouped, groupBy, commonParams]);
 
   async function toggleGroup(code) {
     const willOpen = !expanded[code];
@@ -132,7 +140,7 @@ export default function Collection() {
   // Rafraîchit l'affichage après une mutation
   async function refresh() {
     if (grouped) {
-      const res = await api(`/collection/by-set?${commonParams()}`);
+      const res = await api(`/collection/groups?by=${groupBy}&${commonParams()}`);
       setGroups(res.groups || []);
       setStats(res.stats);
       const open = Object.keys(expanded).filter((c) => expanded[c]);
@@ -270,10 +278,21 @@ export default function Collection() {
           className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1 text-sm">{order === 'asc' ? '▲' : '▼'}</button>
       </div>
 
-      <label className="flex items-center gap-2 text-xs text-slate-400 mb-3">
-        <input type="checkbox" checked={grouped} onChange={(e) => setGrouped(e.target.checked)} />
-        Grouper par extension
-      </label>
+      <div className="flex items-center gap-3 mb-3">
+        <label className="flex items-center gap-2 text-xs text-slate-400">
+          <input type="checkbox" checked={grouped} onChange={(e) => setGrouped(e.target.checked)} />
+          Grouper
+        </label>
+        {grouped && (
+          <select value={groupBy} onChange={(e) => setGroupBy(e.target.value)}
+            className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1 text-xs">
+            <option value="set">par extension</option>
+            <option value="color">par couleur</option>
+            <option value="rarity">par rareté</option>
+            <option value="location">par emplacement</option>
+          </select>
+        )}
+      </div>
 
       {selected.size > 0 && (
         <div className="sticky top-0 z-20 bg-slate-700 border border-slate-600 rounded-md p-2 mb-3 flex flex-wrap items-center gap-2">
@@ -307,15 +326,15 @@ export default function Collection() {
       ) : grouped ? (
         <div className="space-y-2">
           {groups.map((g) => {
-            const open = expanded[g.set_code];
-            const entries = groupEntries[g.set_code];
+            const open = expanded[g.key];
+            const entries = groupEntries[g.key];
             return (
-              <section key={g.set_code}>
-                <button type="button" onClick={() => toggleGroup(g.set_code)}
+              <section key={g.key || '∅'}>
+                <button type="button" onClick={() => toggleGroup(g.key)}
                   className="w-full flex items-center justify-between bg-slate-800 hover:bg-slate-700 rounded-md px-3 py-2">
                   <span className="text-sm font-medium">
                     <span className="text-slate-500 mr-2">{open ? '▾' : '▸'}</span>
-                    {g.set_name || g.set_code} <span className="text-slate-500 uppercase text-xs">({g.set_code})</span>
+                    {groupLabel(g)}
                   </span>
                   <span className="text-xs text-slate-400">
                     {g.count} · <span className="text-emerald-400">{Number(g.total_eur).toFixed(2)} €</span>

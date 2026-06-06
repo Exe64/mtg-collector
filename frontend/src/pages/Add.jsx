@@ -69,6 +69,7 @@ function ResultRow({ card }) {
       <td className="p-2 text-right text-emerald-400 text-sm whitespace-nowrap">{card.prices?.eur ? `${card.prices.eur} €` : '—'}</td>
       <td className="p-2">
         <input type="number" min="1" value={c.qty} onChange={(e) => c.setQty(e.target.value)} aria-label="Quantité"
+          onKeyDown={(e) => { if (e.key === 'Enter') c.add(); }}
           className="w-14 rounded bg-slate-900 border border-slate-700 px-1 py-0.5 text-right text-sm" />
       </td>
       <td className="p-2"><FinishSel value={c.finish} onChange={(e) => c.setFinish(e.target.value)} finishes={c.finishes} /></td>
@@ -101,6 +102,7 @@ function ResultCard({ card }) {
       </div>
       <div className="flex items-center gap-2 mt-2 flex-wrap">
         <input type="number" min="1" value={c.qty} onChange={(e) => c.setQty(e.target.value)} aria-label="Quantité"
+          onKeyDown={(e) => { if (e.key === 'Enter') c.add(); }}
           className="w-14 rounded bg-slate-900 border border-slate-700 px-1 py-0.5 text-right text-sm" />
         <FinishSel value={c.finish} onChange={(e) => c.setFinish(e.target.value)} finishes={c.finishes} />
         <CondSel value={c.condition} onChange={(e) => c.setCondition(e.target.value)} />

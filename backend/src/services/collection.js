@@ -55,7 +55,8 @@ function buildFilters(userId, opts) {
   if (opts.condition) filter((i) => `e.condition = $${i}`, opts.condition);
   if (opts.finish) filter((i) => `e.finish = $${i}`, opts.finish);
   if (opts.language) filter((i) => `e.language = $${i}`, opts.language);
-  if (opts.location) filter((i) => `e.location = $${i}`, opts.location);
+  // !== undefined (et pas "truthy") pour pouvoir filtrer l'emplacement vide « Non classé »
+  if (opts.location !== undefined) filter((i) => `e.location = $${i}`, opts.location);
   if (opts.type) filter((i) => `c.type_line ILIKE $${i}`, `%${opts.type}%`);
 
   if (opts.color === 'C') {
@@ -72,15 +73,30 @@ function buildFilters(userId, opts) {
   return { where: conds.join(' AND '), params };
 }
 
-/** Agrégats par extension sur TOUTE la collection (filtres appliqués). */
-export async function getCollectionGroups(userId, opts = {}) {
+/**
+ * Agrégats par dimension sur TOUTE la collection (filtres appliqués).
+ * by : 'set' (défaut) | 'color' | 'rarity' | 'location'
+ * Renvoie [{ key, label, count, total_eur }] — `key` sert de filtre à l'ouverture.
+ */
+export async function getCollectionGroups(userId, opts = {}, by = 'set') {
   const { where, params } = buildFilters(userId, opts);
+  let keyExpr;
+  let labelExpr;
+  if (by === 'rarity') { keyExpr = 'c.rarity'; labelExpr = 'c.rarity'; }
+  else if (by === 'location') { keyExpr = 'e.location'; labelExpr = 'e.location'; }
+  else if (by === 'color') {
+    keyExpr = `CASE WHEN array_length(c.color_identity, 1) IS NULL THEN 'C'
+                    WHEN array_length(c.color_identity, 1) > 1 THEN 'M'
+                    ELSE c.color_identity[1] END`;
+    labelExpr = keyExpr;
+  } else { keyExpr = 'c.set_code'; labelExpr = 'MAX(c.set_name)'; }
+
   const { rows } = await query(
-    `SELECT c.set_code, MAX(c.set_name) AS set_name, COUNT(*)::int AS count,
+    `SELECT ${keyExpr} AS key, ${labelExpr} AS label, COUNT(*)::int AS count,
             COALESCE(SUM((${UNIT_EUR}) * e.quantity), 0)::numeric(12,2) AS total_eur
      FROM collection_entries e JOIN cards c ON c.id = e.card_id
      WHERE ${where}
-     GROUP BY c.set_code
+     GROUP BY ${keyExpr}
      ORDER BY total_eur DESC NULLS LAST`,
     params,
   );
