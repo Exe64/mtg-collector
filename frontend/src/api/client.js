@@ -4,12 +4,25 @@
 let accessToken = null;
 export const setAccessToken = (t) => { accessToken = t; };
 
-async function tryRefresh() {
-  const res = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' });
-  if (!res.ok) return false;
-  const { accessToken: t } = await res.json();
-  setAccessToken(t);
-  return true;
+// Renouvellement « single-flight » : un seul /auth/refresh à la fois.
+// Évite la course où plusieurs 401 concurrents consomment le même refresh token
+// (rotaté) et provoquent une déconnexion intempestive.
+let refreshPromise = null;
+function tryRefresh() {
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      try {
+        const res = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' });
+        if (!res.ok) return false;
+        const { accessToken: t } = await res.json();
+        setAccessToken(t);
+        return true;
+      } catch {
+        return false;
+      }
+    })().finally(() => { refreshPromise = null; });
+  }
+  return refreshPromise;
 }
 
 export async function api(path, { method = 'GET', body, _retry = false } = {}) {

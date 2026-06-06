@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 
 import { query } from '../config/db.js';
 
-const ACCESS_TTL = '15m';
+const ACCESS_TTL = '8h';
 const REFRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 jours
 
 // --- Access token (JWT court, renvoyé au client en mémoire) ---------------
