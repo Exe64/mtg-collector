@@ -1,9 +1,7 @@
-import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { api } from '../api/client';
 import { useCardModal } from '../stores/cardModal';
 import { CONDITIONS, identityStyle } from '../constants';
-
-const ScanModal = lazy(() => import('../components/scan/ScanModal'));
 
 // Logique d'ajout partagée entre la ligne (desktop) et la carte (mobile).
 function useAddControls(card) {
@@ -124,7 +122,6 @@ export default function Add() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [scanOpen, setScanOpen] = useState(false);
   const [setF, setSetF] = useState('');
   const [colorF, setColorF] = useState('');
   const timer = useRef(null);
@@ -214,13 +211,6 @@ export default function Add() {
           </ul>
         )}
         </div>
-        <button
-          type="button"
-          onClick={() => setScanOpen(true)}
-          title="Scanner une carte"
-          aria-label="Scanner une carte"
-          className="rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 text-lg"
-        >📷</button>
       </div>
 
       <div className="flex flex-wrap gap-2 mb-4 -mt-2">
@@ -252,15 +242,6 @@ export default function Add() {
           </button>
         )}
       </div>
-
-      {scanOpen && (
-        <Suspense fallback={null}>
-          <ScanModal
-            onClose={() => setScanOpen(false)}
-            onResult={(text) => { setScanOpen(false); setQ(text); runSearch(text, { exact: false }, 1); }}
-          />
-        </Suspense>
-      )}
 
       {results.length > 0 && (
         <>
