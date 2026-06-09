@@ -120,7 +120,7 @@ router.get('/owned', async (req, res, next) => {
     let setCond = '';
     if (req.query.set) {
       params.push(req.query.set);
-      setCond = `AND c.set_code = $${params.length}`;
+      setCond = `AND lower(c.set_code) = lower($${params.length})`;
     }
     const { rows } = await query(
       `SELECT c.scryfall_id,

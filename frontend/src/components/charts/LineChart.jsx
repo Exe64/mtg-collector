@@ -1,5 +1,23 @@
 import { useRef, useState } from 'react';
 
+// Spline Catmull-Rom → segments de Bézier cubiques, pour une courbe lissée.
+function buildCurve(pts, t = 0.18) {
+  if (pts.length < 2) return '';
+  let d = '';
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[i + 2] || p2;
+    const c1x = p1[0] + (p2[0] - p0[0]) * t;
+    const c1y = p1[1] + (p2[1] - p0[1]) * t;
+    const c2x = p2[0] - (p3[0] - p1[0]) * t;
+    const c2y = p2[1] - (p3[1] - p1[1]) * t;
+    d += ` C ${c1x.toFixed(2)},${c1y.toFixed(2)} ${c2x.toFixed(2)},${c2y.toFixed(2)} ${p2[0].toFixed(2)},${p2[1].toFixed(2)}`;
+  }
+  return d;
+}
+
 export default function LineChart({ points }) {
   const svgRef = useRef(null);
   const [hover, setHover] = useState(null);
@@ -13,8 +31,8 @@ export default function LineChart({ points }) {
   }
 
   const width = 600;
-  const height = 180;
-  const pad = 28;
+  const height = 110;
+  const pad = 18;
   const values = points.map((p) => Number(p.value) || 0);
   const max = Math.max(...values);
   const min = Math.min(...values);
@@ -24,8 +42,10 @@ export default function LineChart({ points }) {
   const x = (i) => pad + (n === 1 ? (width - 2 * pad) / 2 : (i / (n - 1)) * (width - 2 * pad));
   const y = (v) => pad + (1 - (v - min) / range) * (height - 2 * pad);
 
-  const line = points.map((p, i) => `${x(i)},${y(values[i])}`).join(' ');
-  const area = `${x(0)},${height - pad} ${line} ${x(n - 1)},${height - pad}`;
+  const coords = points.map((p, i) => [x(i), y(values[i])]);
+  const curve = buildCurve(coords);
+  const linePath = `M ${coords[0][0].toFixed(2)},${coords[0][1].toFixed(2)}${curve}`;
+  const areaPath = `M ${coords[0][0].toFixed(2)},${height - pad} L ${coords[0][0].toFixed(2)},${coords[0][1].toFixed(2)}${curve} L ${coords[n - 1][0].toFixed(2)},${height - pad} Z`;
   const fmtDate = (d) => String(d).slice(0, 10);
   const last = values[n - 1];
 
@@ -44,10 +64,10 @@ export default function LineChart({ points }) {
   if (hover != null) {
     const px = x(hover);
     const py = y(values[hover]);
-    const bw = 104;
-    const bh = 36;
+    const bw = 88;
+    const bh = 28;
     const bx = Math.max(2, Math.min(width - bw - 2, px - bw / 2));
-    const by = py - bh - 10 < 2 ? py + 10 : py - bh - 10;
+    const by = py - bh - 8 < 2 ? py + 8 : py - bh - 8;
     box = { px, py, bx, by, bw, bh };
   }
 
@@ -69,30 +89,30 @@ export default function LineChart({ points }) {
             <stop offset="100%" stopColor="#00b4ff" stopOpacity="0" />
           </linearGradient>
         </defs>
-        <polygon points={area} fill="url(#areaGrad)" />
-        <polyline points={line} fill="none" stroke="#00b4ff" strokeWidth="2" />
+        <path d={areaPath} fill="url(#areaGrad)" />
+        <path d={linePath} fill="none" stroke="#00b4ff" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
         {points.map((p, i) => (
-          <circle key={i} cx={x(i)} cy={y(values[i])} r="2.5" fill="#00b4ff" />
+          <circle key={i} cx={x(i)} cy={y(values[i])} r="1.8" fill="#00b4ff" />
         ))}
-        <text x={pad} y={16} fill="#64748b" fontSize="11">{max.toFixed(0)} €</text>
-        <text x={pad} y={height - 8} fill="#64748b" fontSize="11">{fmtDate(points[0].date)}</text>
-        <text x={width - pad} y={height - 8} fill="#64748b" fontSize="11" textAnchor="end">
+        <text x={pad} y={11} fill="#64748b" fontSize="8">{max.toFixed(0)} €</text>
+        <text x={pad} y={height - 5} fill="#64748b" fontSize="8">{fmtDate(points[0].date)}</text>
+        <text x={width - pad} y={height - 5} fill="#64748b" fontSize="8" textAnchor="end">
           {fmtDate(points[n - 1].date)}
         </text>
 
         {box && (
           <g pointerEvents="none">
-            <line x1={box.px} y1={pad} x2={box.px} y2={height - pad} stroke="#475569" strokeWidth="1" strokeDasharray="3 3" />
-            <circle cx={box.px} cy={box.py} r="4" fill="#00b4ff" stroke="#0f172a" strokeWidth="1.5" />
-            <rect x={box.bx} y={box.by} width={box.bw} height={box.bh} rx="4" fill="#0f172a" stroke="#334155" />
-            <text x={box.bx + 8} y={box.by + 15} fill="#94a3b8" fontSize="10">{fmtDate(points[hover].date)}</text>
-            <text x={box.bx + 8} y={box.by + 29} fill="#34d399" fontSize="12" fontWeight="bold">
+            <line x1={box.px} y1={pad} x2={box.px} y2={height - pad} stroke="#475569" strokeWidth="0.75" strokeDasharray="3 3" />
+            <circle cx={box.px} cy={box.py} r="3" fill="#00b4ff" stroke="#0f172a" strokeWidth="1" />
+            <rect x={box.bx} y={box.by} width={box.bw} height={box.bh} rx="3" fill="#0f172a" stroke="#334155" strokeWidth="0.75" />
+            <text x={box.bx + 6} y={box.by + 11} fill="#94a3b8" fontSize="7.5">{fmtDate(points[hover].date)}</text>
+            <text x={box.bx + 6} y={box.by + 22} fill="#34d399" fontSize="9" fontWeight="bold">
               {values[hover].toFixed(2)} €
             </text>
           </g>
         )}
       </svg>
-      <div className="text-center text-sm text-slate-400 mt-1">
+      <div className="text-center text-xs text-slate-400 mt-1">
         Dernière valeur : <span className="text-emerald-400 font-semibold">{last.toFixed(2)} €</span>
       </div>
     </div>
