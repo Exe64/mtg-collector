@@ -3,42 +3,33 @@ import { api } from '../api/client';
 import { useCardModal } from '../stores/cardModal';
 import { CONDITIONS, identityStyle } from '../constants';
 
-// Logique d'ajout partagée entre la ligne (desktop) et la carte (mobile).
-function useAddControls(card) {
-  const finishes = card.finishes?.length ? card.finishes : ['nonfoil'];
-  const [qty, setQty] = useState(1);
-  const [finish, setFinish] = useState(finishes.includes('nonfoil') ? 'nonfoil' : finishes[0]);
+// Ajout/retrait rapide partagé entre la ligne (desktop) et la carte (mobile).
+// Les compteurs possédés (nonfoil/foil) sont gérés par le parent ; on ne pilote
+// ici que l'état (condition) choisi pour les +/-.
+function useQuickAdd(card, onAdjust) {
   const [condition, setCondition] = useState('NM');
-  const [status, setStatus] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
 
-  async function add() {
+  async function adjust(finish, delta) {
     setBusy(true);
-    setStatus(null);
+    setErr(null);
+    onAdjust(card.scryfall_id, finish, delta); // optimiste
     try {
-      await api('/collection', {
+      await api('/collection/adjust', {
         method: 'POST',
-        body: { scryfall_id: card.scryfall_id, quantity: Number(qty), finish, condition },
+        body: { scryfall_id: card.scryfall_id, delta, finish, condition },
       });
-      setStatus('ok');
-      setTimeout(() => setStatus(null), 1800);
-    } catch (err) {
-      setStatus(err.message);
+    } catch (e) {
+      onAdjust(card.scryfall_id, finish, -delta); // rollback
+      setErr(e.message);
     } finally {
       setBusy(false);
     }
   }
-  return { qty, setQty, finish, setFinish, condition, setCondition, status, busy, finishes, add };
+  return { condition, setCondition, busy, err, adjust };
 }
 
-function FinishSel({ value, onChange, finishes }) {
-  return (
-    <select value={value} onChange={onChange} aria-label="Finition"
-      className="bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-xs">
-      {finishes.map((f) => <option key={f} value={f}>{f}</option>)}
-    </select>
-  );
-}
 function CondSel({ value, onChange }) {
   return (
     <select value={value} onChange={onChange} aria-label="État"
@@ -48,10 +39,28 @@ function CondSel({ value, onChange }) {
   );
 }
 
+// Contrôle -/+ pour une finition donnée
+function QtyCtl({ label, count, accent, onMinus, onPlus, disabled }) {
+  const plus = accent === 'gold' ? 'bg-gold-600 hover:bg-gold-500' : 'bg-indigo-600 hover:bg-indigo-500';
+  return (
+    <div className="flex items-center gap-1">
+      <span className="text-[11px] text-slate-400 w-12 shrink-0">{label}</span>
+      <button type="button" onClick={onMinus} disabled={disabled || count === 0} aria-label={`Retirer ${label}`}
+        className="w-6 h-6 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-30 text-sm leading-none">−</button>
+      <span className={`text-xs w-4 text-center ${count > 0 ? 'text-slate-100' : 'text-slate-600'}`}>{count}</span>
+      <button type="button" onClick={onPlus} disabled={disabled} aria-label={`Ajouter ${label}`}
+        className={`w-6 h-6 rounded ${plus} disabled:opacity-50 text-sm leading-none`}>+</button>
+    </div>
+  );
+}
+
+const cardCanFoil = (card) => !card.finishes?.length || card.finishes.some((f) => f !== 'nonfoil');
+
 // Ligne de résultat (desktop)
-function ResultRow({ card }) {
+function ResultRow({ card, owned, onAdjust }) {
   const openCard = useCardModal((s) => s.open);
-  const c = useAddControls(card);
+  const c = useQuickAdd(card, onAdjust);
+  const o = owned || { nonfoil: 0, foil: 0 };
   return (
     <tr style={identityStyle(card.color_identity)} className="border-t border-slate-800 hover:bg-slate-800/40">
       <td className="p-2">
@@ -65,27 +74,27 @@ function ResultRow({ card }) {
         <div className="text-xs text-slate-500 uppercase">{card.set} #{card.collector_number}</div>
       </td>
       <td className="p-2 text-right text-emerald-400 text-sm whitespace-nowrap">{card.prices?.eur ? `${card.prices.eur} €` : '—'}</td>
-      <td className="p-2">
-        <input type="number" min="1" value={c.qty} onChange={(e) => c.setQty(e.target.value)} aria-label="Quantité"
-          onKeyDown={(e) => { if (e.key === 'Enter') c.add(); }}
-          className="w-14 rounded bg-slate-900 border border-slate-700 px-1 py-0.5 text-right text-sm" />
-      </td>
-      <td className="p-2"><FinishSel value={c.finish} onChange={(e) => c.setFinish(e.target.value)} finishes={c.finishes} /></td>
       <td className="p-2"><CondSel value={c.condition} onChange={(e) => c.setCondition(e.target.value)} /></td>
-      <td className="p-2 whitespace-nowrap">
-        <button type="button" onClick={c.add} disabled={c.busy}
-          className="rounded bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 px-3 py-1 text-sm">Ajouter</button>
-        {c.status === 'ok' && <span className="ml-2 text-emerald-400 text-xs">✓</span>}
-        {c.status && c.status !== 'ok' && <span className="ml-2 text-rose-400 text-xs">{c.status}</span>}
+      <td className="p-2">
+        <QtyCtl label="Normale" accent="indigo" count={o.nonfoil || 0} disabled={c.busy}
+          onMinus={() => c.adjust('nonfoil', -1)} onPlus={() => c.adjust('nonfoil', 1)} />
+      </td>
+      <td className="p-2">
+        {cardCanFoil(card)
+          ? <QtyCtl label="Foil" accent="gold" count={o.foil || 0} disabled={c.busy}
+              onMinus={() => c.adjust('foil', -1)} onPlus={() => c.adjust('foil', 1)} />
+          : <span className="text-slate-600 text-xs">—</span>}
+        {c.err && <div className="text-rose-400 text-[10px]">{c.err}</div>}
       </td>
     </tr>
   );
 }
 
 // Carte de résultat (mobile)
-function ResultCard({ card }) {
+function ResultCard({ card, owned, onAdjust }) {
   const openCard = useCardModal((s) => s.open);
-  const c = useAddControls(card);
+  const c = useQuickAdd(card, onAdjust);
+  const o = owned || { nonfoil: 0, foil: 0 };
   return (
     <li style={identityStyle(card.color_identity)} className="bg-slate-800 border border-slate-700 rounded-lg p-2 pl-3">
       <div className="flex items-center gap-2">
@@ -98,16 +107,15 @@ function ResultCard({ card }) {
         </button>
         <span className="text-emerald-400 text-sm whitespace-nowrap">{card.prices?.eur ? `${card.prices.eur} €` : '—'}</span>
       </div>
-      <div className="flex items-center gap-2 mt-2 flex-wrap">
-        <input type="number" min="1" value={c.qty} onChange={(e) => c.setQty(e.target.value)} aria-label="Quantité"
-          onKeyDown={(e) => { if (e.key === 'Enter') c.add(); }}
-          className="w-14 rounded bg-slate-900 border border-slate-700 px-1 py-0.5 text-right text-sm" />
-        <FinishSel value={c.finish} onChange={(e) => c.setFinish(e.target.value)} finishes={c.finishes} />
+      <div className="flex items-center gap-3 mt-2 flex-wrap">
         <CondSel value={c.condition} onChange={(e) => c.setCondition(e.target.value)} />
-        <button type="button" onClick={c.add} disabled={c.busy}
-          className="ml-auto rounded bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 px-3 py-1 text-sm">Ajouter</button>
-        {c.status === 'ok' && <span className="text-emerald-400 text-xs">✓</span>}
-        {c.status && c.status !== 'ok' && <span className="text-rose-400 text-xs w-full">{c.status}</span>}
+        <QtyCtl label="Normale" accent="indigo" count={o.nonfoil || 0} disabled={c.busy}
+          onMinus={() => c.adjust('nonfoil', -1)} onPlus={() => c.adjust('nonfoil', 1)} />
+        {cardCanFoil(card) && (
+          <QtyCtl label="Foil" accent="gold" count={o.foil || 0} disabled={c.busy}
+            onMinus={() => c.adjust('foil', -1)} onPlus={() => c.adjust('foil', 1)} />
+        )}
+        {c.err && <span className="text-rose-400 text-xs w-full">{c.err}</span>}
       </div>
     </li>
   );
@@ -118,6 +126,7 @@ export default function Add() {
   const [suggestions, setSuggestions] = useState([]);
   const [showSug, setShowSug] = useState(false);
   const [results, setResults] = useState([]);
+  const [owned, setOwned] = useState({}); // { scryfall_id: { nonfoil, foil } }
   const [lastSearch, setLastSearch] = useState(null); // { term, exact }
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
@@ -141,6 +150,27 @@ export default function Add() {
     }, 250);
     return () => clearTimeout(timer.current);
   }, [q]);
+
+  // Récupère les quantités possédées (par finition) pour les résultats affichés
+  useEffect(() => {
+    const ids = results.map((c) => c.scryfall_id).filter((id) => !(id in owned));
+    if (!ids.length) return;
+    api('/collection/owned-ids', { method: 'POST', body: { ids } })
+      .then((d) => setOwned((o) => {
+        const next = { ...o };
+        for (const id of ids) next[id] = d.owned[id] || { nonfoil: 0, foil: 0 };
+        return next;
+      }))
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [results]);
+
+  function adjustOwned(id, finish, delta) {
+    setOwned((o) => {
+      const cur = o[id] || { nonfoil: 0, foil: 0 };
+      return { ...o, [id]: { ...cur, [finish]: Math.max(0, (cur[finish] || 0) + delta) } };
+    });
+  }
 
   const COLOR_Q = { W: 'w', U: 'u', B: 'b', R: 'r', G: 'g', M: 'm', C: 'c' };
 
@@ -180,7 +210,8 @@ export default function Add() {
       <h1 className="font-display text-xl font-bold mb-1">Ajouter des cartes</h1>
       <p className="text-sm text-slate-400 mb-4">
         Tape un nom : choisis une suggestion ou valide avec <kbd className="px-1 bg-slate-700 rounded">Entrée</kbd> pour
-        afficher toutes les versions correspondantes, puis ajoute celles que tu veux.
+        afficher toutes les versions, puis ajuste les compteurs <span className="text-slate-300">Normale</span> et
+        {' '}<span className="text-gold-400">Foil</span> avec les boutons −/+.
       </p>
 
       <div className="flex gap-2 mb-4">
@@ -247,7 +278,7 @@ export default function Add() {
         <>
           {/* Mobile : cartes */}
           <ul className="sm:hidden space-y-2">
-            {results.map((c) => <ResultCard key={c.scryfall_id} card={c} />)}
+            {results.map((c) => <ResultCard key={c.scryfall_id} card={c} owned={owned[c.scryfall_id]} onAdjust={adjustOwned} />)}
           </ul>
           {/* Desktop : tableau */}
           <div className="hidden sm:block overflow-x-auto rounded-lg border border-slate-800">
@@ -257,14 +288,13 @@ export default function Add() {
                   <th className="text-left p-2">Carte</th>
                   <th className="text-left p-2">Édition</th>
                   <th className="text-right p-2">Prix</th>
-                  <th className="text-left p-2">Qté</th>
-                  <th className="text-left p-2">Fin.</th>
                   <th className="text-left p-2">État</th>
-                  <th className="p-2" />
+                  <th className="text-left p-2">Normale</th>
+                  <th className="text-left p-2">Foil</th>
                 </tr>
               </thead>
               <tbody>
-                {results.map((c) => <ResultRow key={c.scryfall_id} card={c} />)}
+                {results.map((c) => <ResultRow key={c.scryfall_id} card={c} owned={owned[c.scryfall_id]} onAdjust={adjustOwned} />)}
               </tbody>
             </table>
           </div>

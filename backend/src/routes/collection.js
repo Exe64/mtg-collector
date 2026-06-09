@@ -7,6 +7,7 @@ import { collectionAddSchema, collectionAdjustSchema, collectionPatchSchema, col
 import { ensureCard } from '../services/cards.js';
 import { getCollection, getCollectionTotals, getStats, getSpikes, getCollectionGroups } from '../services/collection.js';
 import { getSnapshots, getSetSnapshots } from '../services/snapshots.js';
+import { UNIT_EUR } from '../services/pricing.js';
 
 const router = Router();
 router.use(requireAuth); // toutes les routes /api/collection sont protégées + isolées
@@ -97,21 +98,22 @@ router.get('/locations', async (req, res, next) => {
 router.get('/owned-by-set', async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT c.set_code, COUNT(DISTINCT c.scryfall_id)::int AS owned
+      `SELECT c.set_code, COUNT(DISTINCT c.scryfall_id)::int AS owned,
+              COALESCE(SUM((${UNIT_EUR}) * e.quantity), 0)::numeric(12,2) AS value_eur
        FROM collection_entries e JOIN cards c ON c.id = e.card_id
        WHERE e.user_id = $1 AND c.set_code IS NOT NULL
        GROUP BY c.set_code`,
       [req.user.id],
     );
     const ownedBySet = {};
-    for (const r of rows) ownedBySet[r.set_code] = r.owned;
+    for (const r of rows) ownedBySet[r.set_code] = { owned: r.owned, value: Number(r.value_eur) };
     res.json({ ownedBySet });
   } catch (err) {
     next(err);
   }
 });
 
-// GET /api/collection/owned?set=CODE  → { owned: { <scryfall_id>: quantité } }
+// GET /api/collection/owned?set=CODE  → { owned: { <id>: {nonfoil, foil} }, totalEur }
 router.get('/owned', async (req, res, next) => {
   try {
     const params = [req.user.id];
@@ -121,17 +123,46 @@ router.get('/owned', async (req, res, next) => {
       setCond = `AND c.set_code = $${params.length}`;
     }
     const { rows } = await query(
-      `SELECT c.scryfall_id, SUM(e.quantity)::int AS quantity
+      `SELECT c.scryfall_id,
+              COALESCE(SUM(e.quantity) FILTER (WHERE e.finish = 'nonfoil'), 0)::int AS nonfoil,
+              COALESCE(SUM(e.quantity) FILTER (WHERE e.finish <> 'nonfoil'), 0)::int AS foil,
+              COALESCE(SUM((${UNIT_EUR}) * e.quantity), 0)::numeric(12,2) AS value_eur
        FROM collection_entries e JOIN cards c ON c.id = e.card_id
        WHERE e.user_id = $1 ${setCond}
        GROUP BY c.scryfall_id`,
       params,
     );
     const owned = {};
-    for (const r of rows) owned[r.scryfall_id] = r.quantity;
-    res.json({ owned });
+    let totalEur = 0;
+    for (const r of rows) {
+      owned[r.scryfall_id] = { nonfoil: r.nonfoil, foil: r.foil };
+      totalEur += Number(r.value_eur);
+    }
+    res.json({ owned, totalEur: Number(totalEur.toFixed(2)) });
   } catch (err) {
     next(err);
+  }
+});
+
+// POST /api/collection/owned-ids  { ids: [...] }  → { owned: { <id>: {nonfoil, foil} } }
+router.post('/owned-ids', async (req, res, next) => {
+  try {
+    const ids = Array.isArray(req.body?.ids) ? req.body.ids.slice(0, 300) : [];
+    if (!ids.length) return res.json({ owned: {} });
+    const { rows } = await query(
+      `SELECT c.scryfall_id,
+              COALESCE(SUM(e.quantity) FILTER (WHERE e.finish = 'nonfoil'), 0)::int AS nonfoil,
+              COALESCE(SUM(e.quantity) FILTER (WHERE e.finish <> 'nonfoil'), 0)::int AS foil
+       FROM collection_entries e JOIN cards c ON c.id = e.card_id
+       WHERE e.user_id = $1 AND c.scryfall_id = ANY($2::uuid[])
+       GROUP BY c.scryfall_id`,
+      [req.user.id, ids],
+    );
+    const owned = {};
+    for (const r of rows) owned[r.scryfall_id] = { nonfoil: r.nonfoil, foil: r.foil };
+    return res.json({ owned });
+  } catch (err) {
+    return next(err);
   }
 });
 

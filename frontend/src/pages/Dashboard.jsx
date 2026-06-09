@@ -284,7 +284,7 @@ export default function Dashboard() {
               <span className="flex-1 truncate">{c.name}</span>
               <span className="text-xs text-slate-400 uppercase">{c.set_code}</span>
               <span className="text-xs text-slate-500">×{c.quantity}</span>
-              <span className="text-emerald-400 w-20 text-right">{Number(c.total_price_eur).toFixed(2)} €</span>
+              <span className="text-emerald-400 w-20 text-right">{Number(c.unit_price_eur).toFixed(2)} €</span>
             </li>
           ))}
           {!stats.topCards.length && <li className="text-slate-500 text-sm">Aucune carte.</li>}

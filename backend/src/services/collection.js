@@ -53,7 +53,9 @@ function buildFilters(userId, opts) {
   if (opts.set) filter((i) => `c.set_code = $${i}`, opts.set);
   if (opts.rarity) filter((i) => `c.rarity = $${i}`, opts.rarity);
   if (opts.condition) filter((i) => `e.condition = $${i}`, opts.condition);
-  if (opts.finish) filter((i) => `e.finish = $${i}`, opts.finish);
+  // 'foil' couvre foil + etched ; 'nonfoil' est exact
+  if (opts.finish === 'foil') conds.push(`e.finish <> 'nonfoil'`);
+  else if (opts.finish) filter((i) => `e.finish = $${i}`, opts.finish);
   if (opts.language) filter((i) => `e.language = $${i}`, opts.language);
   // !== undefined (et pas "truthy") pour pouvoir filtrer l'emplacement vide « Non classé »
   if (opts.location !== undefined) filter((i) => `e.location = $${i}`, opts.location);
@@ -177,7 +179,7 @@ export async function getStats(userId) {
             ((${UNIT_EUR}) * e.quantity)::numeric(12,2) AS total_price_eur
      FROM collection_entries e JOIN cards c ON c.id = e.card_id
      WHERE e.user_id = $1
-     ORDER BY total_price_eur DESC NULLS LAST
+     ORDER BY unit_price_eur DESC NULLS LAST
      LIMIT 10`,
     [userId],
   );

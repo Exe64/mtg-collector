@@ -18,7 +18,8 @@ const COLOR_OPTIONS = [
 ];
 const CMC_OPTIONS = [['', 'Coût'], ['0', '0'], ['1', '1'], ['2', '2'], ['3', '3'], ['4', '4'], ['5', '5'], ['6', '6'], ['7+', '7+']];
 
-const EMPTY_FILTERS = { type: '', rarity: '', color: '', cmc: '', condition: '', location: '' };
+const FINISH_OPTIONS = [['', 'Finition'], ['nonfoil', 'Non foil'], ['foil', 'Foil']];
+const EMPTY_FILTERS = { type: '', rarity: '', color: '', cmc: '', condition: '', location: '', finish: '' };
 const FINISHES = ['nonfoil', 'foil', 'etched'];
 const PAGE_SIZE = 100;   // mode "plat"
 const GROUP_PAGE = 500;  // cartes chargées par extension à l'ouverture
@@ -57,6 +58,7 @@ export default function Collection() {
     if (filters.rarity) p.set('rarity', filters.rarity);
     if (filters.color) p.set('color', filters.color);
     if (filters.condition) p.set('condition', filters.condition);
+    if (filters.finish) p.set('finish', filters.finish);
     if (filters.location) p.set('location', filters.location);
     if (filters.cmc === '7+') p.set('cmcMin', '7');
     else if (filters.cmc) p.set('cmc', filters.cmc);
@@ -248,6 +250,10 @@ export default function Collection() {
           className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1.5 text-sm">
           <option value="">État</option>
           {CONDITIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+        </select>
+        <select value={filters.finish} onChange={(e) => setFilter('finish', e.target.value)}
+          className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1.5 text-sm">
+          {FINISH_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
         {locations.length > 0 && (
           <select value={filters.location} onChange={(e) => setFilter('location', e.target.value)}

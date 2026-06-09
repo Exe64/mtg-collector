@@ -2,6 +2,7 @@ import { Outlet, NavLink } from 'react-router-dom';
 import { LayoutDashboard, Boxes, PlusCircle, Library, Star, Download, Users } from 'lucide-react';
 import { useAuth } from '../../stores/auth';
 import CardModal from './CardModal';
+import ScrollToTop from './ScrollToTop';
 
 const baseNav = [
   { to: '/', label: 'Tableau de bord', short: 'Bord', Icon: LayoutDashboard, end: true },
@@ -92,6 +93,7 @@ export default function Layout() {
       </nav>
 
       <CardModal />
+      <ScrollToTop />
     </div>
   );
 }

@@ -11,6 +11,26 @@ const FILTERS = [
   { key: 'missing', label: 'Manquantes' },
 ];
 
+function FinishRow({ label, count, accent, onMinus, onPlus }) {
+  const plusCls = accent === 'gold' ? 'bg-gold-600 hover:bg-gold-500' : 'bg-indigo-600 hover:bg-indigo-500';
+  return (
+    <div className="flex items-center justify-between gap-1">
+      <span className="text-[11px] text-slate-400">{label}</span>
+      <div className="flex items-center gap-1">
+        <span className={`text-xs w-4 text-center ${count > 0 ? 'text-slate-100' : 'text-slate-600'}`}>{count}</span>
+        <button
+          type="button" onClick={onMinus} disabled={count === 0} aria-label={`Retirer ${label}`}
+          className="w-6 h-6 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-30 text-sm leading-none"
+        >−</button>
+        <button
+          type="button" onClick={onPlus} aria-label={`Ajouter ${label}`}
+          className={`w-6 h-6 rounded ${plusCls} text-sm leading-none`}
+        >+</button>
+      </div>
+    </div>
+  );
+}
+
 export default function SetDetail() {
   const { code } = useParams();
   const openCard = useCardModal((s) => s.open);
@@ -19,6 +39,7 @@ export default function SetDetail() {
   const [cardCount, setCardCount] = useState(null);
   const [printedSize, setPrintedSize] = useState(null);
   const [owned, setOwned] = useState({});
+  const [setValue, setSetValue] = useState(0);
   const [filter, setFilter] = useState('all');
   const [showMissing, setShowMissing] = useState(false);
   const [setSnaps, setSetSnaps] = useState([]);
@@ -35,7 +56,13 @@ export default function SetDetail() {
   const loadOwned = useCallback(async () => {
     const data = await api(`/collection/owned?set=${encodeURIComponent(code)}`);
     setOwned(data.owned || {});
+    setSetValue(data.totalEur || 0);
   }, [code]);
+
+  const totalQty = useCallback((id) => {
+    const o = owned[id];
+    return o ? (o.nonfoil || 0) + (o.foil || 0) : 0;
+  }, [owned]);
 
   // Métadonnées du set (un seul appel, pas toute la liste)
   useEffect(() => {
@@ -81,14 +108,19 @@ export default function SetDetail() {
     return () => { cancelled = true; };
   }, [code, loadOwned]);
 
-  async function adjust(card, delta) {
-    setOwned((o) => ({ ...o, [card.scryfall_id]: Math.max((o[card.scryfall_id] || 0) + delta, 0) }));
+  async function adjust(card, finish, delta) {
+    const id = card.scryfall_id;
+    const unit = Number(card.prices?.eur) || 0;
+    setOwned((o) => {
+      const cur = o[id] || { nonfoil: 0, foil: 0 };
+      return { ...o, [id]: { ...cur, [finish]: Math.max((cur[finish] || 0) + delta, 0) } };
+    });
+    setSetValue((v) => Math.max(0, +(v + unit * delta).toFixed(2)));
     try {
-      const { quantity } = await api('/collection/adjust', {
+      await api('/collection/adjust', {
         method: 'POST',
-        body: { scryfall_id: card.scryfall_id, delta },
+        body: { scryfall_id: id, delta, finish },
       });
-      setOwned((o) => ({ ...o, [card.scryfall_id]: quantity }));
     } catch {
       loadOwned();
     }
@@ -105,20 +137,20 @@ export default function SetDetail() {
       .sort((a, b) => Number(a.collector_number) - Number(b.collector_number));
   }, [cards, printedSize, cardCount]);
 
-  const ownedCount = baseCards.filter((c) => (owned[c.scryfall_id] || 0) > 0).length;
+  const ownedCount = baseCards.filter((c) => totalQty(c.scryfall_id) > 0).length;
   const total = baseCards.length || (printedSize ?? cardCount ?? cards.length);
   const pct = total ? Math.min(100, Math.round((100 * ownedCount) / total)) : 0;
-  const missingBase = baseCards.filter((c) => !(owned[c.scryfall_id] > 0));
+  const missingBase = baseCards.filter((c) => totalQty(c.scryfall_id) === 0);
 
   const visible = useMemo(() => cards.filter((c) => {
-    const has = (owned[c.scryfall_id] || 0) > 0;
+    const has = totalQty(c.scryfall_id) > 0;
     if (filter === 'owned') return has;
     if (filter === 'missing') return !has;
     return true;
-  }), [cards, owned, filter]);
+  }), [cards, totalQty, filter]);
 
   // Compteurs des filtres : basés sur les cartes réellement affichées (impressions)
-  const ownedDisplayed = cards.filter((c) => (owned[c.scryfall_id] || 0) > 0).length;
+  const ownedDisplayed = cards.filter((c) => totalQty(c.scryfall_id) > 0).length;
   const counts = { all: cards.length, owned: ownedDisplayed, missing: cards.length - ownedDisplayed };
 
   return (
@@ -129,6 +161,10 @@ export default function SetDetail() {
         <h1 className="font-display text-xl font-bold">
           {setName || code.toUpperCase()} <span className="text-slate-500 text-sm uppercase">({code})</span>
         </h1>
+        <span className="ml-auto text-sm whitespace-nowrap">
+          <span className="text-slate-400">Valeur : </span>
+          <span className="text-emerald-400 font-semibold">{setValue.toFixed(2)} €</span>
+        </span>
       </div>
 
       {/* Complétion (base set strict) */}
@@ -190,7 +226,9 @@ export default function SetDetail() {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3">
           {visible.map((c) => {
-            const qty = owned[c.scryfall_id] || 0;
+            const o = owned[c.scryfall_id] || { nonfoil: 0, foil: 0 };
+            const qty = (o.nonfoil || 0) + (o.foil || 0);
+            const canFoil = !Array.isArray(c.finishes) || c.finishes.some((f) => f !== 'nonfoil');
             return (
               <div
                 key={c.scryfall_id}
@@ -211,18 +249,14 @@ export default function SetDetail() {
                 )}
                 <div className="p-2">
                   <div className="text-xs truncate" title={c.name}>#{c.collector_number} {c.name}</div>
-                  <div className="flex items-center justify-between mt-1">
-                    <span className="text-xs text-emerald-400">{c.prices?.eur ? `${c.prices.eur} €` : '—'}</span>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button" onClick={() => adjust(c, -1)} disabled={qty === 0} aria-label="Retirer un exemplaire"
-                        className="w-6 h-6 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-30 text-sm leading-none"
-                      >−</button>
-                      <button
-                        type="button" onClick={() => adjust(c, 1)} aria-label="Ajouter un exemplaire"
-                        className="w-6 h-6 rounded bg-indigo-600 hover:bg-indigo-500 text-sm leading-none"
-                      >+</button>
-                    </div>
+                  <div className="text-xs text-emerald-400 mt-0.5">{c.prices?.eur ? `${c.prices.eur} €` : '—'}</div>
+                  <div className="mt-1.5 space-y-1">
+                    <FinishRow label="Normale" count={o.nonfoil || 0} accent="indigo"
+                      onMinus={() => adjust(c, 'nonfoil', -1)} onPlus={() => adjust(c, 'nonfoil', 1)} />
+                    {canFoil && (
+                      <FinishRow label="Foil" count={o.foil || 0} accent="gold"
+                        onMinus={() => adjust(c, 'foil', -1)} onPlus={() => adjust(c, 'foil', 1)} />
+                    )}
                   </div>
                 </div>
               </div>

@@ -18,10 +18,10 @@ export async function runDailyJob() {
 
 /** Planifie les jobs : prix quotidien (03:00 UTC) + bulk-data hebdo (dim. 04:00 UTC). */
 export function scheduleDailyJob() {
-  cron.schedule('0 3 * * *', () => {
-    runDailyJob().catch((err) => logger.error({ err: err.message }, 'job quotidien : échec'));
+  cron.schedule('0 */12 * * *', () => {
+    runDailyJob().catch((err) => logger.error({ err: err.message }, 'job prix : échec'));
   }, { timezone: 'UTC' });
-  logger.info('job quotidien planifié à 03:00 UTC');
+  logger.info('job prix planifié toutes les 12h (00:00 et 12:00 UTC)');
 
   cron.schedule('0 4 * * 0', () => {
     logger.info('sync bulk-data hebdomadaire : démarrage');

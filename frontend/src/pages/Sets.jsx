@@ -71,7 +71,9 @@ export default function Sets() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2">
           {filtered.map((s) => {
-            const owned = ownedBySet[s.code] || 0;
+            const info = ownedBySet[s.code] || {};
+            const owned = info.owned || 0;
+            const value = info.value || 0;
             const pct = s.card_count ? Math.min(100, Math.round((100 * owned) / s.card_count)) : 0;
             return (
               <Link
@@ -80,7 +82,12 @@ export default function Sets() {
               >
                 <i className={`ss ss-${s.code} ss-2x shrink-0 text-slate-300`} aria-hidden="true" />
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate">{s.name}</div>
+                  <div className="flex items-baseline gap-2">
+                    <div className="text-sm font-medium truncate flex-1">{s.name}</div>
+                    {value > 0 && (
+                      <span className="text-xs text-emerald-400 font-semibold whitespace-nowrap">{value.toFixed(2)} €</span>
+                    )}
+                  </div>
                   <div className="text-xs text-slate-400 uppercase">
                     {s.code} · {s.card_count ?? '?'} cartes · {s.released_at ? String(s.released_at).slice(0, 10) : '—'}
                   </div>
