@@ -15,6 +15,22 @@ import exportRoutes from './routes/export.js';
 import wishlistRoutes from './routes/wishlist.js';
 import { scheduleDailyJob } from './services/dailyJob.js';
 
+// Refus de démarrer si les secrets JWT sont absents ou trop faibles (échec rapide,
+// plutôt qu'une erreur à la première signature de token).
+function validateEnv() {
+  const problems = [];
+  for (const key of ['JWT_SECRET', 'JWT_REFRESH_SECRET']) {
+    const v = process.env[key];
+    if (!v) problems.push(`${key} manquant`);
+    else if (v.length < 32) problems.push(`${key} trop court (< 32 caractères)`);
+  }
+  if (problems.length) {
+    logger.error(`Configuration invalide : ${problems.join(' ; ')}. Démarrage refusé.`);
+    process.exit(1);
+  }
+}
+validateEnv();
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -63,7 +79,10 @@ app.use('/api', (req, res) => {
 // ---------------------------------------------------------------------------
 app.use((err, req, res, _next) => {
   (req.log || logger).error({ err }, 'erreur requête');
-  res.status(err.status || 500).json({ error: err.message || 'Erreur interne' });
+  const status = err.status || 500;
+  // En prod, ne pas divulguer les détails internes (schéma DB, stack…) sur les 5xx.
+  const expose = status < 500 || process.env.NODE_ENV !== 'production';
+  res.status(status).json({ error: expose ? (err.message || 'Erreur interne') : 'Erreur interne' });
 });
 
 app.listen(PORT, () => {

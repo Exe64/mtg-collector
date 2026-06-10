@@ -162,116 +162,118 @@ export async function getCollectionTotals(userId) {
 
 /** Statistiques complètes du dashboard (§5.3). */
 export async function getStats(userId) {
-  const totals = await query(
-    `SELECT COALESCE(SUM((${UNIT_EUR}) * e.quantity), 0)::numeric(14,2) AS total_value_eur,
-            COALESCE(SUM((${UNIT_USD}) * e.quantity), 0)::numeric(14,2) AS total_value_usd,
-            COALESCE(SUM(e.quantity), 0)::int                          AS card_count,
-            COUNT(*)::int                                              AS unique_card_count,
-            COUNT(DISTINCT c.set_code)::int                            AS set_count
-     FROM collection_entries e JOIN cards c ON c.id = e.card_id
-     WHERE e.user_id = $1`,
-    [userId],
-  );
-
-  const topCards = await query(
-    `SELECT c.scryfall_id, c.name, c.set_code, c.image_uri_small, e.finish, e.quantity,
-            (${UNIT_EUR})::numeric(10,2)               AS unit_price_eur,
-            ((${UNIT_EUR}) * e.quantity)::numeric(12,2) AS total_price_eur
-     FROM collection_entries e JOIN cards c ON c.id = e.card_id
-     WHERE e.user_id = $1
-     ORDER BY unit_price_eur DESC NULLS LAST
-     LIMIT 10`,
-    [userId],
-  );
-
-  const colors = await query(
-    `SELECT CASE
-              WHEN array_length(c.color_identity, 1) IS NULL THEN 'C'
-              WHEN array_length(c.color_identity, 1) > 1     THEN 'M'
-              ELSE c.color_identity[1]
-            END AS bucket,
-            SUM(e.quantity)::int AS count
-     FROM collection_entries e JOIN cards c ON c.id = e.card_id
-     WHERE e.user_id = $1
-     GROUP BY bucket`,
-    [userId],
-  );
-
-  const rarities = await query(
-    `SELECT c.rarity AS bucket, SUM(e.quantity)::int AS count
-     FROM collection_entries e JOIN cards c ON c.id = e.card_id
-     WHERE e.user_id = $1
-     GROUP BY c.rarity`,
-    [userId],
-  );
-
-  const conditions = await query(
-    `SELECT e.condition AS bucket, SUM(e.quantity)::int AS count
-     FROM collection_entries e
-     WHERE e.user_id = $1
-     GROUP BY e.condition`,
-    [userId],
-  );
-
-  // Type principal (ordre de priorité : terrain > créature > planeswalker > …)
-  const types = await query(
-    `SELECT CASE
-              WHEN c.type_line ILIKE '%land%'         THEN 'Terrain'
-              WHEN c.type_line ILIKE '%creature%'     THEN 'Créature'
-              WHEN c.type_line ILIKE '%planeswalker%' THEN 'Planeswalker'
-              WHEN c.type_line ILIKE '%battle%'       THEN 'Bataille'
-              WHEN c.type_line ILIKE '%instant%'      THEN 'Éphémère'
-              WHEN c.type_line ILIKE '%sorcery%'      THEN 'Rituel'
-              WHEN c.type_line ILIKE '%artifact%'     THEN 'Artefact'
-              WHEN c.type_line ILIKE '%enchantment%'  THEN 'Enchantement'
-              ELSE 'Autre'
-            END AS bucket,
-            SUM(e.quantity)::int AS count
-     FROM collection_entries e JOIN cards c ON c.id = e.card_id
-     WHERE e.user_id = $1
-     GROUP BY bucket
-     ORDER BY count DESC`,
-    [userId],
-  );
-
-  // Répartition par paliers de valeur unitaire (« ce qui dort dans les cartons »)
-  const values = await query(
-    `SELECT bucket, SUM(quantity)::int AS count, COALESCE(SUM(quantity * unit), 0)::numeric(14,2) AS value
-     FROM (
-       SELECT e.quantity, (${UNIT_EUR}) AS unit
-       FROM collection_entries e JOIN cards c ON c.id = e.card_id
-       WHERE e.user_id = $1
-     ) x
-     CROSS JOIN LATERAL (
-       SELECT CASE
-         WHEN unit IS NULL          THEN 'Sans prix'
-         WHEN unit < 0.10           THEN '< 0,10 €'
-         WHEN unit < 1              THEN '0,10–0,99 €'
-         WHEN unit < 5              THEN '1–4,99 €'
-         WHEN unit < 20             THEN '5–19,99 €'
-         ELSE '≥ 20 €'
-       END AS bucket
-     ) b
-     GROUP BY bucket`,
-    [userId],
-  );
-
-  // Plus-value : valeur de marché vs prix d'achat (cartes avec un prix d'achat renseigné)
-  const profit = await query(
-    `SELECT COALESCE(SUM(e.acquired_price * e.quantity), 0)::numeric(14,2) AS acquired_total,
-            COALESCE(SUM(((${UNIT_EUR}) * e.quantity)) FILTER (WHERE e.acquired_price IS NOT NULL), 0)::numeric(14,2) AS market_priced,
-            COUNT(*) FILTER (WHERE e.acquired_price IS NOT NULL)::int AS priced_count
-     FROM collection_entries e JOIN cards c ON c.id = e.card_id
-     WHERE e.user_id = $1`,
-    [userId],
-  );
+  // Toutes ces requêtes sont indépendantes → exécutées en parallèle (latence ÷ ~10).
   const moversSelect = `SELECT c.scryfall_id, c.name, c.set_code, c.image_uri_small, e.quantity,
             e.acquired_price, (${UNIT_EUR})::numeric(10,2) AS unit_eur,
             (((${UNIT_EUR}) - e.acquired_price) * e.quantity)::numeric(12,2) AS gain
      FROM collection_entries e JOIN cards c ON c.id = e.card_id
      WHERE e.user_id = $1 AND e.acquired_price IS NOT NULL AND (${UNIT_EUR}) IS NOT NULL`;
-  const gainers = await query(`${moversSelect} ORDER BY gain DESC NULLS LAST LIMIT 5`, [userId]);
-  const losers = await query(`${moversSelect} AND (((${UNIT_EUR}) - e.acquired_price)) < 0 ORDER BY gain ASC LIMIT 5`, [userId]);
+
+  const [totals, topCards, colors, rarities, conditions, types, values, profit, gainers, losers, freshness] = await Promise.all([
+    query(
+      `SELECT COALESCE(SUM((${UNIT_EUR}) * e.quantity), 0)::numeric(14,2) AS total_value_eur,
+              COALESCE(SUM((${UNIT_USD}) * e.quantity), 0)::numeric(14,2) AS total_value_usd,
+              COALESCE(SUM(e.quantity), 0)::int                          AS card_count,
+              COUNT(*)::int                                              AS unique_card_count,
+              COUNT(DISTINCT c.set_code)::int                            AS set_count
+       FROM collection_entries e JOIN cards c ON c.id = e.card_id
+       WHERE e.user_id = $1`,
+      [userId],
+    ),
+    query(
+      `SELECT c.scryfall_id, c.name, c.set_code, c.image_uri_small, e.finish, e.quantity,
+              (${UNIT_EUR})::numeric(10,2)               AS unit_price_eur,
+              ((${UNIT_EUR}) * e.quantity)::numeric(12,2) AS total_price_eur
+       FROM collection_entries e JOIN cards c ON c.id = e.card_id
+       WHERE e.user_id = $1
+       ORDER BY unit_price_eur DESC NULLS LAST
+       LIMIT 10`,
+      [userId],
+    ),
+    query(
+      `SELECT CASE
+                WHEN array_length(c.color_identity, 1) IS NULL THEN 'C'
+                WHEN array_length(c.color_identity, 1) > 1     THEN 'M'
+                ELSE c.color_identity[1]
+              END AS bucket,
+              SUM(e.quantity)::int AS count
+       FROM collection_entries e JOIN cards c ON c.id = e.card_id
+       WHERE e.user_id = $1
+       GROUP BY bucket`,
+      [userId],
+    ),
+    query(
+      `SELECT c.rarity AS bucket, SUM(e.quantity)::int AS count
+       FROM collection_entries e JOIN cards c ON c.id = e.card_id
+       WHERE e.user_id = $1
+       GROUP BY c.rarity`,
+      [userId],
+    ),
+    query(
+      `SELECT e.condition AS bucket, SUM(e.quantity)::int AS count
+       FROM collection_entries e
+       WHERE e.user_id = $1
+       GROUP BY e.condition`,
+      [userId],
+    ),
+    // Type principal (ordre de priorité : terrain > créature > planeswalker > …)
+    query(
+      `SELECT CASE
+                WHEN c.type_line ILIKE '%land%'         THEN 'Terrain'
+                WHEN c.type_line ILIKE '%creature%'     THEN 'Créature'
+                WHEN c.type_line ILIKE '%planeswalker%' THEN 'Planeswalker'
+                WHEN c.type_line ILIKE '%battle%'       THEN 'Bataille'
+                WHEN c.type_line ILIKE '%instant%'      THEN 'Éphémère'
+                WHEN c.type_line ILIKE '%sorcery%'      THEN 'Rituel'
+                WHEN c.type_line ILIKE '%artifact%'     THEN 'Artefact'
+                WHEN c.type_line ILIKE '%enchantment%'  THEN 'Enchantement'
+                ELSE 'Autre'
+              END AS bucket,
+              SUM(e.quantity)::int AS count
+       FROM collection_entries e JOIN cards c ON c.id = e.card_id
+       WHERE e.user_id = $1
+       GROUP BY bucket
+       ORDER BY count DESC`,
+      [userId],
+    ),
+    // Répartition par paliers de valeur unitaire (« ce qui dort dans les cartons »)
+    query(
+      `SELECT bucket, SUM(quantity)::int AS count, COALESCE(SUM(quantity * unit), 0)::numeric(14,2) AS value
+       FROM (
+         SELECT e.quantity, (${UNIT_EUR}) AS unit
+         FROM collection_entries e JOIN cards c ON c.id = e.card_id
+         WHERE e.user_id = $1
+       ) x
+       CROSS JOIN LATERAL (
+         SELECT CASE
+           WHEN unit IS NULL          THEN 'Sans prix'
+           WHEN unit < 0.10           THEN '< 0,10 €'
+           WHEN unit < 1              THEN '0,10–0,99 €'
+           WHEN unit < 5              THEN '1–4,99 €'
+           WHEN unit < 20             THEN '5–19,99 €'
+           ELSE '≥ 20 €'
+         END AS bucket
+       ) b
+       GROUP BY bucket`,
+      [userId],
+    ),
+    // Plus-value : valeur de marché vs prix d'achat (cartes avec un prix d'achat renseigné)
+    query(
+      `SELECT COALESCE(SUM(e.acquired_price * e.quantity), 0)::numeric(14,2) AS acquired_total,
+              COALESCE(SUM(((${UNIT_EUR}) * e.quantity)) FILTER (WHERE e.acquired_price IS NOT NULL), 0)::numeric(14,2) AS market_priced,
+              COUNT(*) FILTER (WHERE e.acquired_price IS NOT NULL)::int AS priced_count
+       FROM collection_entries e JOIN cards c ON c.id = e.card_id
+       WHERE e.user_id = $1`,
+      [userId],
+    ),
+    query(`${moversSelect} ORDER BY gain DESC NULLS LAST LIMIT 5`, [userId]),
+    query(`${moversSelect} AND (((${UNIT_EUR}) - e.acquired_price)) < 0 ORDER BY gain ASC LIMIT 5`, [userId]),
+    query(
+      `SELECT MAX(c.updated_at) AS prices_updated_at
+       FROM collection_entries e JOIN cards c ON c.id = e.card_id WHERE e.user_id = $1`,
+      [userId],
+    ),
+  ]);
 
   const p = profit.rows[0];
   const acquired = Number(p.acquired_total);
@@ -285,12 +287,6 @@ export async function getStats(userId) {
     topGainers: gainers.rows,
     topLosers: losers.rows,
   };
-
-  const freshness = await query(
-    `SELECT MAX(c.updated_at) AS prices_updated_at
-     FROM collection_entries e JOIN cards c ON c.id = e.card_id WHERE e.user_id = $1`,
-    [userId],
-  );
 
   const t = totals.rows[0];
   return {

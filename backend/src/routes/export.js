@@ -31,7 +31,11 @@ async function fetchRows(userId) {
 }
 
 function csvField(v, sep) {
-  const s = v == null ? '' : String(v);
+  let s = v == null ? '' : String(v);
+  // Anti-injection de formule (Excel/LibreOffice) : un champ commençant par
+  // = + - @ (ou tab/CR) peut être exécuté à l'ouverture. On le préfixe d'une
+  // apostrophe, neutralisée à l'affichage par le tableur.
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
   const re = sep === ';' ? /[";\n]/ : /[",\n]/;
   return re.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
