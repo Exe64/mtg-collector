@@ -14,6 +14,7 @@ import importRoutes from './routes/import.js';
 import exportRoutes from './routes/export.js';
 import wishlistRoutes from './routes/wishlist.js';
 import { scheduleDailyJob } from './services/dailyJob.js';
+import { globalLimiter, searchLimiter, importLimiter, exportLimiter } from './middleware/limiters.js';
 
 // Refus de démarrer si les secrets JWT sont absents ou trop faibles (échec rapide,
 // plutôt qu'une erreur à la première signature de token).
@@ -61,12 +62,15 @@ app.get('/api/health', async (req, res) => {
 // ---------------------------------------------------------------------------
 // Routes
 // ---------------------------------------------------------------------------
+// Garde-fou global anti-flood (le health check ci-dessus en est exempt).
+app.use('/api', globalLimiter);
+
 app.use('/api/auth', authRoutes);
-app.use('/api/cards', cardsRoutes);
+app.use('/api/cards', searchLimiter, cardsRoutes);
 app.use('/api/sets', setsRoutes);
 app.use('/api/collection', collectionRoutes);
-app.use('/api/import', importRoutes);
-app.use('/api/export', exportRoutes);
+app.use('/api/import', importLimiter, importRoutes);
+app.use('/api/export', exportLimiter, exportRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 
 // 404 pour les routes /api inconnues
