@@ -233,6 +233,21 @@ router.post('/bulk', validateBody(collectionBulkSchema), async (req, res, next) 
     const cols = Object.keys(patch);
     const setSql = cols.map((c, i) => `${c} = $${i + 1}`).join(', ');
     const baseParams = cols.map((c) => patch[c]);
+
+    // Chemin rapide : une seule requête (cas courant, aucun conflit de variante).
+    try {
+      const { rowCount } = await query(
+        `UPDATE collection_entries SET ${setSql}
+         WHERE id = ANY($${cols.length + 1}::int[]) AND user_id = $${cols.length + 2}`,
+        [...baseParams, ids, req.user.id],
+      );
+      return res.json({ updated: rowCount, conflicts: 0 });
+    } catch (e) {
+      if (e.code !== '23505') throw e;
+      // Conflit détecté → l'UPDATE global a été annulé (autocommit) ; on reprend
+      // ligne par ligne pour appliquer le maximum et compter les conflits.
+    }
+
     let updated = 0;
     let conflicts = 0;
     for (const id of ids) {
@@ -247,7 +262,7 @@ router.post('/bulk', validateBody(collectionBulkSchema), async (req, res, next) 
         if (e.code === '23505') conflicts += 1; else throw e;
       }
     }
-    res.json({ updated, conflicts });
+    return res.json({ updated, conflicts });
   } catch (err) {
     next(err);
   }
