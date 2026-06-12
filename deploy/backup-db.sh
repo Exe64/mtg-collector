@@ -19,16 +19,20 @@
 #
 set -euo pipefail
 
-APP_DIR="${MTG_APP_DIR:-/opt/mtg-collector}"
-BACKUP_DIR="${MTG_BACKUP_DIR:-/opt/mtg-collector-backups}"
-KEEP="${MTG_BACKUP_KEEP:-14}"
-PASS_FILE="${MTG_BACKUP_PASSPHRASE_FILE:-}"
-PASS="${MTG_BACKUP_PASSPHRASE:-}"
+# Racine du repo : auto-détectée depuis l'emplacement du script (override : MTG_APP_DIR)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APP_DIR="${MTG_APP_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 
-# Charge DB_USER depuis le .env de l'app
+# Charge la config depuis le .env de l'app AVANT de résoudre les variables, pour
+# que DB_USER et les MTG_BACKUP_*/MTG_RCLONE_* posés dans .env soient pris en compte.
 set -a
 [ -f "$APP_DIR/.env" ] && . "$APP_DIR/.env"
 set +a
+
+BACKUP_DIR="${MTG_BACKUP_DIR:-${APP_DIR}-backups}"
+KEEP="${MTG_BACKUP_KEEP:-14}"
+PASS_FILE="${MTG_BACKUP_PASSPHRASE_FILE:-}"
+PASS="${MTG_BACKUP_PASSPHRASE:-}"
 DB_USER="${DB_USER:-magic_user}"
 
 mkdir -p "$BACKUP_DIR"
