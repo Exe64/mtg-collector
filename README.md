@@ -6,23 +6,25 @@ et [backend/API.md](backend/API.md) pour la référence API.
 
 ## Fonctionnalités
 
-- **Auth JWT** multi-utilisateur (access token 15 min + refresh token rotaté en cookie httpOnly), collections isolées par compte
-- **Ajouter** : recherche autocomplétée, affichage de **toutes les versions/éditions**, ajout direct par ligne (qté/finition/état), **scan caméra OCR** (Tesseract.js, best-effort)
-- **Collection** : recherche par nom + filtres (type, rareté, couleur, coût de mana, état), groupement par extension, édition inline (qté, finition, état), pagination, export
+- **Auth JWT** multi-utilisateur (access token 30 min + refresh token rotaté en cookie httpOnly), collections isolées par compte
+- **Ajouter** : recherche autocomplétée, affichage de **toutes les versions/éditions**, ajout/retrait direct via **−/+ normale et foil** (état au choix)
+- **Collection** : recherche par nom + filtres (type, rareté, couleur, coût de mana, état, **finition**), groupement par extension, édition inline (qté, finition, état), pagination, export
+- **Vérif deck** : liste collée (Moxfield/MTGO), `.txt` ou URL Moxfield → **cartes manquantes** vs collection (comparaison par nom, toutes versions ; affiche les versions possédées)
+- **Wishlist** : liste de souhaits avec coût estimé
 - **Extensions** : catalogue filtrable (dont promos), **complétion par set** (liste + détail avec filtres possédées / toutes / manquantes)
 - **Détail carte** : modale image HD, texte oracle, prix, et **rulings officiels** (Wizards/Gatherer via Scryfall)
 - **Tableau de bord** : valeur EUR/USD, courbe d'évolution, donuts (couleur, rareté, état, type), top 10
 - **Import/Export** : CSV Moxfield + **ManaBox** (résolution exacte par Scryfall ID) + générique, **tag emplacement par lot**, export CSV Moxfield + PDF
 - **Onboarding masse** : scanner via une app tierce (ex. ManaBox) → export CSV → import ; chaque lot taggé à un emplacement physique
 - **Complétion** : suivi par extension avec % et **numéros manquants** (set de base strict via `printed_size`), emplacement physique des cartes
-- **Prix** : Scryfall (Cardmarket EUR), job quotidien (3h UTC) → snapshots collection/édition + historique par carte
+- **Prix** : Scryfall (Cardmarket EUR), job **toutes les 12h** (00:00 et 12:00 UTC) → snapshots collection/édition + historique par carte
 - **PWA** : installable, Service Worker (app shell offline), conditions **Cardmarket** (MT→PO)
 
 ## Décisions d'architecture (revue de spec)
 
 | # | Décision |
 |---|----------|
-| 1 | Pas de badge de variation ; **courbes de prix** carte / édition / collection via tables d'historique, job 24-48h. |
+| 1 | Pas de badge de variation ; **courbes de prix** carte / édition / collection via tables d'historique, job 12h. |
 | 2 | Auth par **cookie httpOnly `SameSite=Strict`** + nginx reverse-proxy `/api` (même origine, pas de CORS). |
 | 3 | Reset password / vérif email **hors scope v1** (usage perso). |
 | 4/7 | **Bulk-data Scryfall = source primaire** + **lazy upsert** à l'ajout + autocomplete live. |
@@ -68,10 +70,10 @@ docker compose exec backend npm test
 > Après mise à jour, lance `npm run job:daily` une fois pour peupler `cmc` sur
 > les cartes déjà possédées.
 
-## Accès mobile (HTTPS local — pour le scan caméra)
+## Accès mobile (HTTPS local — install PWA)
 
-Le scan caméra (`getUserMedia`) et l'install PWA exigent un *secure context* :
-`localhost` suffit sur le PC, mais le téléphone a besoin de **HTTPS**.
+L'install PWA sur le téléphone exige un *secure context* : `localhost` suffit
+sur le PC, mais le téléphone a besoin de **HTTPS**.
 
 ```bash
 # 1. Générer un certificat de confiance pour l'IP LAN de la machine Windows
@@ -89,6 +91,29 @@ docker compose -f docker-compose.yml -f docker-compose.tls.yml up --build
 
 → Téléphone : `https://192.168.1.50`. Détails dans [deploy/local-tls.sh](deploy/local-tls.sh).
 
+## Sauvegardes
+
+La donnée critique (comptes, collection, snapshots, wishlist) vit dans le volume
+`pgdata` — `cards`/`sets` se reconstruisent depuis Scryfall, le reste non.
+[deploy/backup-db.sh](deploy/backup-db.sh) fait un `pg_dump` compressé + rotation
+locale, chiffrement AES256 optionnel (gpg), et **copie hors-machine** via rclone.
+
+```bash
+# Manuel
+./deploy/backup-db.sh
+
+# Cron quotidien (2h) — voir l'en-tête du script
+0 2 * * * /opt/mtg-collector/deploy/backup-db.sh >> /var/log/mtg-backup.log 2>&1
+```
+
+Variables (`.env` de l'app ou env du cron) : `MTG_BACKUP_DIR`, `MTG_BACKUP_KEEP`
+(14), `MTG_BACKUP_PASSPHRASE_FILE` (chiffrement), `MTG_RCLONE_REMOTE` (copie
+hors-machine, ex. `gdrive:mtg-backups`). Restauration : voir l'en-tête du script.
+
+**rclone → Google Drive** : installer rclone, puis `rclone authorize "drive"`
+(sur un poste avec navigateur) et coller le token via `rclone config` sur le VPS ;
+enfin renseigner `MTG_RCLONE_REMOTE=gdrive:mtg-backups` dans `.env`.
+
 ## Structure
 
 ```
@@ -97,24 +122,26 @@ backend/
   test/                  tests node:test
   src/
     config/              pool pg, client redis
-    middleware/          requireAuth (JWT)
-    routes/              auth, cards, sets, collection, import, export
-    services/            scryfall, cards, collection, snapshots, priceSync,
-                         dailyJob, importer, bulkData, pricing, cache, tokens
+    middleware/          requireAuth (JWT), limiters (rate-limit)
+    routes/              auth, cards, sets, collection, import, export, wishlist, decks
+    services/            scryfall, cards, collection, snapshots, priceSync, dailyJob,
+                         importer, bulkData, pricing, cache, tokens, deckCheck
     scripts/             syncBulk, runDailyJob
   API.md                 référence des endpoints
 frontend/
   src/
     api/                 client fetch (refresh auto, download authentifié)
     stores/              auth, cardModal (zustand)
-    pages/               Dashboard, Collection, Add, Sets, SetDetail, ImportExport, Login, Register
-    components/          ui (Layout, CardModal), collection, search→Add, scan, charts
+    pages/               Dashboard, Collection, Add, Sets, SetDetail, ImportExport,
+                         Wishlist, DeckCheck, Accounts, Login, Register
+    components/          ui (Layout, CardModal, ScrollToTop), collection, search→Add, charts
   nginx.conf             reverse-proxy /api (prod)
-deploy/                  provision-vm.sh, deploy.sh, local-tls.sh (Rocky Linux / OVH)
+deploy/                  provision-vm.sh, deploy.sh, local-tls.sh, backup-db.sh (Rocky Linux / OVH)
 ```
 
 ## État d'avancement
 
 Sprints 1 à 10 du plan SPECS réalisés (socle, cartes, collection, frontend,
-browse set, import/export, dashboard, PWA, scan OCR, polish). Reste surtout du
-durcissement (couverture de tests, observabilité).
+browse set, import/export, dashboard, PWA, wishlist, vérif deck, polish).
+Sauvegardes DB via [deploy/backup-db.sh](deploy/backup-db.sh) (cron + rclone
+hors-machine). Reste surtout du durcissement (tests d'intégration, CI, observabilité).

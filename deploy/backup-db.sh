@@ -14,6 +14,8 @@
 #   MTG_BACKUP_PASSPHRASE_FILE  fichier (chmod 600) contenant la passphrase de chiffrement
 #   MTG_BACKUP_PASSPHRASE       passphrase en clair (fallback ; préférer le fichier)
 #   -> si l'une est fournie, la sauvegarde est chiffrée AES256 (gpg) en .sql.gz.gpg
+#   MTG_RCLONE_REMOTE        cible rclone pour copie hors-machine (ex. gdrive:mtg-backups)
+#                            -> si défini + rclone installé, chaque dump est copié hors du VPS
 #
 set -euo pipefail
 
@@ -67,6 +69,21 @@ fi
 
 # Rotation : ne garder que les KEEP plus récents (chiffrés ou non)
 ls -1t "$BACKUP_DIR"/magic_collection_*.sql.gz* 2>/dev/null | tail -n +"$((KEEP + 1))" | xargs -r rm -f
+
+# Copie hors-machine (protection contre la perte du VPS lui-même)
+REMOTE="${MTG_RCLONE_REMOTE:-}"
+if [ -n "$REMOTE" ]; then
+  if command -v rclone >/dev/null 2>&1; then
+    echo "[backup] rclone copy → $REMOTE"
+    rclone copy "$file" "$REMOTE"
+    # Rotation distante : supprime les sauvegardes de plus de KEEP jours
+    rclone delete "$REMOTE" --min-age "${KEEP}d" --include "magic_collection_*" 2>/dev/null || true
+  else
+    echo "[backup] ⚠️ MTG_RCLONE_REMOTE défini mais rclone introuvable — copie hors-machine ignorée" >&2
+  fi
+else
+  echo "[backup] (copie hors-machine désactivée : MTG_RCLONE_REMOTE non défini)"
+fi
 
 echo "[backup] OK ($(du -h "$file" | cut -f1)). Restauration :"
 if [ "$ENCRYPT" -eq 1 ]; then

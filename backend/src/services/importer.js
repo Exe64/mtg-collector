@@ -1,4 +1,4 @@
-import { query } from '../config/db.js';
+import { query, pool } from '../config/db.js';
 import * as scryfall from './scryfall.js';
 import { mapScryfallCard, upsertCard, ensureCard } from './cards.js';
 
@@ -133,13 +133,10 @@ export async function dryRunImport(rows) {
 }
 
 export async function importCsv(userId, rows, mode = 'merge', location = '') {
-  if (mode === 'replace') {
-    await query('DELETE FROM collection_entries WHERE user_id = $1', [userId]);
-  }
-
-  let imported = 0;
+  // Phase 1 — résolution (appels Scryfall) HORS transaction : on ne touche pas
+  // encore à la collection, donc un échec ici la laisse intacte.
+  const resolved = [];
   const errors = [];
-
   for (let i = 0; i < rows.length; i += 1) {
     const line = i + 2; // +1 en-tête, +1 base 1
     try {
@@ -148,23 +145,45 @@ export async function importCsv(userId, rows, mode = 'merge', location = '') {
         errors.push({ line, name: p.name || '?', error: 'nom ou quantité manquant/invalide' });
         continue;
       }
+      // eslint-disable-next-line no-await-in-loop
       const card = await resolveCard(p);
       if (!card) {
         errors.push({ line, name: p.name, error: 'carte introuvable' });
         continue;
       }
-      await query(
+      resolved.push({ cardId: card.id, p });
+    } catch (err) {
+      errors.push({ line, error: err.message });
+    }
+  }
+
+  // Phase 2 — application ATOMIQUE (DELETE éventuel + inserts) dans une transaction
+  // sur un client dédié : un crash en cours = ROLLBACK, la collection reste intacte.
+  const client = await pool.connect();
+  let imported = 0;
+  try {
+    await client.query('BEGIN');
+    if (mode === 'replace') {
+      await client.query('DELETE FROM collection_entries WHERE user_id = $1', [userId]);
+    }
+    for (const { cardId, p } of resolved) {
+      // eslint-disable-next-line no-await-in-loop
+      await client.query(
         `INSERT INTO collection_entries
            (user_id, card_id, quantity, finish, condition, language, location, acquired_price)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          ON CONFLICT (user_id, card_id, finish, condition, language, location)
          DO UPDATE SET quantity = collection_entries.quantity + EXCLUDED.quantity`,
-        [userId, card.id, p.quantity, p.finish, p.condition, p.language, location, p.acquired_price],
+        [userId, cardId, p.quantity, p.finish, p.condition, p.language, location, p.acquired_price],
       );
       imported += 1;
-    } catch (err) {
-      errors.push({ line, error: err.message });
     }
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
   }
 
   return { imported, skipped: errors.length, errors };
