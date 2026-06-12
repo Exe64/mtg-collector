@@ -12,6 +12,7 @@ import Sets from './pages/Sets';
 import SetDetail from './pages/SetDetail';
 import ImportExport from './pages/ImportExport';
 import Wishlist from './pages/Wishlist';
+import DeckCheck from './pages/DeckCheck';
 import Accounts from './pages/Accounts';
 
 function Protected({ children }) {
@@ -50,6 +51,7 @@ export default function App() {
         <Route path="sets/:code" element={<SetDetail />} />
         <Route path="import" element={<ImportExport />} />
         <Route path="wishlist" element={<Wishlist />} />
+        <Route path="deck" element={<DeckCheck />} />
         <Route path="accounts" element={<Accounts />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

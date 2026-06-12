@@ -1,5 +1,5 @@
 import { Outlet, NavLink } from 'react-router-dom';
-import { LayoutDashboard, Boxes, PlusCircle, Library, Star, Download, Users } from 'lucide-react';
+import { LayoutDashboard, Boxes, PlusCircle, Library, Star, Download, Users, ListChecks } from 'lucide-react';
 import { useAuth } from '../../stores/auth';
 import CardModal from './CardModal';
 import ScrollToTop from './ScrollToTop';
@@ -10,6 +10,7 @@ const baseNav = [
   { to: '/add', label: 'Ajouter', short: 'Ajouter', Icon: PlusCircle, end: false },
   { to: '/sets', label: 'Extensions', short: 'Sets', Icon: Library, end: false },
   { to: '/wishlist', label: 'Wishlist', short: 'Wishlist', Icon: Star, end: false },
+  { to: '/deck', label: 'Vérif deck', short: 'Deck', Icon: ListChecks, end: false },
   { to: '/import', label: 'Import/Export', short: 'Import', Icon: Download, end: false },
 ];
 

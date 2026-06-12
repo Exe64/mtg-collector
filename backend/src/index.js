@@ -13,6 +13,7 @@ import collectionRoutes from './routes/collection.js';
 import importRoutes from './routes/import.js';
 import exportRoutes from './routes/export.js';
 import wishlistRoutes from './routes/wishlist.js';
+import decksRoutes from './routes/decks.js';
 import { scheduleDailyJob } from './services/dailyJob.js';
 import { globalLimiter, searchLimiter, importLimiter, exportLimiter } from './middleware/limiters.js';
 
@@ -72,6 +73,7 @@ app.use('/api/collection', collectionRoutes);
 app.use('/api/import', importLimiter, importRoutes);
 app.use('/api/export', exportLimiter, exportRoutes);
 app.use('/api/wishlist', wishlistRoutes);
+app.use('/api/decks', searchLimiter, decksRoutes);
 
 // 404 pour les routes /api inconnues
 app.use('/api', (req, res) => {
