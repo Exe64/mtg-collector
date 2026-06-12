@@ -111,8 +111,21 @@ export default function DeckCheck() {
                   return (
                     <tr key={c.name} className={`border-t border-slate-800 ${lacking ? 'bg-rose-500/5' : ''}`}>
                       <td className="p-2">
-                        {c.name}
-                        {c.basic && <span className="ml-1 text-[10px] text-slate-500">(terrain de base)</span>}
+                        <div>
+                          {c.name}
+                          {c.basic && <span className="ml-1 text-[10px] text-slate-500">(terrain de base)</span>}
+                        </div>
+                        {c.versions?.length > 0 && (
+                          <div className="text-[11px] text-slate-500 mt-0.5">
+                            {c.versions.map((v, i) => (
+                              <span key={`${v.set_code}-${v.collector_number}-${v.finish}-${i}`} className="mr-2 whitespace-nowrap">
+                                {(v.set_code || '').toUpperCase()} #{v.collector_number}
+                                {v.finish !== 'nonfoil' && <span className="text-gold-400"> ✦</span>}
+                                {' '}×{v.qty}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </td>
                       <td className="p-2 text-right text-slate-400">{c.needed}</td>
                       <td className="p-2 text-right text-slate-300">{c.owned}</td>

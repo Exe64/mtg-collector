@@ -83,18 +83,28 @@ export async function checkDeck(userId, deckCards) {
     else needed.set(k, { name, quantity });
   }
 
-  // Possédé par nom, toutes versions confondues
+  // Impressions possédées, filtrées sur les noms (face avant) du deck.
   const { rows } = await query(
-    `SELECT c.name, SUM(e.quantity)::int AS qty
+    `SELECT c.name, c.set_code, c.collector_number, e.finish, SUM(e.quantity)::int AS qty
      FROM collection_entries e JOIN cards c ON c.id = e.card_id
      WHERE e.user_id = $1
-     GROUP BY c.name`,
-    [userId],
+       AND lower(split_part(c.name, ' // ', 1)) = ANY($2::text[])
+     GROUP BY c.name, c.set_code, c.collector_number, e.finish
+     ORDER BY c.set_code, c.collector_number`,
+    [userId, [...needed.keys()]],
   );
-  const owned = new Map();
+  const owned = new Map();   // frontKey -> total possédé
+  const versions = new Map(); // frontKey -> [{ set_code, collector_number, finish, qty }]
   for (const r of rows) {
     const k = frontKey(r.name);
     owned.set(k, (owned.get(k) || 0) + r.qty);
+    if (!versions.has(k)) versions.set(k, []);
+    versions.get(k).push({
+      set_code: r.set_code,
+      collector_number: r.collector_number,
+      finish: r.finish,
+      qty: r.qty,
+    });
   }
 
   const cards = [];
@@ -106,6 +116,7 @@ export async function checkDeck(userId, deckCards) {
       owned: have,
       missing: Math.max(0, quantity - have),
       basic: BASIC_LANDS.has(k),
+      versions: versions.get(k) || [],
     });
   }
   cards.sort((a, b) => (b.missing - a.missing) || a.name.localeCompare(b.name));
