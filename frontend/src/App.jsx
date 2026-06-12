@@ -13,6 +13,7 @@ import SetDetail from './pages/SetDetail';
 import ImportExport from './pages/ImportExport';
 import Wishlist from './pages/Wishlist';
 import DeckCheck from './pages/DeckCheck';
+import Journal from './pages/Journal';
 import Accounts from './pages/Accounts';
 
 function Protected({ children }) {
@@ -52,6 +53,7 @@ export default function App() {
         <Route path="import" element={<ImportExport />} />
         <Route path="wishlist" element={<Wishlist />} />
         <Route path="deck" element={<DeckCheck />} />
+        <Route path="journal" element={<Journal />} />
         <Route path="accounts" element={<Accounts />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -41,7 +41,8 @@ Mot de passe : ≥ 8 caractères, 1 majuscule, 1 chiffre. Rate limit : 10 req / 
 | GET | `/api/collection/stats` | — | `{ totalValue, cardCount, uniqueCardCount, setCount, topCards[], colorBreakdown, rarityBreakdown, conditionBreakdown, typeBreakdown }` |
 | GET | `/api/collection/snapshots` | `days?` | `{ snapshots[] }` |
 | GET | `/api/collection/set-snapshots` | `set, days?` | `{ snapshots[] }` (courbe de valeur d'une édition) |
-| GET | `/api/collection/spikes` | `days?=7, threshold?=20` | `{ spikes[] }` (variations de prix marquantes des cartes possédées) |
+| GET | `/api/collection/price-movers` | `days?=7, threshold?=20` | `{ gainers[], losers[], spikes[] }` (top 10 hausses/baisses en € + variations ≥ threshold %) |
+| GET | `/api/collection/log` | `days?=30` | `{ log[] }` (journal des ajouts/retraits : delta signé, finition, source, date) |
 | POST | `/api/collection/bulk` | `{ ids[], patch:{ finish?, condition?, language?, location? } }` | `{ updated, conflicts }` |
 | GET | `/api/collection/owned-by-set` | — | `{ ownedBySet: { code: nb } }` |
 | GET | `/api/collection/owned` | `set?` | `{ owned: { scryfall_id: qté } }` |

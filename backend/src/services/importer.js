@@ -1,6 +1,7 @@
 import { query, pool } from '../config/db.js';
 import * as scryfall from './scryfall.js';
 import { mapScryfallCard, upsertCard, ensureCard } from './cards.js';
+import { logChanges } from './collectionLog.js';
 
 const CONDITION_MAP = {
   M: 'MT', MT: 'MT', MINT: 'MT',
@@ -164,6 +165,14 @@ export async function importCsv(userId, rows, mode = 'merge', location = '') {
   try {
     await client.query('BEGIN');
     if (mode === 'replace') {
+      // Trace le retrait de l'existant (agrégé par carte/finition) avant le DELETE
+      await client.query(
+        `INSERT INTO collection_log (user_id, card_id, quantity_delta, finish, source)
+         SELECT user_id, card_id, -SUM(quantity)::int, finish, 'import'
+         FROM collection_entries WHERE user_id = $1
+         GROUP BY user_id, card_id, finish`,
+        [userId],
+      );
       await client.query('DELETE FROM collection_entries WHERE user_id = $1', [userId]);
     }
     for (const { cardId, p } of resolved) {
@@ -178,6 +187,21 @@ export async function importCsv(userId, rows, mode = 'merge', location = '') {
       );
       imported += 1;
     }
+    // Journal des ajouts, agrégé par carte/finition pour limiter le volume
+    const added = new Map();
+    for (const { cardId, p } of resolved) {
+      const key = `${cardId}|${p.finish}`;
+      added.set(key, (added.get(key) || 0) + p.quantity);
+    }
+    await logChanges(
+      userId,
+      [...added].map(([key, delta]) => {
+        const [cardId, finish] = key.split('|');
+        return { cardId: Number(cardId), delta, finish };
+      }),
+      'import',
+      client,
+    );
     await client.query('COMMIT');
   } catch (err) {
     await client.query('ROLLBACK');

@@ -306,10 +306,13 @@ export async function getStats(userId) {
 }
 
 /**
- * Détection de « spikes » : cartes possédées dont le prix EUR a varié de ≥ threshold %
- * sur les `days` derniers jours (compare le dernier snapshot au plus récent ≤ date-days).
+ * Mouvements de prix des cartes possédées sur les `days` derniers jours
+ * (compare le dernier snapshot au plus récent ≤ date-days) :
+ *  - gainers : top 10 des hausses (en € de variation unitaire)
+ *  - losers  : top 10 des baisses (en € de variation unitaire)
+ *  - spikes  : cartes ayant varié de ≥ threshold % (toutes, plafonné à 50)
  */
-export async function getSpikes(userId, days = 7, threshold = 20) {
+export async function getPriceMovers(userId, days = 7, threshold = 20) {
   const { rows } = await query(
     `WITH owned AS (
        SELECT DISTINCT c.id AS card_id, c.scryfall_id, c.name, c.set_code, c.image_uri_small
@@ -331,15 +334,22 @@ export async function getSpikes(userId, days = 7, threshold = 20) {
      )
      SELECT o.scryfall_id, o.name, o.set_code, o.image_uri_small,
             l.eur AS current_eur, r.eur AS past_eur,
+            (l.eur - r.eur)::numeric(10,2) AS diff_eur,
             round(((l.eur - r.eur) / NULLIF(r.eur, 0)) * 100, 1) AS pct
      FROM owned o
      JOIN latest l ON l.card_id = o.card_id
      JOIN ref r ON r.card_id = o.card_id
-     WHERE r.eur > 0 AND l.eur IS NOT NULL
-       AND abs(((l.eur - r.eur) / NULLIF(r.eur, 0)) * 100) >= $3
-     ORDER BY pct DESC
-     LIMIT 50`,
-    [userId, days, threshold],
+     WHERE r.eur > 0 AND l.eur IS NOT NULL AND l.eur <> r.eur`,
+    [userId, days],
   );
-  return rows;
+
+  const byDiff = (a, b) => Number(b.diff_eur) - Number(a.diff_eur);
+  return {
+    gainers: rows.filter((r) => Number(r.diff_eur) > 0).sort(byDiff).slice(0, 10),
+    losers: rows.filter((r) => Number(r.diff_eur) < 0).sort(byDiff).reverse().slice(0, 10),
+    spikes: rows
+      .filter((r) => Math.abs(Number(r.pct)) >= threshold)
+      .sort((a, b) => Number(b.pct) - Number(a.pct))
+      .slice(0, 50),
+  };
 }

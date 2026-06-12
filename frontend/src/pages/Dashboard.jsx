@@ -58,13 +58,13 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [snapshots, setSnapshots] = useState([]);
   const [days, setDays] = useState(90);
-  const [spikes, setSpikes] = useState([]);
+  const [movers, setMovers] = useState(null);
   const [spikeDays, setSpikeDays] = useState(7);
   const [loading, setLoading] = useState(true);
   const openCard = useCardModal((s) => s.open);
 
   useEffect(() => {
-    api(`/collection/spikes?days=${spikeDays}&threshold=20`).then((d) => setSpikes(d.spikes || [])).catch(() => {});
+    api(`/collection/price-movers?days=${spikeDays}&threshold=20`).then(setMovers).catch(() => {});
   }, [spikeDays]);
 
   useEffect(() => {
@@ -194,29 +194,47 @@ export default function Dashboard() {
             ))}
           </div>
         </div>
-        {spikes.length === 0 ? (
-          <p className="text-xs text-slate-500">
-            Aucun mouvement ≥ 20% sur la période (ou historique insuffisant — il s'enrichit chaque jour).
-          </p>
-        ) : (
-          <ul className="divide-y divide-slate-800">
-            {spikes.map((s) => {
-              const up = Number(s.pct) >= 0;
-              return (
-                <li key={s.scryfall_id} className="flex items-center gap-2 py-1.5 text-sm">
-                  {s.image_uri_small && <img src={s.image_uri_small} alt="" className="w-7 rounded-sm" />}
-                  <button type="button" onClick={() => openCard(s.scryfall_id)} className="flex-1 text-left truncate hover:text-indigo-300">
-                    {s.name} <span className="text-xs text-slate-500 uppercase">{s.set_code}</span>
-                  </button>
-                  <span className="text-xs text-slate-400 whitespace-nowrap">{s.past_eur} € → {s.current_eur} €</span>
-                  <span className={`w-16 text-right font-semibold ${up ? 'text-gain-400' : 'text-rose-400'}`}>
-                    {up ? '▲' : '▼'} {Math.abs(Number(s.pct))}%
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+        {(() => {
+          const MoveItem = ({ m }) => {
+            const up = Number(m.pct) >= 0;
+            return (
+              <li className="flex items-center gap-2 py-1.5 text-sm">
+                {m.image_uri_small && <img src={m.image_uri_small} alt="" className="w-7 rounded-sm" />}
+                <button type="button" onClick={() => openCard(m.scryfall_id)} className="flex-1 min-w-0 text-left hover:text-indigo-300">
+                  <span className="block truncate">{m.name} <span className="text-xs text-slate-500 uppercase">{m.set_code}</span></span>
+                  <span className="block text-xs text-slate-400">{m.past_eur} € → {m.current_eur} €</span>
+                </button>
+                <span className={`text-right font-semibold whitespace-nowrap ${up ? 'text-gain-400' : 'text-rose-400'}`}>
+                  {up ? '▲' : '▼'} {Math.abs(Number(m.pct))}%
+                  <span className="block text-xs font-normal">{up ? '+' : ''}{Number(m.diff_eur).toFixed(2)} €</span>
+                </span>
+              </li>
+            );
+          };
+          const MoveColumn = ({ title, items, empty }) => (
+            <div>
+              <h3 className="text-xs text-slate-400 mb-1">{title}</h3>
+              {items.length === 0 ? (
+                <p className="text-xs text-slate-500">{empty}</p>
+              ) : (
+                <ul className="divide-y divide-slate-800">
+                  {items.map((m) => <MoveItem key={m.scryfall_id} m={m} />)}
+                </ul>
+              )}
+            </div>
+          );
+          return (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <MoveColumn title="📈 Top 10 hausses" items={movers?.gainers || []} empty="Aucune hausse sur la période." />
+              <MoveColumn title="📉 Top 10 baisses" items={movers?.losers || []} empty="Aucune baisse sur la période." />
+              <MoveColumn
+                title="🚀 Spikes ≥ 20%"
+                items={movers?.spikes || []}
+                empty="Aucun mouvement ≥ 20% (ou historique insuffisant — il s'enrichit chaque jour)."
+              />
+            </div>
+          );
+        })()}
       </section>
 
       <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
