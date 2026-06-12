@@ -22,18 +22,24 @@ set -euo pipefail
 # Racine du repo : auto-détectée depuis l'emplacement du script (override : MTG_APP_DIR)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_DIR="${MTG_APP_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+ENV_FILE="$APP_DIR/.env"
 
-# Charge la config depuis le .env de l'app AVANT de résoudre les variables, pour
-# que DB_USER et les MTG_BACKUP_*/MTG_RCLONE_* posés dans .env soient pris en compte.
-set -a
-[ -f "$APP_DIR/.env" ] && . "$APP_DIR/.env"
-set +a
+# Lit une clé du .env SANS l'exécuter : le .env peut contenir des valeurs avec des
+# caractères hostiles au shell (parenthèses, etc.) que `source` refuserait.
+env_get() {
+  [ -f "$ENV_FILE" ] || return 0
+  local v
+  v="$(grep -E "^${1}=" "$ENV_FILE" | tail -n1 | cut -d= -f2-)"
+  v="${v%\"}"; v="${v#\"}"; v="${v%\'}"; v="${v#\'}"   # retire guillemets éventuels
+  printf '%s' "$v"
+}
 
-BACKUP_DIR="${MTG_BACKUP_DIR:-${APP_DIR}-backups}"
-KEEP="${MTG_BACKUP_KEEP:-14}"
-PASS_FILE="${MTG_BACKUP_PASSPHRASE_FILE:-}"
-PASS="${MTG_BACKUP_PASSPHRASE:-}"
-DB_USER="${DB_USER:-magic_user}"
+# Précédence : variable d'environnement > valeur du .env > défaut.
+BACKUP_DIR="${MTG_BACKUP_DIR:-$(env_get MTG_BACKUP_DIR)}"; BACKUP_DIR="${BACKUP_DIR:-${APP_DIR}-backups}"
+KEEP="${MTG_BACKUP_KEEP:-$(env_get MTG_BACKUP_KEEP)}"; KEEP="${KEEP:-14}"
+PASS_FILE="${MTG_BACKUP_PASSPHRASE_FILE:-$(env_get MTG_BACKUP_PASSPHRASE_FILE)}"
+PASS="${MTG_BACKUP_PASSPHRASE:-$(env_get MTG_BACKUP_PASSPHRASE)}"
+DB_USER="${DB_USER:-$(env_get DB_USER)}"; DB_USER="${DB_USER:-magic_user}"
 
 mkdir -p "$BACKUP_DIR"
 cd "$APP_DIR"
@@ -75,7 +81,7 @@ fi
 ls -1t "$BACKUP_DIR"/magic_collection_*.sql.gz* 2>/dev/null | tail -n +"$((KEEP + 1))" | xargs -r rm -f
 
 # Copie hors-machine (protection contre la perte du VPS lui-même)
-REMOTE="${MTG_RCLONE_REMOTE:-}"
+REMOTE="${MTG_RCLONE_REMOTE:-$(env_get MTG_RCLONE_REMOTE)}"
 if [ -n "$REMOTE" ]; then
   if command -v rclone >/dev/null 2>&1; then
     echo "[backup] rclone copy → $REMOTE"
