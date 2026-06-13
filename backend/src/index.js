@@ -36,8 +36,11 @@ validateEnv();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Derrière Traefik → nginx (2 hops) : pour voir la vraie IP client (rate-limit, logs).
-app.set('trust proxy', 2);
+// Nombre de proxys de confiance, pour voir la vraie IP client (rate-limit, logs).
+// Défaut 2 = prod Traefik → nginx ; mettre TRUST_PROXY=1 en compose local (nginx seul),
+// sinon un client pourrait forger X-Forwarded-For et contourner le rate-limit d'auth.
+const trustProxy = process.env.TRUST_PROXY ?? '2';
+app.set('trust proxy', /^\d+$/.test(trustProxy) ? Number(trustProxy) : trustProxy);
 
 app.use(helmet());
 app.use(pinoHttp({

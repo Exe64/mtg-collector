@@ -147,7 +147,11 @@ router.get('/owned', async (req, res, next) => {
 // POST /api/collection/owned-ids  { ids: [...] }  → { owned: { <id>: {nonfoil, foil} } }
 router.post('/owned-ids', async (req, res, next) => {
   try {
-    const ids = Array.isArray(req.body?.ids) ? req.body.ids.slice(0, 300) : [];
+    // Filtre aux UUID valides (le cast ::uuid[] sur un id malformé renverrait un 500).
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const ids = (Array.isArray(req.body?.ids) ? req.body.ids : [])
+      .filter((id) => typeof id === 'string' && UUID_RE.test(id))
+      .slice(0, 300);
     if (!ids.length) return res.json({ owned: {} });
     const { rows } = await query(
       `SELECT c.scryfall_id,
