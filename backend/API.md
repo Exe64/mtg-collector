@@ -41,7 +41,9 @@ Mot de passe : ≥ 8 caractères, 1 majuscule, 1 chiffre. Rate limit : 10 req / 
 | GET | `/api/collection/stats` | — | `{ totalValue, cardCount, uniqueCardCount, setCount, topCards[], colorBreakdown, rarityBreakdown, conditionBreakdown, typeBreakdown }` |
 | GET | `/api/collection/snapshots` | `days?` | `{ snapshots[] }` |
 | GET | `/api/collection/set-snapshots` | `set, days?` | `{ snapshots[] }` (courbe de valeur d'une édition) |
-| GET | `/api/collection/spikes` | `days?=7, threshold?=20` | `{ spikes[] }` (variations de prix marquantes des cartes possédées) |
+| GET | `/api/collection/price-movers` | `days?=7, threshold?=20` | `{ gainers[], losers[], spikes[] }` (top 10 hausses/baisses en € + variations ≥ threshold %) |
+| GET | `/api/collection/log` | `days?=30` | `{ log[] }` (journal des ajouts/retraits : delta signé, finition, source, date, `undoable`) |
+| POST | `/api/collection/log/:id/undo` | — | `{ applied }` (réapplique le delta inverse sur la même variante) |
 | POST | `/api/collection/bulk` | `{ ids[], patch:{ finish?, condition?, language?, location? } }` | `{ updated, conflicts }` |
 | GET | `/api/collection/owned-by-set` | — | `{ ownedBySet: { code: nb } }` |
 | GET | `/api/collection/owned` | `set?` | `{ owned: { scryfall_id: qté } }` |
@@ -62,8 +64,25 @@ Conditions : `MT, NM, EX, GD, LP, PL, PO`. Finitions : `nonfoil, foil, etched`.
 | Méthode | Route | Corps | Réponse |
 |---|---|---|---|
 | GET | `/api/wishlist` | — | `{ items[], totalEur }` |
+| GET | `/api/wishlist/movers` | `days?=7` | `{ movers[] }` (variations de prix des cartes en wishlist, baisses en tête) |
 | POST | `/api/wishlist` | `{ scryfall_id, note? }` | `{ id }` |
 | DELETE | `/api/wishlist/:id` | — | `204` |
+
+## Alertes de prix & notifications
+| Méthode | Route | Corps | Réponse |
+|---|---|---|---|
+| GET | `/api/alerts` | — | `{ alerts[] }` |
+| POST | `/api/alerts` | `{ scryfall_id, direction: below\|above, threshold_eur }` | `{ id }` (réarme sur conflit) |
+| DELETE | `/api/alerts/:id` | — | `204` |
+| GET | `/api/alerts/notifications` | — | `{ notifications[], unread }` |
+| POST | `/api/alerts/notifications/read` | `{ id? }` | `204` (marque lue(s)) |
+
+Les alertes sont évaluées par le job quotidien après la MAJ des prix : seuil franchi → notification + alerte désactivée (one-shot, réarmable). Le sync de prix couvre collection ∪ wishlist ∪ alertes actives.
+
+## Export
+| Méthode | Route | Corps | Réponse |
+|---|---|---|---|
 | GET | `/api/export/csv` | — | CSV Moxfield |
 | GET | `/api/export/sell.csv` | — | CSV de mise en vente (prix trend EUR, conditions Cardmarket) |
+| GET | `/api/export/tradelist.csv` | `playset?=4` | CSV liste d'échange (surplus au-delà du playset, hors terrains de base) |
 | GET | `/api/export/pdf` | — | PDF de valorisation (inventaire daté, pour assurance) |

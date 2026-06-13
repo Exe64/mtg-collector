@@ -19,6 +19,10 @@ export default function CardModal() {
   const [loading, setLoading] = useState(false);
   const [showBack, setShowBack] = useState(false);
   const [wishMsg, setWishMsg] = useState(null);
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertDir, setAlertDir] = useState('below');
+  const [alertThreshold, setAlertThreshold] = useState('');
+  const [alertMsg, setAlertMsg] = useState(null);
 
   useEffect(() => {
     if (!scryfallId) return undefined;
@@ -29,6 +33,10 @@ export default function CardModal() {
     setHistory([]);
     setShowBack(false);
     setWishMsg(null);
+    setShowAlert(false);
+    setAlertMsg(null);
+    setAlertThreshold('');
+    setAlertDir('below');
     (async () => {
       try {
         const [detail, rul, hist] = await Promise.all([
@@ -61,6 +69,25 @@ export default function CardModal() {
       setWishMsg('✓ ajoutée à la wishlist');
     } catch (err) {
       setWishMsg(err.message);
+    }
+  }
+
+  async function createAlert() {
+    setAlertMsg(null);
+    const threshold = parseFloat(String(alertThreshold).replace(',', '.'));
+    if (!Number.isFinite(threshold) || threshold <= 0) {
+      setAlertMsg('Seuil invalide');
+      return;
+    }
+    try {
+      await api('/alerts', {
+        method: 'POST',
+        body: { scryfall_id: scryfallId, direction: alertDir, threshold_eur: threshold },
+      });
+      setAlertMsg(`✓ alerte créée (${alertDir === 'below' ? 'sous' : 'au-dessus de'} ${threshold} €)`);
+      setShowAlert(false);
+    } catch (err) {
+      setAlertMsg(err.message);
     }
   }
 
@@ -131,11 +158,31 @@ export default function CardModal() {
                 {card.prices?.usd && <span className="text-slate-400">${card.prices.usd}</span>}
               </div>
 
-              <div className="mt-3">
+              <div className="mt-3 flex flex-wrap items-center gap-2">
                 <button type="button" onClick={addToWishlist}
                   className="text-sm rounded bg-slate-700 hover:bg-slate-600 px-3 py-1">★ Wishlist</button>
-                {wishMsg && <span className="ml-2 text-xs text-slate-400">{wishMsg}</span>}
+                <button type="button" onClick={() => setShowAlert((v) => !v)}
+                  className="text-sm rounded bg-slate-700 hover:bg-slate-600 px-3 py-1">🔔 Alerte prix</button>
+                {wishMsg && <span className="text-xs text-slate-400">{wishMsg}</span>}
+                {alertMsg && <span className="text-xs text-slate-400">{alertMsg}</span>}
               </div>
+
+              {showAlert && (
+                <div className="mt-2 flex flex-wrap items-center gap-2 bg-slate-900 rounded p-2">
+                  <select value={alertDir} onChange={(e) => setAlertDir(e.target.value)}
+                    className="rounded bg-slate-800 border border-slate-700 px-2 py-1 text-sm">
+                    <option value="below">Prévenir si le prix descend sous</option>
+                    <option value="above">Prévenir si le prix monte au-dessus de</option>
+                  </select>
+                  <input
+                    type="number" step="0.01" min="0" value={alertThreshold}
+                    onChange={(e) => setAlertThreshold(e.target.value)}
+                    placeholder="€" className="w-24 rounded bg-slate-800 border border-slate-700 px-2 py-1 text-sm"
+                  />
+                  <button type="button" onClick={createAlert}
+                    className="text-sm rounded bg-indigo-600 hover:bg-indigo-500 px-3 py-1">Créer</button>
+                </div>
+              )}
 
               {history.filter((h) => h.eur != null).length >= 2 && (
                 <div className="mt-4">

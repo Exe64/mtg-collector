@@ -5,15 +5,17 @@ import { query } from '../config/db.js';
 import { syncCollectionPrices } from './priceSync.js';
 import { syncBulk } from './bulkData.js';
 import { runSnapshots } from './snapshots.js';
+import { evaluateAlerts } from './alerts.js';
 
-/** Job quotidien : MAJ prix des cartes possédées + snapshots + purge des refresh tokens. */
+/** Job quotidien : MAJ prix des cartes possédées + snapshots + alertes + purge des refresh tokens. */
 export async function runDailyJob() {
   const t0 = Date.now();
   logger.info('job quotidien : démarrage');
   const updated = await syncCollectionPrices();
   await runSnapshots();
+  const alertsFired = await evaluateAlerts();
   const { rowCount } = await query('DELETE FROM refresh_tokens WHERE expires_at < NOW()');
-  logger.info(`job quotidien terminé : ${updated} prix MAJ, snapshots écrits, ${rowCount} tokens expirés purgés (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
+  logger.info(`job quotidien terminé : ${updated} prix MAJ, snapshots écrits, ${alertsFired} alerte(s) déclenchée(s), ${rowCount} tokens expirés purgés (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
 }
 
 /** Planifie les jobs : prix quotidien (03:00 UTC) + bulk-data hebdo (dim. 04:00 UTC). */

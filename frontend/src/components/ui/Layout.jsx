@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
-import { LayoutDashboard, Boxes, PlusCircle, Library, Star, Download, Users, ListChecks } from 'lucide-react';
+import { LayoutDashboard, Boxes, PlusCircle, Library, Star, Download, Users, ListChecks, History, Bell } from 'lucide-react';
+import { api } from '../../api/client';
 import { useAuth } from '../../stores/auth';
 import CardModal from './CardModal';
 import ScrollToTop from './ScrollToTop';
@@ -11,15 +13,22 @@ const baseNav = [
   { to: '/sets', label: 'Extensions', short: 'Sets', Icon: Library, end: false },
   { to: '/wishlist', label: 'Wishlist', short: 'Wishlist', Icon: Star, end: false },
   { to: '/deck', label: 'Vérif deck', short: 'Deck', Icon: ListChecks, end: false },
+  { to: '/journal', label: 'Journal', short: 'Journal', Icon: History, end: false },
+  { to: '/alerts', label: 'Alertes', short: 'Alertes', Icon: Bell, end: false },
   { to: '/import', label: 'Import/Export', short: 'Import', Icon: Download, end: false },
 ];
 
 export default function Layout() {
   const user = useAuth((s) => s.user);
   const logout = useAuth((s) => s.logout);
+  const [unread, setUnread] = useState(0);
   const navItems = user?.is_admin
     ? [...baseNav, { to: '/accounts', label: 'Comptes', short: 'Comptes', Icon: Users, end: false }]
     : baseNav;
+
+  useEffect(() => {
+    api('/alerts/notifications').then((d) => setUnread(d.unread || 0)).catch(() => {});
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col">
@@ -57,7 +66,12 @@ export default function Layout() {
                     : 'border-transparent text-slate-300 hover:text-white hover:bg-slate-700/50'
                 }`}
             >
-              <it.Icon size={16} />
+              <span className="relative">
+                <it.Icon size={16} />
+                {it.to === '/alerts' && unread > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[9px] leading-none rounded-full min-w-[14px] h-[14px] flex items-center justify-center px-0.5">{unread}</span>
+                )}
+              </span>
               <span>{it.label}</span>
             </NavLink>
           ))}
@@ -87,7 +101,12 @@ export default function Layout() {
             className={({ isActive }) =>
               `flex-1 flex flex-col items-center gap-0.5 py-2 text-[10px] ${isActive ? 'text-gold-300' : 'text-slate-400'}`}
           >
-            <it.Icon size={18} />
+            <span className="relative">
+              <it.Icon size={18} />
+              {it.to === '/alerts' && unread > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[9px] leading-none rounded-full min-w-[14px] h-[14px] flex items-center justify-center px-0.5">{unread}</span>
+              )}
+            </span>
             {it.short}
           </NavLink>
         ))}

@@ -141,6 +141,10 @@ export default function SetDetail() {
   const total = baseCards.length || (printedSize ?? cardCount ?? cards.length);
   const pct = total ? Math.min(100, Math.round((100 * ownedCount) / total)) : 0;
   const missingBase = baseCards.filter((c) => totalQty(c.scryfall_id) === 0);
+  const missingCost = useMemo(
+    () => missingBase.reduce((s, c) => s + (Number(c.prices?.eur) || 0), 0),
+    [missingBase],
+  );
 
   const visible = useMemo(() => cards.filter((c) => {
     const has = totalQty(c.scryfall_id) > 0;
@@ -180,6 +184,7 @@ export default function SetDetail() {
           <div className="mt-1">
             <button type="button" onClick={() => setShowMissing((v) => !v)} className="text-xs text-slate-400 hover:text-slate-200">
               {showMissing ? '▾' : '▸'} {missingBase.length} numéro{missingBase.length > 1 ? 's' : ''} manquant{missingBase.length > 1 ? 's' : ''}
+              {missingCost > 0 && <span className="text-emerald-400"> · ~{missingCost.toFixed(2)} € pour compléter</span>}
             </button>
             {showMissing && (
               <div className="mt-1 flex flex-wrap gap-1 max-h-40 overflow-auto">

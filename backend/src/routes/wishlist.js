@@ -33,6 +33,48 @@ router.get('/', async (req, res, next) => {
   }
 });
 
+// GET /api/wishlist/movers?days=7  → variations de prix des cartes de la wishlist
+// (baisses en tête = signaux d'achat) sur les `days` derniers jours.
+router.get('/movers', async (req, res, next) => {
+  try {
+    const days = Math.min(Math.max(Number(req.query.days) || 7, 1), 365);
+    const { rows } = await query(
+      `WITH wished AS (
+         SELECT DISTINCT c.id AS card_id, c.scryfall_id, c.name, c.set_code, c.image_uri_small
+         FROM cards c JOIN wishlist w ON w.card_id = c.id
+         WHERE w.user_id = $1
+       ),
+       latest AS (
+         SELECT h.card_id, h.snapshot_date, h.eur
+         FROM card_price_history h
+         JOIN wished o ON o.card_id = h.card_id
+         WHERE h.snapshot_date = (SELECT MAX(snapshot_date) FROM card_price_history h2 WHERE h2.card_id = h.card_id)
+       ),
+       ref AS (
+         SELECT DISTINCT ON (h.card_id) h.card_id, h.eur
+         FROM card_price_history h
+         JOIN latest l ON l.card_id = h.card_id
+         WHERE h.snapshot_date <= l.snapshot_date - $2::int
+         ORDER BY h.card_id, h.snapshot_date DESC
+       )
+       SELECT o.scryfall_id, o.name, o.set_code, o.image_uri_small,
+              l.eur AS current_eur, r.eur AS past_eur,
+              (l.eur - r.eur)::numeric(10,2) AS diff_eur,
+              round(((l.eur - r.eur) / NULLIF(r.eur, 0)) * 100, 1) AS pct
+       FROM wished o
+       JOIN latest l ON l.card_id = o.card_id
+       JOIN ref r ON r.card_id = o.card_id
+       WHERE r.eur > 0 AND l.eur IS NOT NULL AND l.eur <> r.eur
+       ORDER BY pct ASC
+       LIMIT 50`,
+      [req.user.id, days],
+    );
+    res.json({ movers: rows });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // POST /api/wishlist  { scryfall_id, note? }
 router.post('/', validateBody(addSchema), async (req, res, next) => {
   try {
