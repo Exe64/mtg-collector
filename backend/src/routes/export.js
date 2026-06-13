@@ -82,6 +82,37 @@ router.get('/sell.csv', requireAuth, async (req, res, next) => {
   }
 });
 
+// GET /api/export/tradelist.csv  (surplus échangeable : quantité au-delà du
+// playset de 4 par variante, hors terrains de base — illimités).
+router.get('/tradelist.csv', requireAuth, async (req, res, next) => {
+  try {
+    const playset = Math.min(Math.max(Number(req.query.playset) || 4, 1), 99);
+    const { rows } = await query(
+      `SELECT (e.quantity - $2) AS surplus, e.finish, e.condition, e.language,
+              c.name, c.set_name, c.set_code, c.collector_number,
+              (${UNIT_EUR})::numeric(10,2) AS unit_price_eur
+       FROM collection_entries e JOIN cards c ON c.id = e.card_id
+       WHERE e.user_id = $1 AND e.quantity > $2
+         AND COALESCE(c.type_line, '') NOT ILIKE '%basic land%'
+       ORDER BY ((${UNIT_EUR}) * (e.quantity - $2)) DESC NULLS LAST, c.name`,
+      [req.user.id, playset],
+    );
+    const header = 'Name;Set Name;Set Code;Collector Number;Language;Condition;Foil;Surplus Quantity;Trend Price EUR';
+    const lines = rows.map((r) => [
+      r.name, r.set_name, (r.set_code || '').toUpperCase(), r.collector_number,
+      r.language, r.condition, r.finish === 'nonfoil' ? '' : 'X',
+      r.surplus, r.unit_price_eur ?? '',
+    ].map((v) => csvField(v, ';')).join(';'));
+
+    const csv = [header, ...lines].join('\r\n');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="liste_echange_${today()}.csv"`);
+    res.send(csv);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Tableau PDFKit (une ligne par entrée, saut de page + en-tête répété).
 function drawTable(doc, columns, rows) {
   const left = doc.page.margins.left;

@@ -146,6 +146,10 @@ export default function ImportExport() {
             className="rounded-md bg-slate-700 hover:bg-slate-600 px-4 py-2 text-sm">
             CSV (mise en vente)
           </button>
+          <button type="button" onClick={() => download('tradelist.csv')}
+            className="rounded-md bg-slate-700 hover:bg-slate-600 px-4 py-2 text-sm">
+            CSV (liste d'échange)
+          </button>
           <button type="button" onClick={() => download('pdf')}
             className="rounded-md bg-slate-700 hover:bg-slate-600 px-4 py-2 text-sm">
             PDF (valorisation)
@@ -153,6 +157,7 @@ export default function ImportExport() {
         </div>
         <p className="text-xs text-slate-500">
           « Mise en vente » : prix indexés sur la tendance (EUR), conditions Cardmarket — à adapter au template de ton vendeur.
+          « Liste d'échange » : surplus au-delà de 4 exemplaires par carte (hors terrains de base).
           « Valorisation » : inventaire daté + valeurs de marché, pour assurance.
         </p>
       </section>

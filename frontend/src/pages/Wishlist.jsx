@@ -5,6 +5,7 @@ import { useCardModal } from '../stores/cardModal';
 export default function Wishlist() {
   const openCard = useCardModal((s) => s.open);
   const [data, setData] = useState({ items: [], totalEur: 0 });
+  const [movers, setMovers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -17,6 +18,10 @@ export default function Wishlist() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    api('/wishlist/movers?days=7').then((d) => setMovers(d.movers || [])).catch(() => {});
+  }, []);
 
   async function remove(id) {
     await api(`/wishlist/${id}`, { method: 'DELETE' });
@@ -33,6 +38,32 @@ export default function Wishlist() {
           </div>
         )}
       </header>
+
+      {movers.length > 0 && (
+        <section className="mb-4 bg-slate-800/40 border border-slate-800 rounded-lg p-4">
+          <h2 className="text-sm font-semibold text-slate-300 mb-2">
+            ⚡ Mouvements de prix (7 j) <span className="text-xs text-slate-500">— baisses en tête = signaux d'achat</span>
+          </h2>
+          <ul className="divide-y divide-slate-800">
+            {movers.map((m) => {
+              const up = Number(m.pct) >= 0;
+              return (
+                <li key={m.scryfall_id} className="flex items-center gap-2 py-1.5 text-sm">
+                  {m.image_uri_small && <img src={m.image_uri_small} alt="" className="w-7 rounded-sm" />}
+                  <button type="button" onClick={() => openCard(m.scryfall_id)} className="flex-1 min-w-0 text-left hover:text-indigo-300">
+                    <span className="block truncate">{m.name} <span className="text-xs text-slate-500 uppercase">{m.set_code}</span></span>
+                    <span className="block text-xs text-slate-400">{m.past_eur} € → {m.current_eur} €</span>
+                  </button>
+                  <span className={`text-right font-semibold whitespace-nowrap ${up ? 'text-rose-400' : 'text-gain-400'}`}>
+                    {up ? '▲' : '▼'} {Math.abs(Number(m.pct))}%
+                    <span className="block text-xs font-normal">{up ? '+' : ''}{Number(m.diff_eur).toFixed(2)} €</span>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       {loading ? (
         <div className="text-center text-slate-500 py-12">Chargement…</div>

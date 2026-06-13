@@ -6,7 +6,7 @@ import { validateBody } from '../middleware/validate.js';
 import { collectionAddSchema, collectionAdjustSchema, collectionPatchSchema, collectionBulkSchema } from '../validation/schemas.js';
 import { ensureCard } from '../services/cards.js';
 import { getCollection, getCollectionTotals, getStats, getPriceMovers, getCollectionGroups } from '../services/collection.js';
-import { logChanges, getLog } from '../services/collectionLog.js';
+import { logChanges, getLog, undoLogEntry } from '../services/collectionLog.js';
 import { getSnapshots, getSetSnapshots } from '../services/snapshots.js';
 import { UNIT_EUR } from '../services/pricing.js';
 
@@ -65,6 +65,16 @@ router.get('/log', async (req, res, next) => {
   try {
     const days = Math.min(Math.max(Number(req.query.days) || 30, 1), 365);
     res.json({ log: await getLog(req.user.id, days) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/collection/log/:id/undo  → annule un mouvement (réapplique le delta inverse)
+router.post('/log/:id/undo', async (req, res, next) => {
+  try {
+    const result = await undoLogEntry(req.user.id, Number(req.params.id));
+    res.json(result);
   } catch (err) {
     next(err);
   }
@@ -198,18 +208,18 @@ router.post('/adjust', validateBody(collectionAdjustSchema), async (req, res, ne
          VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING quantity`,
         [req.user.id, card.id, d, finish, condition, language, location],
       );
-      await logChanges(req.user.id, [{ cardId: card.id, delta: d, finish }], 'adjust');
+      await logChanges(req.user.id, [{ cardId: card.id, delta: d, finish, condition, language, location }], 'adjust');
       return res.json({ quantity: ins.rows[0].quantity });
     }
 
     const next = row.quantity + d;
     if (next <= 0) {
       await query('DELETE FROM collection_entries WHERE id = $1', [row.id]);
-      await logChanges(req.user.id, [{ cardId: card.id, delta: -row.quantity, finish }], 'adjust');
+      await logChanges(req.user.id, [{ cardId: card.id, delta: -row.quantity, finish, condition, language, location }], 'adjust');
       return res.json({ quantity: 0 });
     }
     await query('UPDATE collection_entries SET quantity = $1 WHERE id = $2', [next, row.id]);
-    await logChanges(req.user.id, [{ cardId: card.id, delta: d, finish }], 'adjust');
+    await logChanges(req.user.id, [{ cardId: card.id, delta: d, finish, condition, language, location }], 'adjust');
     return res.json({ quantity: next });
   } catch (err) {
     next(err);
@@ -234,7 +244,7 @@ router.post('/', validateBody(collectionAddSchema), async (req, res, next) => {
        RETURNING *`,
       [req.user.id, card.id, qty, fin, condition, language, location, acquired_price ?? null, notes ?? null],
     );
-    await logChanges(req.user.id, [{ cardId: card.id, delta: qty, finish: fin }], 'add');
+    await logChanges(req.user.id, [{ cardId: card.id, delta: qty, finish: fin, condition, language, location }], 'add');
     res.status(201).json({ entry: rows[0] });
   } catch (err) {
     next(err);
@@ -319,9 +329,10 @@ router.patch('/:id', validateBody(collectionPatchSchema), async (req, res, next)
     );
     if (!rows[0]) return res.status(404).json({ error: 'Entrée introuvable' });
     if (before && rows[0].quantity !== before.quantity) {
+      const r = rows[0];
       await logChanges(
         req.user.id,
-        [{ cardId: rows[0].card_id, delta: rows[0].quantity - before.quantity, finish: rows[0].finish }],
+        [{ cardId: r.card_id, delta: r.quantity - before.quantity, finish: r.finish, condition: r.condition, language: r.language, location: r.location }],
         'edit',
       );
     }
@@ -338,11 +349,12 @@ router.patch('/:id', validateBody(collectionPatchSchema), async (req, res, next)
 router.delete('/:id', async (req, res, next) => {
   try {
     const { rows } = await query(
-      'DELETE FROM collection_entries WHERE id = $1 AND user_id = $2 RETURNING card_id, quantity, finish',
+      'DELETE FROM collection_entries WHERE id = $1 AND user_id = $2 RETURNING card_id, quantity, finish, condition, language, location',
       [req.params.id, req.user.id],
     );
     if (!rows[0]) return res.status(404).json({ error: 'Entrée introuvable' });
-    await logChanges(req.user.id, [{ cardId: rows[0].card_id, delta: -rows[0].quantity, finish: rows[0].finish }], 'delete');
+    const r = rows[0];
+    await logChanges(req.user.id, [{ cardId: r.card_id, delta: -r.quantity, finish: r.finish, condition: r.condition, language: r.language, location: r.location }], 'delete');
     res.status(204).end();
   } catch (err) {
     next(err);

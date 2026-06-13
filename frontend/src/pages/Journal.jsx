@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { api } from '../api/client';
 import { useCardModal } from '../stores/cardModal';
 
@@ -8,6 +8,7 @@ const SOURCE_LABEL = {
   edit: 'Modification',
   delete: 'Suppression',
   import: 'Import',
+  undo: 'Annulation',
 };
 
 const PERIODS = [
@@ -27,15 +28,32 @@ export default function Journal() {
   const [log, setLog] = useState([]);
   const [days, setDays] = useState(30);
   const [loading, setLoading] = useState(true);
+  const [undoing, setUndoing] = useState(null);
+  const [error, setError] = useState(null);
   const openCard = useCardModal((s) => s.open);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     setLoading(true);
     api(`/collection/log?days=${days}`)
       .then((d) => setLog(d.log || []))
       .catch(() => setLog([]))
       .finally(() => setLoading(false));
   }, [days]);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function undo(id) {
+    setUndoing(id);
+    setError(null);
+    try {
+      await api(`/collection/log/${id}/undo`, { method: 'POST' });
+      load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUndoing(null);
+    }
+  }
 
   // Groupe par jour (fuseau local) ; l'API renvoie déjà du plus récent au plus ancien
   const groups = useMemo(() => {
@@ -72,6 +90,8 @@ export default function Journal() {
         </div>
       </div>
 
+      {error && <div className="text-sm text-rose-400 bg-rose-950/40 rounded p-2">{error}</div>}
+
       {loading ? (
         <div className="text-center text-slate-500 py-12">Chargement…</div>
       ) : groups.length === 0 ? (
@@ -100,10 +120,23 @@ export default function Journal() {
                     {r.name} <span className="text-xs text-slate-500 uppercase">{r.set_code}</span>
                     {r.finish !== 'nonfoil' && <span className="text-xs text-gold-300"> ★ {r.finish}</span>}
                   </button>
-                  <span className="text-xs text-slate-500 hidden sm:inline">{SOURCE_LABEL[r.source] || r.source}</span>
-                  <span className={`w-12 text-right font-semibold ${r.quantity_delta > 0 ? 'text-gain-400' : 'text-rose-400'}`}>
+                  <span className={`text-xs hidden sm:inline ${r.undone_at ? 'text-slate-600 line-through' : 'text-slate-500'}`}>{SOURCE_LABEL[r.source] || r.source}</span>
+                  <span className={`w-12 text-right font-semibold ${r.undone_at ? 'text-slate-600 line-through' : r.quantity_delta > 0 ? 'text-gain-400' : 'text-rose-400'}`}>
                     {r.quantity_delta > 0 ? '+' : '−'}{Math.abs(r.quantity_delta)}
                   </span>
+                  {r.undoable ? (
+                    <button
+                      type="button"
+                      onClick={() => undo(r.id)}
+                      disabled={undoing === r.id}
+                      title="Annuler ce mouvement"
+                      className="text-xs text-slate-400 hover:text-indigo-300 disabled:opacity-40 w-6 text-center"
+                    >
+                      {undoing === r.id ? '…' : '↩'}
+                    </button>
+                  ) : (
+                    <span className="w-6" />
+                  )}
                 </li>
               ))}
             </ul>
