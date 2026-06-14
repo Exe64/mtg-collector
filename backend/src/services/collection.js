@@ -349,7 +349,7 @@ export async function getPriceMovers(userId, days = 7, threshold = 20) {
     losers: rows.filter((r) => Number(r.diff_eur) < 0).sort(byDiff).reverse().slice(0, 10),
     spikes: rows
       .filter((r) => Math.abs(Number(r.pct)) >= threshold)
-      .sort((a, b) => Number(b.pct) - Number(a.pct))
-      .slice(0, 50),
+      .sort((a, b) => Math.abs(Number(b.pct)) - Math.abs(Number(a.pct)))
+      .slice(0, 10),
   };
 }
