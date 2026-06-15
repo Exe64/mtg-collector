@@ -11,14 +11,20 @@ et [backend/API.md](backend/API.md) pour la référence API.
 - **Collection** : recherche par nom + filtres (type, rareté, couleur, coût de mana, état, **finition**), groupement par extension, édition inline (qté, finition, état), pagination, export
 - **Vérif deck** : liste collée (Moxfield/MTGO), `.txt` ou URL Moxfield → **cartes manquantes** vs collection (comparaison par nom, toutes versions ; affiche les versions possédées)
 - **Wishlist** : liste de souhaits avec coût estimé
-- **Extensions** : catalogue filtrable (dont promos), **complétion par set** (liste + détail avec filtres possédées / toutes / manquantes)
+- **Mouvements de prix** : page dédiée hausses / baisses / variations (sélecteurs période + seuil) ; Top 10 sur le tableau de bord
+- **Alertes prix** : seuils par carte + notifications in-app (badge), évaluées au job prix
+- **Journal** : historique des ajouts/retraits de la collection, avec annulation
+- **Extensions** : catalogue filtrable (dont promos), **complétion par set** (liste + détail avec filtres possédées / toutes / manquantes), valeur possédée par extension
 - **Détail carte** : modale image HD, texte oracle, prix, et **rulings officiels** (Wizards/Gatherer via Scryfall)
-- **Tableau de bord** : valeur EUR/USD, courbe d'évolution, donuts (couleur, rareté, état, type), top 10
+- **Tableau de bord** : valeur EUR/USD, courbe d'évolution (tooltip au survol), donuts (couleur, rareté, état, type), top 10 (valeur unitaire)
 - **Import/Export** : CSV Moxfield + **ManaBox** (résolution exacte par Scryfall ID) + générique, **tag emplacement par lot**, export CSV Moxfield + PDF
 - **Onboarding masse** : scanner via une app tierce (ex. ManaBox) → export CSV → import ; chaque lot taggé à un emplacement physique
 - **Complétion** : suivi par extension avec % et **numéros manquants** (set de base strict via `printed_size`), emplacement physique des cartes
 - **Prix** : Scryfall (Cardmarket EUR), job **toutes les 12h** (00:00 et 12:00 UTC) → snapshots collection/édition + historique par carte
 - **PWA** : installable, Service Worker (app shell offline), conditions **Cardmarket** (MT→PO)
+- **Administration** (admin) : état système (DB/Redis, dernières synchros, dernière sauvegarde), actions à la demande (sync bulk / MAJ prix / vider le cache), réglages globaux, gestion des comptes + déconnexion forcée
+
+> Durcissement : rate-limiting étagé, CSP stricte (`script-src 'self'`), validation des secrets au boot, anti-injection de formule CSV, détection de réutilisation des refresh tokens. Sauvegardes chiffrées hors-machine + surveillance + drill de restauration (§ Sauvegardes). CI GitHub Actions (lint + tests unitaires/intégration + build).
 
 ## Décisions d'architecture (revue de spec)
 
@@ -131,29 +137,41 @@ un PostgreSQL **jetable** et compte les lignes — sans toucher à la prod :
 ```
 backend/
   migrations/            schéma + évolutions (node-pg-migrate, auto au boot)
-  test/                  tests node:test
+  test/                  unitaires (node:test) + test/integration (supertest, gated RUN_DB_TESTS)
+  eslint.config.js       config ESLint (flat)
   src/
-    config/              pool pg, client redis
-    middleware/          requireAuth (JWT), limiters (rate-limit)
-    routes/              auth, cards, sets, collection, import, export, wishlist, decks
+    app.js               app Express configurée (exportable pour les tests)
+    index.js             boot : validation env + listen + planification des jobs
+    config/              pool pg, client redis, logger
+    middleware/          requireAuth / requireAdmin (JWT), limiters (rate-limit), validate
+    routes/              auth, cards, sets, collection, import, export, wishlist,
+                         decks, alerts, admin
     services/            scryfall, cards, collection, snapshots, priceSync, dailyJob,
-                         importer, bulkData, pricing, cache, tokens, deckCheck
+                         importer, bulkData, pricing, cache, tokens, deckCheck,
+                         alerts, collectionLog, settings, jobRunner
     scripts/             syncBulk, runDailyJob
   API.md                 référence des endpoints
 frontend/
+  eslint.config.js       config ESLint (React + hooks)
   src/
     api/                 client fetch (refresh auto, download authentifié)
     stores/              auth, cardModal (zustand)
-    pages/               Dashboard, Collection, Add, Sets, SetDetail, ImportExport,
-                         Wishlist, DeckCheck, Accounts, Login, Register
-    components/          ui (Layout, CardModal, ScrollToTop), collection, search→Add, charts
+    pages/               Dashboard, Collection, Add, Sets, SetDetail, Movements,
+                         ImportExport, Wishlist, DeckCheck, Alerts, Journal,
+                         Accounts, Login, Register
+    components/          ui (Layout, CardModal, ScrollToTop, ErrorBoundary), collection, search→Add, charts
   nginx.conf             reverse-proxy /api (prod)
-deploy/                  provision-vm.sh, deploy.sh, local-tls.sh, backup-db.sh (Rocky Linux / OVH)
+deploy/                  provision-vm.sh, deploy.sh, local-tls.sh, backup-db.sh,
+                         verify-backup.sh (Rocky Linux / OVH)
+.github/workflows/       ci.yml — lint + tests (unitaires/intégration) + build
 ```
 
 ## État d'avancement
 
 Sprints 1 à 10 du plan SPECS réalisés (socle, cartes, collection, frontend,
-browse set, import/export, dashboard, PWA, wishlist, vérif deck, polish).
-Sauvegardes DB via [deploy/backup-db.sh](deploy/backup-db.sh) (cron + rclone
-hors-machine). Reste surtout du durcissement (tests d'intégration, CI, observabilité).
+browse set, import/export, dashboard, PWA, wishlist, vérif deck, mouvements,
+alertes, journal, administration, polish). Durcissement en place : sécurité
+(rate-limit, CSP, détection de réutilisation de tokens), sauvegardes chiffrées
+hors-machine + **surveillance** + **drill de restauration**
+([deploy/backup-db.sh](deploy/backup-db.sh), [deploy/verify-backup.sh](deploy/verify-backup.sh)),
+**CI GitHub Actions** (lint + tests unitaires/intégration + build), ESLint.
