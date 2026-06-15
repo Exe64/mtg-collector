@@ -8,15 +8,30 @@ import { runSnapshots } from './snapshots.js';
 import { evaluateAlerts } from './alerts.js';
 import { getSettings } from './settings.js';
 
+// Dead-man's-switch : ping un check externe (succès / échec). No-op si HEALTHCHECK_PRICE_URL absent.
+async function pingHealthcheck(suffix = '') {
+  const base = process.env.HEALTHCHECK_PRICE_URL;
+  if (!base) return;
+  try {
+    await fetch(`${base.replace(/\/$/, '')}${suffix}`, { signal: AbortSignal.timeout(10000) });
+  } catch { /* best-effort */ }
+}
+
 /** Job quotidien : MAJ prix des cartes possédées + snapshots + alertes + purge des refresh tokens. */
 export async function runDailyJob() {
   const t0 = Date.now();
   logger.info('job quotidien : démarrage');
-  const updated = await syncCollectionPrices();
-  await runSnapshots();
-  const alertsFired = await evaluateAlerts();
-  const { rowCount } = await query('DELETE FROM refresh_tokens WHERE expires_at < NOW()');
-  logger.info(`job quotidien terminé : ${updated} prix MAJ, snapshots écrits, ${alertsFired} alerte(s) déclenchée(s), ${rowCount} tokens expirés purgés (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
+  try {
+    const updated = await syncCollectionPrices();
+    await runSnapshots();
+    const alertsFired = await evaluateAlerts();
+    const { rowCount } = await query('DELETE FROM refresh_tokens WHERE expires_at < NOW()');
+    logger.info(`job quotidien terminé : ${updated} prix MAJ, snapshots écrits, ${alertsFired} alerte(s) déclenchée(s), ${rowCount} tokens expirés purgés (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
+    await pingHealthcheck();
+  } catch (err) {
+    await pingHealthcheck('/fail');
+    throw err;
+  }
 }
 
 const clampHours = (h) => Math.min(Math.max(Number(h) || 12, 1), 24);

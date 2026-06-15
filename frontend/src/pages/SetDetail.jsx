@@ -146,6 +146,20 @@ export default function SetDetail() {
     [missingBase],
   );
 
+  // Cartes possédées dont l'impression ne figure pas dans la liste du set (ex. sync
+  // bulk incomplet / impression différente) → on le signale plutôt qu'un silence.
+  const orphanOwned = useMemo(() => {
+    if (loading || cards.length === 0) return { count: 0, qty: 0 };
+    const ids = new Set(cards.map((c) => c.scryfall_id));
+    let count = 0;
+    let qty = 0;
+    for (const [id, o] of Object.entries(owned)) {
+      const q = (o.nonfoil || 0) + (o.foil || 0);
+      if (q > 0 && !ids.has(id)) { count += 1; qty += q; }
+    }
+    return { count, qty };
+  }, [owned, cards, loading]);
+
   const visible = useMemo(() => cards.filter((c) => {
     const has = totalQty(c.scryfall_id) > 0;
     if (filter === 'owned') return has;
@@ -170,6 +184,14 @@ export default function SetDetail() {
           <span className="text-emerald-400 font-semibold">{setValue.toFixed(2)} €</span>
         </span>
       </div>
+
+      {orphanOwned.count > 0 && (
+        <div className="mb-3 text-xs rounded-md border border-gold-700/50 bg-gold-950/30 text-gold-200 px-3 py-2">
+          ⚠️ {orphanOwned.count} carte(s) possédée(s) ({orphanOwned.qty} exemplaire(s)) ne figurent pas dans la liste de
+          cette extension — impression non listée ou base de cartes incomplète. Elles sont bien dans ta collection et
+          comptées dans la valeur, mais pas affichées ci-dessous. Un <code>sync:bulk</code> complet peut les réaligner.
+        </div>
+      )}
 
       {/* Complétion (base set strict) */}
       <div className="mb-4">

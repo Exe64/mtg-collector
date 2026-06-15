@@ -25,8 +25,10 @@ export async function syncCollectionPrices() {
   let updated = 0;
   for (let i = 0; i < rows.length; i += BATCH) {
     const chunk = rows.slice(i, i + BATCH);
+    // eslint-disable-next-line no-await-in-loop -- lots séquentiels (rate-limit Scryfall)
     const data = await scryfall.getCardsCollection(chunk.map((r) => ({ id: r.scryfall_id })));
     for (const raw of data?.data || []) {
+      // eslint-disable-next-line no-await-in-loop -- upserts séquentiels volontaires
       await upsertCard(mapScryfallCard(raw));
       updated += 1;
     }

@@ -8,6 +8,7 @@ import { api } from '../../api/client';
 import { useAuth } from '../../stores/auth';
 import CardModal from './CardModal';
 import ScrollToTop from './ScrollToTop';
+import ErrorBoundary from './ErrorBoundary';
 
 // 1er niveau (toujours visible : barre desktop + bottom bar mobile)
 const primaryNav = [
@@ -143,7 +144,9 @@ export default function Layout() {
 
       {/* Contenu (padding bas en mobile pour la bottom bar) */}
       <main className="flex-1 w-full max-w-[1800px] mx-auto p-4 pb-24 sm:pb-4">
-        <Outlet />
+        <ErrorBoundary key={location.pathname}>
+          <Outlet />
+        </ErrorBoundary>
       </main>
 
       {/* Bottom tab bar (mobile uniquement) : 4 onglets + Plus */}

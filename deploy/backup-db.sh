@@ -16,6 +16,8 @@
 #   -> si l'une est fournie, la sauvegarde est chiffrée AES256 (gpg) en .sql.gz.gpg
 #   MTG_RCLONE_REMOTE        cible rclone pour copie hors-machine (ex. gdrive:mtg-backups)
 #                            -> si défini + rclone installé, chaque dump est copié hors du VPS
+#   MTG_HEALTHCHECK_URL      URL d'un check (ex. healthchecks.io) pinguée en start/succès/échec
+#                            -> alerte si le backup cesse de tourner (dead-man's-switch)
 #
 set -euo pipefail
 
@@ -40,6 +42,16 @@ KEEP="${MTG_BACKUP_KEEP:-$(env_get MTG_BACKUP_KEEP)}"; KEEP="${KEEP:-14}"
 PASS_FILE="${MTG_BACKUP_PASSPHRASE_FILE:-$(env_get MTG_BACKUP_PASSPHRASE_FILE)}"
 PASS="${MTG_BACKUP_PASSPHRASE:-$(env_get MTG_BACKUP_PASSPHRASE)}"
 DB_USER="${DB_USER:-$(env_get DB_USER)}"; DB_USER="${DB_USER:-magic_user}"
+
+# Dead-man's-switch : ping un check externe (start / succès / échec). No-op si non configuré.
+HC="${MTG_HEALTHCHECK_URL:-$(env_get MTG_HEALTHCHECK_URL)}"
+hc_ping() {
+  [ -n "$HC" ] && command -v curl >/dev/null 2>&1 \
+    && curl -fsS -m 10 --retry 2 -o /dev/null "${HC%/}${1:-}" || true
+}
+SUCCESS=0
+trap '[ "$SUCCESS" = 1 ] || hc_ping /fail' EXIT
+hc_ping /start
 
 mkdir -p "$BACKUP_DIR"
 cd "$APP_DIR"
@@ -101,3 +113,6 @@ if [ "$ENCRYPT" -eq 1 ]; then
 else
   echo "  gunzip -c $file | docker compose exec -T postgres psql -U $DB_USER magic_collection"
 fi
+
+SUCCESS=1
+hc_ping   # ping de succès (le trap EXIT pingera /fail si on n'arrive pas ici)

@@ -6,7 +6,7 @@ et [backend/API.md](backend/API.md) pour la référence API.
 
 ## Fonctionnalités
 
-- **Auth JWT** multi-utilisateur (access token 30 min + refresh token rotaté en cookie httpOnly), collections isolées par compte
+- **Auth JWT** multi-utilisateur (access token 30 min + refresh token rotaté en cookie httpOnly, **détection de réutilisation → révocation de la lignée**), collections isolées par compte
 - **Ajouter** : recherche autocomplétée, affichage de **toutes les versions/éditions**, ajout/retrait direct via **−/+ normale et foil** (état au choix)
 - **Collection** : recherche par nom + filtres (type, rareté, couleur, coût de mana, état, **finition**), groupement par extension, édition inline (qté, finition, état), pagination, export
 - **Vérif deck** : liste collée (Moxfield/MTGO), `.txt` ou URL Moxfield → **cartes manquantes** vs collection (comparaison par nom, toutes versions ; affiche les versions possédées)
@@ -113,6 +113,18 @@ hors-machine, ex. `gdrive:mtg-backups`). Restauration : voir l'en-tête du scrip
 **rclone → Google Drive** : installer rclone, puis `rclone authorize "drive"`
 (sur un poste avec navigateur) et coller le token via `rclone config` sur le VPS ;
 enfin renseigner `MTG_RCLONE_REMOTE=gdrive:mtg-backups` dans `.env`.
+
+**Surveillance (dead-man's-switch)** : si `MTG_HEALTHCHECK_URL` (backup) ou
+`HEALTHCHECK_PRICE_URL` (job prix) pointent vers un check [healthchecks.io](https://healthchecks.io),
+chaque exécution pingue start/succès/échec → **alerte si le job cesse de tourner**
+(le pire scénario silencieux). No-op si non configuré.
+
+**Vérifier qu'une sauvegarde se restaure** (à faire de temps en temps) :
+[deploy/verify-backup.sh](deploy/verify-backup.sh) restaure le dernier dump dans
+un PostgreSQL **jetable** et compte les lignes — sans toucher à la prod :
+```bash
+./deploy/verify-backup.sh        # ou : ./deploy/verify-backup.sh <dump>
+```
 
 ## Structure
 

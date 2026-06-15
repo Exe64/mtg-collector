@@ -280,7 +280,7 @@ export default function Dashboard() {
       </div>
 
       <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
-        <h2 className="text-sm font-semibold text-slate-300 mb-3">Répartition par valeur (ce qui dort dans les cartons)</h2>
+        <h2 className="text-sm font-semibold text-slate-300 mb-3">Répartition par valeur</h2>
         <ul className="space-y-1.5">
           {valueRows.map((r) => (
             <li key={r.bucket} className="flex items-center gap-2 text-sm">

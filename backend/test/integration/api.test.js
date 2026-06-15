@@ -6,6 +6,15 @@ import assert from 'node:assert/strict';
 // base, toute la suite est ignorée → `npm test` reste exécutable partout.
 const RUN = process.env.RUN_DB_TESTS === '1';
 
+// Extrait la valeur du cookie refresh_token d'une réponse.
+function refreshCookie(res) {
+  for (const c of res.headers['set-cookie'] || []) {
+    const m = c.match(/refresh_token=([^;]+)/);
+    if (m) return m[1];
+  }
+  return null;
+}
+
 test('intégration API (DB + Redis)', { skip: RUN ? false : 'RUN_DB_TESTS!=1' }, async (t) => {
   // Secrets/flags AVANT d'importer l'app (lus à l'import / à la signature).
   process.env.JWT_SECRET ||= 'integration-secret-integration-secret-xx';
@@ -81,6 +90,30 @@ test('intégration API (DB + Redis)', { skip: RUN ? false : 'RUN_DB_TESTS!=1' },
     const res = await agent.post('/api/auth/refresh');
     assert.equal(res.status, 200);
     assert.ok(res.body.accessToken);
+  });
+
+  await t.test('réutilisation d\'un refresh tourné → révocation de la famille', async () => {
+    process.env.REFRESH_GRACE_MS = '0'; // pas de fenêtre de grâce pour ce test
+    try {
+      const login = await request(app).post('/api/auth/login').send({ email: 'admin@test.io', password: 'Password1' });
+      const t1 = refreshCookie(login);
+      assert.ok(t1, 'cookie de login');
+
+      const r1 = await request(app).post('/api/auth/refresh').set('Cookie', `refresh_token=${t1}`);
+      assert.equal(r1.status, 200);
+      const t2 = refreshCookie(r1);
+      assert.ok(t2);
+
+      // t1 a déjà été tourné → le re-présenter = vol présumé → 401
+      const reuse = await request(app).post('/api/auth/refresh').set('Cookie', `refresh_token=${t1}`);
+      assert.equal(reuse.status, 401);
+
+      // et le successeur légitime t2 est lui aussi invalidé (famille révoquée)
+      const after = await request(app).post('/api/auth/refresh').set('Cookie', `refresh_token=${t2}`);
+      assert.equal(after.status, 401);
+    } finally {
+      delete process.env.REFRESH_GRACE_MS;
+    }
   });
 
   await t.test('admin status → réservé admin, renvoie santé + réglages', async () => {

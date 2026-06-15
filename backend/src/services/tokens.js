@@ -30,30 +30,55 @@ function hashToken(token) {
     .digest('hex');
 }
 
-export async function issueRefreshToken(userId) {
+// Émet un token. familyId null → nouvelle lignée (login) ; sinon rotation dans la lignée.
+export async function issueRefreshToken(userId, familyId = null) {
   const token = crypto.randomBytes(48).toString('hex');
   const expiresAt = new Date(Date.now() + REFRESH_TTL_MS);
-  await query(
-    'INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)',
-    [userId, hashToken(token), expiresAt],
+  const { rows } = await query(
+    `INSERT INTO refresh_tokens (user_id, token_hash, expires_at, family_id)
+     VALUES ($1, $2, $3, COALESCE($4::uuid, gen_random_uuid()))
+     RETURNING family_id`,
+    [userId, hashToken(token), expiresAt, familyId],
   );
-  return { token, expiresAt };
+  return { token, expiresAt, familyId: rows[0].family_id };
 }
 
 /**
- * Rotation : on consomme toujours le token présenté (suppression), puis on en
- * émet un neuf s'il était valide et non expiré. Retourne null sinon.
+ * Rotation avec détection de réutilisation :
+ *  - token inconnu / expiré → refus (null).
+ *  - token actif → marqué « utilisé » + émission du successeur dans la même famille.
+ *  - token déjà utilisé → s'il l'a été dans la fenêtre de grâce (onglets concurrents),
+ *    on émet quand même un token frais ; sinon c'est une réutilisation (vol présumé)
+ *    et on révoque TOUTE la famille.
  */
 export async function rotateRefreshToken(presentedToken) {
+  const graceMs = Number(process.env.REFRESH_GRACE_MS ?? 30000);
   const tokenHash = hashToken(presentedToken);
   const { rows } = await query(
-    'DELETE FROM refresh_tokens WHERE token_hash = $1 RETURNING user_id, expires_at',
+    'SELECT id, user_id, family_id, expires_at, used_at FROM refresh_tokens WHERE token_hash = $1',
     [tokenHash],
   );
-  const record = rows[0];
-  if (!record || new Date(record.expires_at) < new Date()) return null;
-  const fresh = await issueRefreshToken(record.user_id);
-  return { userId: record.user_id, ...fresh };
+  const rec = rows[0];
+  if (!rec) return null;
+
+  if (new Date(rec.expires_at) < new Date()) {
+    await query('DELETE FROM refresh_tokens WHERE id = $1', [rec.id]);
+    return null;
+  }
+
+  if (rec.used_at) {
+    if (Date.now() - new Date(rec.used_at).getTime() <= graceMs) {
+      const fresh = await issueRefreshToken(rec.user_id, rec.family_id);
+      return { userId: rec.user_id, ...fresh };
+    }
+    // Réutilisation hors grâce → vol présumé : on coupe toute la lignée.
+    await query('DELETE FROM refresh_tokens WHERE family_id = $1', [rec.family_id]);
+    return null;
+  }
+
+  await query('UPDATE refresh_tokens SET used_at = now() WHERE id = $1', [rec.id]);
+  const fresh = await issueRefreshToken(rec.user_id, rec.family_id);
+  return { userId: rec.user_id, ...fresh };
 }
 
 export async function revokeRefreshToken(presentedToken) {
