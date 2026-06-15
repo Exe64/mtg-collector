@@ -43,6 +43,10 @@ services:
       SCRYFALL_USER_AGENT: ${SCRYFALL_USER_AGENT}
       COOKIE_SECURE: ${COOKIE_SECURE:-true}
       TRUST_PROXY: ${TRUST_PROXY:-2}
+      BACKUP_DIR_RO: /backups
+    volumes:
+      # Dossier des sauvegardes monté en lecture seule (statut affiché dans Administration)
+      - ${MTG_BACKUP_DIR:-./backups}:/backups:ro
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://localhost:3001/api/health']
       interval: 10s

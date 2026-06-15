@@ -1,4 +1,5 @@
 import { verifyAccessToken } from '../services/tokens.js';
+import { query } from '../config/db.js';
 
 /**
  * Protège les routes /api/* : exige un access token JWT valide en header
@@ -19,5 +20,16 @@ export function requireAuth(req, res, next) {
     next();
   } catch {
     return res.status(401).json({ error: 'Token invalide ou expiré' });
+  }
+}
+
+/** À chaîner après requireAuth : refuse si l'utilisateur n'est pas administrateur. */
+export async function requireAdmin(req, res, next) {
+  try {
+    const { rows } = await query('SELECT is_admin FROM users WHERE id = $1', [req.user.id]);
+    if (!rows[0]?.is_admin) return res.status(403).json({ error: "Réservé à l'administrateur" });
+    return next();
+  } catch (err) {
+    return next(err);
   }
 }

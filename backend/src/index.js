@@ -15,6 +15,7 @@ import exportRoutes from './routes/export.js';
 import wishlistRoutes from './routes/wishlist.js';
 import decksRoutes from './routes/decks.js';
 import alertsRoutes from './routes/alerts.js';
+import adminRoutes from './routes/admin.js';
 import { scheduleDailyJob } from './services/dailyJob.js';
 import { globalLimiter, searchLimiter, importLimiter, exportLimiter } from './middleware/limiters.js';
 
@@ -79,6 +80,7 @@ app.use('/api/export', exportLimiter, exportRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/decks', searchLimiter, decksRoutes);
 app.use('/api/alerts', alertsRoutes);
+app.use('/api/admin', adminRoutes);
 
 // 404 pour les routes /api inconnues
 app.use('/api', (req, res) => {
@@ -98,5 +100,5 @@ app.use((err, req, res, _next) => {
 
 app.listen(PORT, () => {
   logger.info(`backend à l'écoute sur le port ${PORT}`);
-  scheduleDailyJob();
+  scheduleDailyJob().catch((err) => logger.error({ err: err.message }, 'planification des jobs : échec'));
 });

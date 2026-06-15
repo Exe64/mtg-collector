@@ -312,7 +312,7 @@ export async function getStats(userId) {
  *  - losers  : top 10 des baisses (en € de variation unitaire)
  *  - spikes  : cartes ayant varié de ≥ threshold % (toutes, plafonné à 50)
  */
-export async function getPriceMovers(userId, days = 7, threshold = 20) {
+export async function getPriceMovers(userId, days = 7, threshold = 20, limit = 10) {
   const { rows } = await query(
     `WITH owned AS (
        SELECT DISTINCT c.id AS card_id, c.scryfall_id, c.name, c.set_code, c.image_uri_small
@@ -343,13 +343,14 @@ export async function getPriceMovers(userId, days = 7, threshold = 20) {
     [userId, days],
   );
 
+  const cap = Math.min(Math.max(Number(limit) || 10, 1), 200);
   const byDiff = (a, b) => Number(b.diff_eur) - Number(a.diff_eur);
   return {
-    gainers: rows.filter((r) => Number(r.diff_eur) > 0).sort(byDiff).slice(0, 10),
-    losers: rows.filter((r) => Number(r.diff_eur) < 0).sort(byDiff).reverse().slice(0, 10),
+    gainers: rows.filter((r) => Number(r.diff_eur) > 0).sort(byDiff).slice(0, cap),
+    losers: rows.filter((r) => Number(r.diff_eur) < 0).sort(byDiff).reverse().slice(0, cap),
     spikes: rows
       .filter((r) => Math.abs(Number(r.pct)) >= threshold)
       .sort((a, b) => Math.abs(Number(b.pct)) - Math.abs(Number(a.pct)))
-      .slice(0, 10),
+      .slice(0, cap),
   };
 }

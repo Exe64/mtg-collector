@@ -7,6 +7,7 @@ import { collectionAddSchema, collectionAdjustSchema, collectionPatchSchema, col
 import { ensureCard } from '../services/cards.js';
 import { getCollection, getCollectionTotals, getStats, getPriceMovers, getCollectionGroups } from '../services/collection.js';
 import { logChanges, getLog, undoLogEntry } from '../services/collectionLog.js';
+import { getSettings } from '../services/settings.js';
 import { getSnapshots, getSetSnapshots } from '../services/snapshots.js';
 import { UNIT_EUR } from '../services/pricing.js';
 
@@ -49,12 +50,14 @@ router.get('/stats', async (req, res, next) => {
   }
 });
 
-// GET /api/collection/price-movers?days=7&threshold=20  → top hausses/baisses + spikes
+// GET /api/collection/price-movers?days=7&threshold=20&limit=10  → top hausses/baisses + spikes
 router.get('/price-movers', async (req, res, next) => {
   try {
-    const days = Math.min(Math.max(Number(req.query.days) || 7, 1), 365);
-    const threshold = Math.min(Math.max(Number(req.query.threshold) || 20, 1), 1000);
-    res.json(await getPriceMovers(req.user.id, days, threshold));
+    const s = await getSettings();
+    const days = Math.min(Math.max(Number(req.query.days) || s.default_days, 1), 365);
+    const threshold = Math.min(Math.max(Number(req.query.threshold) || s.default_threshold, 1), 1000);
+    const limit = Math.min(Math.max(Number(req.query.limit) || 10, 1), 200);
+    res.json(await getPriceMovers(req.user.id, days, threshold, limit));
   } catch (err) {
     next(err);
   }

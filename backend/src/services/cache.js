@@ -17,3 +17,24 @@ export async function cached(key, ttl, producer) {
   }
   return value;
 }
+
+// Vide les entrées de cache applicatives (Scryfall, sets, decks Moxfield).
+// N'affecte pas les autres données Redis. Retourne le nombre de clés supprimées.
+export async function flushScryfallCache() {
+  const patterns = ['scry:*', 'set:*', 'sets', 'moxfield:*'];
+  let total = 0;
+  for (const pattern of patterns) {
+    let cursor = '0';
+    do {
+      // eslint-disable-next-line no-await-in-loop
+      const [next, keys] = await redis.scan(cursor, 'MATCH', pattern, 'COUNT', 200);
+      cursor = next;
+      if (keys.length) {
+        // eslint-disable-next-line no-await-in-loop
+        await redis.del(...keys);
+        total += keys.length;
+      }
+    } while (cursor !== '0');
+  }
+  return total;
+}

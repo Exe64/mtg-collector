@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useCardModal } from '../stores/cardModal';
 import DonutChart from '../components/charts/DonutChart';
@@ -64,7 +65,7 @@ export default function Dashboard() {
   const openCard = useCardModal((s) => s.open);
 
   useEffect(() => {
-    api(`/collection/price-movers?days=${spikeDays}&threshold=20`).then(setMovers).catch(() => {});
+    api(`/collection/price-movers?days=${spikeDays}`).then(setMovers).catch(() => {});
   }, [spikeDays]);
 
   useEffect(() => {
@@ -184,7 +185,10 @@ export default function Dashboard() {
 
       <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-sm font-semibold text-slate-300">⚡ Mouvements de prix</h2>
+          <h2 className="text-sm font-semibold text-slate-300">
+            ⚡ Mouvements de prix
+            <Link to="/movements" className="ml-2 text-xs font-normal text-indigo-400 hover:text-indigo-300">tout voir →</Link>
+          </h2>
           <div className="flex gap-1">
             {[7, 30].map((d) => (
               <button key={d} type="button" onClick={() => setSpikeDays(d)}
@@ -228,7 +232,7 @@ export default function Dashboard() {
               <MoveColumn title="📈 Top 10 hausses" items={movers?.gainers || []} empty="Aucune hausse sur la période." />
               <MoveColumn title="📉 Top 10 baisses" items={movers?.losers || []} empty="Aucune baisse sur la période." />
               <MoveColumn
-                title="🚀 Spikes ≥ 20%"
+                title="🚀 Variations notables"
                 items={movers?.spikes || []}
                 empty="Aucun mouvement ≥ 20% (ou historique insuffisant — il s'enrichit chaque jour)."
               />

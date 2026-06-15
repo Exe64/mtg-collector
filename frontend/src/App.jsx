@@ -13,6 +13,7 @@ import SetDetail from './pages/SetDetail';
 import ImportExport from './pages/ImportExport';
 import Wishlist from './pages/Wishlist';
 import DeckCheck from './pages/DeckCheck';
+import Movements from './pages/Movements';
 import Journal from './pages/Journal';
 import Alerts from './pages/Alerts';
 import Accounts from './pages/Accounts';
@@ -54,6 +55,7 @@ export default function App() {
         <Route path="import" element={<ImportExport />} />
         <Route path="wishlist" element={<Wishlist />} />
         <Route path="deck" element={<DeckCheck />} />
+        <Route path="movements" element={<Movements />} />
         <Route path="journal" element={<Journal />} />
         <Route path="alerts" element={<Alerts />} />
         <Route path="accounts" element={<Accounts />} />

@@ -6,6 +6,7 @@ import { syncCollectionPrices } from './priceSync.js';
 import { syncBulk } from './bulkData.js';
 import { runSnapshots } from './snapshots.js';
 import { evaluateAlerts } from './alerts.js';
+import { getSettings } from './settings.js';
 
 /** Job quotidien : MAJ prix des cartes possédées + snapshots + alertes + purge des refresh tokens. */
 export async function runDailyJob() {
@@ -18,12 +19,25 @@ export async function runDailyJob() {
   logger.info(`job quotidien terminé : ${updated} prix MAJ, snapshots écrits, ${alertsFired} alerte(s) déclenchée(s), ${rowCount} tokens expirés purgés (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
 }
 
-/** Planifie les jobs : prix quotidien (03:00 UTC) + bulk-data hebdo (dim. 04:00 UTC). */
-export function scheduleDailyJob() {
-  cron.schedule('0 */12 * * *', () => {
+const clampHours = (h) => Math.min(Math.max(Number(h) || 12, 1), 24);
+const priceExpr = (h) => (clampHours(h) >= 24 ? '0 0 * * *' : `0 */${clampHours(h)} * * *`);
+
+let priceTask = null;
+
+/** (Re)planifie le job prix selon la périodicité (heures). Appelable à chaud. */
+export function applyPriceSchedule(hours) {
+  if (priceTask) priceTask.stop();
+  priceTask = cron.schedule(priceExpr(hours), () => {
     runDailyJob().catch((err) => logger.error({ err: err.message }, 'job prix : échec'));
   }, { timezone: 'UTC' });
-  logger.info('job prix planifié toutes les 12h (00:00 et 12:00 UTC)');
+  logger.info(`job prix planifié toutes les ${clampHours(hours)}h (UTC)`);
+}
+
+/** Planifie les jobs au boot : prix (périodicité réglable) + bulk-data hebdo (dim. 04:00 UTC). */
+export async function scheduleDailyJob() {
+  let hours = 12;
+  try { hours = (await getSettings()).price_job_hours; } catch { /* défauts */ }
+  applyPriceSchedule(hours);
 
   cron.schedule('0 4 * * 0', () => {
     logger.info('sync bulk-data hebdomadaire : démarrage');
