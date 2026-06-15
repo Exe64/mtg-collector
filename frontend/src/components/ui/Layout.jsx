@@ -15,12 +15,12 @@ const primaryNav = [
   { to: '/collection', label: 'Collection', short: 'Collec', Icon: Boxes, end: false },
   { to: '/add', label: 'Ajouter', short: 'Ajouter', Icon: PlusCircle, end: false },
   { to: '/sets', label: 'Extensions', short: 'Sets', Icon: Library, end: false },
+  { to: '/movements', label: 'Mouvements', short: 'Prix', Icon: TrendingUp, end: false },
+  { to: '/wishlist', label: 'Wishlist', short: 'Wishlist', Icon: Star, end: false },
+  { to: '/deck', label: 'Vérif deck', short: 'Deck', Icon: ListChecks, end: false },
 ];
 // 2e niveau (desktop : « Outils ▾ » ; mobile : feuille « Plus »)
 const toolsNav = [
-  { to: '/movements', label: 'Mouvements', Icon: TrendingUp },
-  { to: '/wishlist', label: 'Wishlist', Icon: Star },
-  { to: '/deck', label: 'Vérif deck', Icon: ListChecks },
   { to: '/journal', label: 'Journal', Icon: History },
   { to: '/alerts', label: 'Alertes', Icon: Bell },
   { to: '/import', label: 'Import/Export', Icon: Download },

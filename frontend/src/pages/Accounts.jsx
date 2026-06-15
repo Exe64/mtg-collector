@@ -114,6 +114,17 @@ export default function Accounts() {
     }
   }
 
+  async function revokeSessions(id, email) {
+    if (!window.confirm(`Déconnecter ${email} de toutes ses sessions ?`)) return;
+    setError(null);
+    try {
+      const { revoked } = await api(`/admin/users/${id}/revoke-sessions`, { method: 'POST' });
+      setActionMsg(`${email} : ${revoked} session(s) révoquée(s) (effectif sous ≤ 30 min)`);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   const field = 'w-full rounded bg-slate-900 border border-slate-700 px-2 py-1.5 text-sm';
   const numField = 'w-24 rounded bg-slate-900 border border-slate-700 px-2 py-1.5 text-sm';
   const jobRunning = (name) => Boolean(status?.jobs?.[name]?.running);
@@ -240,6 +251,8 @@ export default function Accounts() {
               <span className="text-xs text-slate-500 hidden sm:block">
                 {u.last_login ? `vu ${String(u.last_login).slice(0, 10)}` : 'jamais connecté'}
               </span>
+              <button type="button" onClick={() => revokeSessions(u.id, u.email)}
+                className="text-xs text-slate-400 hover:text-gold-300 px-1">Déconnecter</button>
               {u.id !== me?.id && (
                 <button type="button" onClick={() => remove(u.id, u.email)}
                   aria-label="Supprimer" className="text-rose-400 hover:text-rose-300 px-1">✕</button>

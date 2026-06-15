@@ -21,7 +21,49 @@ jobs:
       - run: npm ci
       - name: Vérification syntaxe (tout src)
         run: find src -name '*.js' -exec node --check {} +
-      - name: Tests
+      - name: Tests unitaires
+        run: npm test
+
+  integration:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: magic_collection
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U test -d magic_collection"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      DATABASE_URL: postgres://test:test@localhost:5432/magic_collection
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: ci-secret-ci-secret-ci-secret-ci-secret
+      JWT_REFRESH_SECRET: ci-refresh-ci-refresh-ci-refresh-ci-refresh
+      RUN_DB_TESTS: '1'
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: Migrations
+        run: npm run migrate
+      - name: Tests d'intégration
         run: npm test
 
   frontend:

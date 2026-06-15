@@ -94,6 +94,19 @@ router.post('/actions/flush-cache', async (req, res, next) => {
   }
 });
 
+// POST /api/admin/users/:id/revoke-sessions  → invalide les sessions d'un compte
+// (supprime ses refresh tokens : déconnexion effective dès l'expiration de l'access token, ≤ 30 min)
+router.post('/users/:id/revoke-sessions', async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id < 1) return res.status(400).json({ error: 'Identifiant invalide' });
+    const { rowCount } = await query('DELETE FROM refresh_tokens WHERE user_id = $1', [id]);
+    res.json({ revoked: rowCount });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET / PUT  /api/admin/settings
 router.get('/settings', async (req, res, next) => {
   try {
