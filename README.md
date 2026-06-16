@@ -1,8 +1,7 @@
 # Magic Collection Manager
 
 Application web full-stack multi-utilisateur pour l'inventaire et la valorisation
-de collections Magic: The Gathering. Voir [SPECS.md](SPECS.md) pour la spec complète
-et [backend/API.md](backend/API.md) pour la référence API.
+de collections Magic: The Gathering. Voir [backend/API.md](backend/API.md) pour la référence API.
 
 ## Fonctionnalités
 
@@ -25,18 +24,6 @@ et [backend/API.md](backend/API.md) pour la référence API.
 - **Administration** (admin) : état système (DB/Redis, dernières synchros, dernière sauvegarde), actions à la demande (sync bulk / MAJ prix / vider le cache), réglages globaux, gestion des comptes + déconnexion forcée
 
 > Durcissement : rate-limiting étagé, CSP stricte (`script-src 'self'`), validation des secrets au boot, anti-injection de formule CSV, détection de réutilisation des refresh tokens. Sauvegardes chiffrées hors-machine + surveillance + drill de restauration (§ Sauvegardes). CI GitHub Actions (lint + tests unitaires/intégration + build).
-
-## Décisions d'architecture (revue de spec)
-
-| # | Décision |
-|---|----------|
-| 1 | Pas de badge de variation ; **courbes de prix** carte / édition / collection via tables d'historique, job 12h. |
-| 2 | Auth par **cookie httpOnly `SameSite=Strict`** + nginx reverse-proxy `/api` (même origine, pas de CORS). |
-| 3 | Reset password / vérif email **hors scope v1** (usage perso). |
-| 4/7 | **Bulk-data Scryfall = source primaire** + **lazy upsert** à l'ajout + autocomplete live. |
-| 5 | `finish` (nonfoil/foil/etched) au lieu d'un booléen. |
-| 6 | `cards.card_faces` JSONB pour préserver la donnée DFC. |
-| 8 | Migrations **`node-pg-migrate`**, appliquées automatiquement au démarrage. |
 
 ## Démarrage
 
