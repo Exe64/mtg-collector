@@ -52,7 +52,7 @@ syncs, les nouvelles cartes entrent en base via *lazy upsert* à l'ajout.
 ### Autres opérations
 
 ```bash
-# Job quotidien à la demande : MAJ prix des cartes possédées + snapshots + cmc
+# Job quotidien à la demande : MAJ prix + snapshots + alertes + purge des tokens expirés
 docker compose exec backend npm run job:daily
 
 # Tests unitaires backend
@@ -134,10 +134,10 @@ deploy/                  backup-db.sh, verify-backup.sh
 
 ## État d'avancement
 
-Sprints 1 à 10 du plan SPECS réalisés (socle, cartes, collection, frontend,
-browse set, import/export, dashboard, PWA, wishlist, vérif deck, mouvements,
-alertes, journal, administration, polish). Durcissement en place : sécurité
-(rate-limit, CSP, détection de réutilisation de tokens), sauvegardes chiffrées
-hors-machine + **surveillance** + **drill de restauration**
+Application complète, en production : socle, cartes, collection, dashboard,
+browse set, import/export, PWA, wishlist, vérif deck, mouvements, alertes,
+journal, administration. Durcissement en place : sécurité (rate-limit, CSP,
+détection de réutilisation de tokens), sauvegardes chiffrées hors-machine +
+**surveillance** + **drill de restauration**
 ([deploy/backup-db.sh](deploy/backup-db.sh), [deploy/verify-backup.sh](deploy/verify-backup.sh)),
 **CI GitHub Actions** (lint + tests unitaires/intégration + build), ESLint.
