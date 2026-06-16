@@ -161,8 +161,8 @@ frontend/
                          Accounts, Login, Register
     components/          ui (Layout, CardModal, ScrollToTop, ErrorBoundary), collection, search→Add, charts
   nginx.conf             reverse-proxy /api (prod)
-deploy/                  provision-vm.sh, deploy.sh, local-tls.sh, backup-db.sh,
-                         verify-backup.sh (Rocky Linux / OVH)
+deploy/                  local-tls.sh, backup-db.sh, verify-backup.sh
+                         (provision/déploiement → repo privé deployment-scripts)
 .github/workflows/       ci.yml — lint + tests (unitaires/intégration) + build
 ```
 
