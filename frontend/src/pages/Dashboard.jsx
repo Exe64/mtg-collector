@@ -134,8 +134,8 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-        <Stat label="Valeur (EUR)" value={`${stats.totalValue.eur.toFixed(2)} €`} accent="text-emerald-400" />
-        <Stat label="Valeur (USD)" value={`$${stats.totalValue.usd.toFixed(2)}`} />
+        <Stat label="Valeur (Cardmarket €)" value={`${stats.totalValue.eur.toFixed(2)} €`} accent="text-emerald-400" />
+        <Stat label="Valeur (TCGplayer $)" value={`$${stats.totalValue.usd.toFixed(2)}`} />
         <Stat label="Cartes" value={stats.cardCount} />
         <Stat label="Uniques" value={stats.uniqueCardCount} />
         <Stat label="Extensions" value={stats.setCount} />

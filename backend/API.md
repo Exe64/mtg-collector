@@ -1,7 +1,8 @@
 # API REST — Magic Collection Manager
 
-Base : `/api`. Toutes les routes sauf `/api/auth/*` exigent l'en-tête
-`Authorization: Bearer <accessToken>`. Le refresh token circule en cookie httpOnly.
+Base : `/api`. Publiques : `/api/auth/login|register|refresh|setup-status` et `/api/health`.
+Toutes les autres exigent l'en-tête `Authorization: Bearer <accessToken>`. Les routes
+marquées **(admin)** exigent un compte administrateur. Le refresh token circule en cookie httpOnly.
 
 ## Santé
 | Méthode | Route | Réponse |
@@ -11,13 +12,17 @@ Base : `/api`. Toutes les routes sauf `/api/auth/*` exigent l'en-tête
 ## Authentification
 | Méthode | Route | Corps | Réponse |
 |---|---|---|---|
-| POST | `/api/auth/register` | `{ email, password, display_name? }` | `{ user, accessToken }` + cookie |
+| GET | `/api/auth/setup-status` | — | `{ needsSetup }` (public) |
+| POST | `/api/auth/register` | `{ email, password, display_name? }` | `{ user, accessToken }` + cookie — **1er compte uniquement** |
 | POST | `/api/auth/login` | `{ email, password }` | `{ user, accessToken }` + cookie |
-| POST | `/api/auth/refresh` | — (cookie) | `{ accessToken }` (rotation) |
+| POST | `/api/auth/refresh` | — (cookie) | `{ accessToken }` (rotation + détection de réutilisation → révocation de la lignée) |
 | POST | `/api/auth/logout` | — (cookie) | `204` |
 | GET | `/api/auth/me` | — | `{ user }` |
+| GET | `/api/auth/users` | — | `{ users[] }` **(admin)** |
+| POST | `/api/auth/users` | `{ email, password, display_name?, is_admin? }` | `{ user }` **(admin)** |
+| DELETE | `/api/auth/users/:id` | — | `204` **(admin)** |
 
-Mot de passe : ≥ 8 caractères, 1 majuscule, 1 chiffre. Rate limit : 10 req / 15 min / IP.
+Mot de passe : ≥ 8 caractères, 1 majuscule, 1 chiffre. Access token 30 min. Rate limit auth : 10 req / 15 min / IP.
 
 ## Cartes
 | Méthode | Route | Params | Réponse |
@@ -26,39 +31,50 @@ Mot de passe : ≥ 8 caractères, 1 majuscule, 1 chiffre. Rate limit : 10 req / 
 | GET | `/api/cards/prints` | `name` | `{ cards[] }` (toutes les éditions) |
 | GET | `/api/cards/:scryfallId` | — | `{ card }` (DB-first + lazy upsert) |
 | GET | `/api/cards/:scryfallId/rulings` | — | `{ rulings[] }` (source Wizards/Gatherer) |
+| GET | `/api/cards/:scryfallId/price-history` | — | `{ history[] }` (courbe de prix par carte) |
 
 ## Extensions
 | Méthode | Route | Params | Réponse |
 |---|---|---|---|
 | GET | `/api/sets` | `type?` | `{ sets[] }` |
+| GET | `/api/sets/:code` | — | `{ set }` (détail d'une extension) |
 | GET | `/api/sets/:code/cards` | `page?` | `{ cards[], total, page, hasMore }` |
 
 ## Collection (isolée par utilisateur)
 | Méthode | Route | Params / Corps | Réponse |
 |---|---|---|---|
 | GET | `/api/collection` | `q, set, color, type, rarity, condition, finish, language, location, cmc, cmcMin, cmcMax, sort, order, page, pageSize` | `{ entries[], total, page, pageSize, stats }` |
-| GET | `/api/collection/locations` | — | `{ locations[] }` (emplacements physiques distincts) |
-| GET | `/api/collection/stats` | — | `{ totalValue, cardCount, uniqueCardCount, setCount, topCards[], colorBreakdown, rarityBreakdown, conditionBreakdown, typeBreakdown }` |
+| GET | `/api/collection/groups` | `by=set\|color\|rarity\|location` + mêmes filtres | `{ by, groups[], stats }` |
+| GET | `/api/collection/stats` | — | `{ pricesUpdatedAt, totalValue, cardCount, uniqueCardCount, setCount, profitability, topCards[], colorBreakdown, rarityBreakdown, conditionBreakdown, typeBreakdown, valueBreakdown }` |
 | GET | `/api/collection/snapshots` | `days?` | `{ snapshots[] }` |
 | GET | `/api/collection/set-snapshots` | `set, days?` | `{ snapshots[] }` (courbe de valeur d'une édition) |
-| GET | `/api/collection/price-movers` | `days?=7, threshold?=20` | `{ gainers[], losers[], spikes[] }` (top 10 hausses/baisses en € + variations ≥ threshold %) |
+| GET | `/api/collection/price-movers` | `days?=7, threshold?=20, limit?=10` | `{ gainers[], losers[], spikes[] }` (hausses/baisses en € + variations ≥ threshold %, les `limit` plus fortes) |
 | GET | `/api/collection/log` | `days?=30` | `{ log[] }` (journal des ajouts/retraits : delta signé, finition, source, date, `undoable`) |
 | POST | `/api/collection/log/:id/undo` | — | `{ applied }` (réapplique le delta inverse sur la même variante) |
-| POST | `/api/collection/bulk` | `{ ids[], patch:{ finish?, condition?, language?, location? } }` | `{ updated, conflicts }` |
-| GET | `/api/collection/owned-by-set` | — | `{ ownedBySet: { code: nb } }` |
-| GET | `/api/collection/owned` | `set?` | `{ owned: { scryfall_id: qté } }` |
+| GET | `/api/collection/locations` | — | `{ locations[] }` (emplacements physiques distincts) |
+| GET | `/api/collection/owned-by-set` | — | `{ ownedBySet: { <code>: { owned, value } } }` |
+| GET | `/api/collection/owned` | `set?` | `{ owned: { <scryfall_id>: { nonfoil, foil } }, totalEur }` |
+| POST | `/api/collection/owned-ids` | `{ ids[] }` (UUID) | `{ owned: { <scryfall_id>: { nonfoil, foil } } }` |
 | POST | `/api/collection` | `{ scryfall_id, quantity, finish, condition, language, acquired_price?, notes? }` | `{ entry }` (incrément sur conflit) |
-| POST | `/api/collection/adjust` | `{ scryfall_id, delta, finish?, condition?, language? }` | `{ quantity }` |
+| POST | `/api/collection/adjust` | `{ scryfall_id, delta, finish?, condition?, language?, location? }` | `{ quantity }` |
+| POST | `/api/collection/bulk` | `{ ids[], patch:{ finish?, condition?, language?, location? } }` | `{ updated, conflicts }` |
 | PATCH | `/api/collection/:id` | `{ quantity?, finish?, condition?, language?, notes?, acquired_price?, acquired_at? }` | `{ entry }` / `409` si conflit |
 | DELETE | `/api/collection/:id` | — | `204` |
 
 Conditions : `MT, NM, EX, GD, LP, PL, PO`. Finitions : `nonfoil, foil, etched`.
 `location` : emplacement physique (fait partie de la clé d'unicité de l'entrée).
 
-## Import / Export
+## Vérif deck
+| Méthode | Route | Corps | Réponse |
+|---|---|---|---|
+| POST | `/api/decks/check` | `{ url }` (Moxfield) **ou** `{ text }` (liste Moxfield/MTGO) | `{ cards[], summary }` (cartes manquantes vs collection, comparaison par nom ; chaque carte porte ses versions possédées) |
+
+## Import
 | Méthode | Route | Corps | Réponse |
 |---|---|---|---|
 | POST | `/api/import/csv` | `multipart: file, mode=merge\|replace, location?, dryRun?` | `{ imported, skipped, errors[] }` ou `{ dryRun, total, resolvedLocally, needsScryfall, invalid, samples }` |
+
+Plafond : 20 000 lignes par import. Mode `replace` transactionnel (rollback en cas d'échec).
 
 ## Wishlist
 | Méthode | Route | Corps | Réponse |
@@ -80,9 +96,20 @@ Conditions : `MT, NM, EX, GD, LP, PL, PO`. Finitions : `nonfoil, foil, etched`.
 Les alertes sont évaluées par le job quotidien après la MAJ des prix : seuil franchi → notification + alerte désactivée (one-shot, réarmable). Le sync de prix couvre collection ∪ wishlist ∪ alertes actives.
 
 ## Export
-| Méthode | Route | Corps | Réponse |
+| Méthode | Route | Params | Réponse |
 |---|---|---|---|
 | GET | `/api/export/csv` | — | CSV Moxfield |
 | GET | `/api/export/sell.csv` | — | CSV de mise en vente (prix trend EUR, conditions Cardmarket) |
 | GET | `/api/export/tradelist.csv` | `playset?=4` | CSV liste d'échange (surplus au-delà du playset, hors terrains de base) |
 | GET | `/api/export/pdf` | — | PDF de valorisation (inventaire daté, pour assurance) |
+
+## Administration (admin)
+| Méthode | Route | Corps | Réponse |
+|---|---|---|---|
+| GET | `/api/admin/status` | — | `{ health, data, backup, jobs, settings }` |
+| POST | `/api/admin/actions/sync-bulk` | — | `202 { started }` / `409 { running }` (fire-and-forget) |
+| POST | `/api/admin/actions/price-job` | — | `202 { started }` / `409 { running }` (fire-and-forget) |
+| POST | `/api/admin/actions/flush-cache` | — | `{ cleared }` (clés de cache supprimées) |
+| GET | `/api/admin/settings` | — | `{ price_job_hours, default_threshold, default_days }` |
+| PUT | `/api/admin/settings` | `{ price_job_hours?, default_threshold?, default_days? }` | settings (périodicité du job prix appliquée à chaud) |
+| POST | `/api/admin/users/:id/revoke-sessions` | — | `{ revoked }` (déconnexion forcée : supprime les refresh tokens) |
