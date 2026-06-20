@@ -4,6 +4,7 @@ import { UNIT_EUR, UNIT_USD } from './pricing.js';
 const SORT_COLUMNS = {
   name: 'c.name',
   set: 'c.set_code',
+  type: 'c.type_line',
   rarity: 'c.rarity',
   quantity: 'e.quantity',
   added_at: 'e.added_at',

@@ -276,6 +276,7 @@ export default function Collection() {
           className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1 text-sm">
           <option value="value">Valeur</option>
           <option value="name">Nom</option>
+          <option value="type">Type</option>
           <option value="quantity">Quantité</option>
           <option value="rarity">Rareté</option>
           <option value="added_at">Ajout</option>

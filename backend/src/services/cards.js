@@ -139,6 +139,7 @@ export function dbCardToClient(row) {
     image: row.image_uri,
     image_small: row.image_uri_small,
     type_line: row.type_line,
+    cmc: row.cmc,
     oracle_text: row.oracle_text,
     mana_cost: row.mana_cost,
     card_faces: row.card_faces,

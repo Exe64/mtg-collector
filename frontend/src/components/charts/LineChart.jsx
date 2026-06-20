@@ -64,8 +64,8 @@ export default function LineChart({ points }) {
   if (hover != null) {
     const px = x(hover);
     const py = y(values[hover]);
-    const bw = 88;
-    const bh = 28;
+    const bw = 96;
+    const bh = 40;
     const bx = Math.max(2, Math.min(width - bw - 2, px - bw / 2));
     const by = py - bh - 8 < 2 ? py + 8 : py - bh - 8;
     box = { px, py, bx, by, bw, bh };
@@ -109,6 +109,16 @@ export default function LineChart({ points }) {
             <text x={box.bx + 6} y={box.by + 22} fill="#34d399" fontSize="9" fontWeight="bold">
               {values[hover].toFixed(2)} €
             </text>
+            {hover > 0 && (() => {
+              const prev = values[hover - 1];
+              const pct = prev ? ((values[hover] - prev) / prev) * 100 : 0;
+              const up = pct >= 0;
+              return (
+                <text x={box.bx + 6} y={box.by + 33} fill={up ? '#34d399' : '#f87171'} fontSize="7.5">
+                  {up ? '▲' : '▼'} {up ? '+' : ''}{pct.toFixed(1)}% vs préc.
+                </text>
+              );
+            })()}
           </g>
         )}
       </svg>

@@ -46,6 +46,26 @@ const PERIODS = [
   { days: 365, label: '1 an' },
 ];
 
+const GRANS = [
+  { key: 'day', label: 'Jour' },
+  { key: 'week', label: 'Semaine' },
+  { key: 'month', label: 'Mois' },
+  { key: 'year', label: 'Année' },
+];
+// ponytail: downsample côté client — un point par bucket (le dernier snapshot du bucket).
+const BUCKET_KEY = {
+  day: (d) => String(d).slice(0, 10),
+  week: (d) => String(Math.floor(Date.parse(d) / 604800000)),
+  month: (d) => String(d).slice(0, 7),
+  year: (d) => String(d).slice(0, 4),
+};
+function downsample(snaps, gran) {
+  if (gran === 'day') return snaps;
+  const m = new Map();
+  for (const s of snaps) m.set(BUCKET_KEY[gran](s.snapshot_date), s);
+  return [...m.values()];
+}
+
 function Stat({ label, value, accent }) {
   return (
     <div className="bg-slate-800 border border-slate-700 rounded-lg p-3">
@@ -59,6 +79,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [snapshots, setSnapshots] = useState([]);
   const [days, setDays] = useState(90);
+  const [gran, setGran] = useState('day');
   const [movers, setMovers] = useState(null);
   const [spikeDays, setSpikeDays] = useState(7);
   const [loading, setLoading] = useState(true);
@@ -122,7 +143,7 @@ export default function Dashboard() {
     .filter(Boolean);
   const maxTierValue = Math.max(1, ...valueRows.map((r) => Number(r.value)));
 
-  const points = snapshots.map((s) => ({ date: s.snapshot_date, value: s.total_value_eur }));
+  const points = downsample(snapshots, gran).map((s) => ({ date: s.snapshot_date, value: s.total_value_eur }));
 
   return (
     <div className="space-y-5">
@@ -244,17 +265,31 @@ export default function Dashboard() {
       <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-sm font-semibold text-slate-300">Évolution de la valeur</h2>
-          <div className="flex gap-1">
-            {PERIODS.map((p) => (
-              <button
-                key={p.days}
-                type="button"
-                onClick={() => setDays(p.days)}
-                className={`text-xs rounded px-2 py-1 ${days === p.days ? 'bg-slate-600' : 'bg-slate-800 hover:bg-slate-700'}`}
-              >
-                {p.label}
-              </button>
-            ))}
+          <div className="flex flex-wrap gap-2">
+            <div className="flex gap-1">
+              {PERIODS.map((p) => (
+                <button
+                  key={p.days}
+                  type="button"
+                  onClick={() => setDays(p.days)}
+                  className={`text-xs rounded px-2 py-1 ${days === p.days ? 'bg-slate-600' : 'bg-slate-800 hover:bg-slate-700'}`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-1">
+              {GRANS.map((g) => (
+                <button
+                  key={g.key}
+                  type="button"
+                  onClick={() => setGran(g.key)}
+                  className={`text-xs rounded px-2 py-1 ${gran === g.key ? 'bg-slate-600' : 'bg-slate-800 hover:bg-slate-700'}`}
+                >
+                  {g.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
         <LineChart points={points} />

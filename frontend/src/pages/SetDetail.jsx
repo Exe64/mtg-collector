@@ -11,6 +11,59 @@ const FILTERS = [
   { key: 'missing', label: 'Manquantes' },
 ];
 
+const SORT_OPTIONS = [
+  ['number', 'N° de collecteur'],
+  ['price-desc', 'Prix décroissant'],
+  ['price-asc', 'Prix croissant'],
+  ['name-asc', 'Nom A→Z'],
+  ['name-desc', 'Nom Z→A'],
+  ['type', 'Type'],
+];
+const TYPE_OPTIONS = [
+  ['', 'Type'], ['creature', 'Créature'], ['instant', 'Éphémère'], ['sorcery', 'Rituel'],
+  ['artifact', 'Artefact'], ['enchantment', 'Enchantement'], ['planeswalker', 'Planeswalker'],
+  ['land', 'Terrain'], ['battle', 'Bataille'],
+];
+const RARITY_OPTIONS = [
+  ['', 'Rareté'], ['common', 'Commune'], ['uncommon', 'Peu commune'], ['rare', 'Rare'], ['mythic', 'Mythique'],
+];
+const COLOR_OPTIONS = [
+  ['', 'Couleur'], ['W', 'Blanc'], ['U', 'Bleu'], ['B', 'Noir'], ['R', 'Rouge'], ['G', 'Vert'],
+  ['M', 'Multicolore'], ['C', 'Incolore'],
+];
+const CMC_OPTIONS = [['', 'Coût'], ['0', '0'], ['1', '1'], ['2', '2'], ['3', '3'], ['4', '4'], ['5', '5'], ['6', '6'], ['7+', '7+']];
+const EMPTY_ATTR = { type: '', rarity: '', color: '', cmc: '' };
+
+// ponytail: filtres/tri client — toutes les cartes du set sont déjà chargées en mémoire.
+function matchAttr(c, f) {
+  if (f.type && !(c.type_line || '').toLowerCase().includes(f.type)) return false;
+  if (f.rarity && c.rarity !== f.rarity) return false;
+  if (f.cmc) {
+    if (f.cmc === '7+') { if (!(Number(c.cmc) >= 7)) return false; }
+    else if (Number(c.cmc) !== Number(f.cmc)) return false;
+  }
+  if (f.color) {
+    const ci = c.color_identity || [];
+    if (f.color === 'C') return ci.length === 0;
+    if (f.color === 'M') return ci.length > 1;
+    return ci.includes(f.color);
+  }
+  return true;
+}
+
+function sortCards(arr, sort) {
+  if (sort === 'number') return arr; // ordre du backend (gère les variantes type "250★")
+  const price = (c) => Number(c.prices?.eur) || 0;
+  const by = {
+    'price-desc': (a, b) => price(b) - price(a),
+    'price-asc': (a, b) => price(a) - price(b),
+    'name-asc': (a, b) => a.name.localeCompare(b.name),
+    'name-desc': (a, b) => b.name.localeCompare(a.name),
+    type: (a, b) => (a.type_line || '').localeCompare(b.type_line || '') || a.name.localeCompare(b.name),
+  };
+  return by[sort] ? [...arr].sort(by[sort]) : arr;
+}
+
 function FinishRow({ label, count, accent, onMinus, onPlus }) {
   const plusCls = accent === 'gold' ? 'bg-gold-600 hover:bg-gold-500' : 'bg-indigo-600 hover:bg-indigo-500';
   return (
@@ -41,6 +94,8 @@ export default function SetDetail() {
   const [owned, setOwned] = useState({});
   const [setValue, setSetValue] = useState(0);
   const [filter, setFilter] = useState('all');
+  const [sort, setSort] = useState('number');
+  const [attr, setAttr] = useState(EMPTY_ATTR);
   const [showMissing, setShowMissing] = useState(false);
   const [setSnaps, setSetSnaps] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -160,16 +215,23 @@ export default function SetDetail() {
     return { count, qty };
   }, [owned, cards, loading]);
 
-  const visible = useMemo(() => cards.filter((c) => {
-    const has = totalQty(c.scryfall_id) > 0;
-    if (filter === 'owned') return has;
-    if (filter === 'missing') return !has;
-    return true;
-  }), [cards, totalQty, filter]);
+  // Filtres d'attributs (type/rareté/couleur/coût) appliqués avant les compteurs owned/missing
+  const attrCards = useMemo(() => cards.filter((c) => matchAttr(c, attr)), [cards, attr]);
+
+  const visible = useMemo(() => {
+    const filtered = attrCards.filter((c) => {
+      const has = totalQty(c.scryfall_id) > 0;
+      if (filter === 'owned') return has;
+      if (filter === 'missing') return !has;
+      return true;
+    });
+    return sortCards(filtered, sort);
+  }, [attrCards, totalQty, filter, sort]);
 
   // Compteurs des filtres : basés sur les cartes réellement affichées (impressions)
-  const ownedDisplayed = cards.filter((c) => totalQty(c.scryfall_id) > 0).length;
-  const counts = { all: cards.length, owned: ownedDisplayed, missing: cards.length - ownedDisplayed };
+  const ownedDisplayed = attrCards.filter((c) => totalQty(c.scryfall_id) > 0).length;
+  const counts = { all: attrCards.length, owned: ownedDisplayed, missing: attrCards.length - ownedDisplayed };
+  const hasAttr = Object.values(attr).some(Boolean);
 
   return (
     <div>
@@ -246,6 +308,24 @@ export default function SetDetail() {
             {f.label} <span className="text-slate-400">({counts[f.key]})</span>
           </button>
         ))}
+      </div>
+
+      {/* Tri + filtres d'attributs */}
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <select value={sort} onChange={(e) => setSort(e.target.value)}
+          className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1.5 text-sm">
+          {SORT_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+        </select>
+        {[['type', TYPE_OPTIONS], ['rarity', RARITY_OPTIONS], ['color', COLOR_OPTIONS], ['cmc', CMC_OPTIONS]].map(([key, opts]) => (
+          <select key={key} value={attr[key]} onChange={(e) => setAttr((a) => ({ ...a, [key]: e.target.value }))}
+            className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1.5 text-sm">
+            {opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+        ))}
+        {hasAttr && (
+          <button type="button" onClick={() => setAttr(EMPTY_ATTR)}
+            className="text-xs text-slate-400 hover:text-slate-200 px-2">Réinitialiser</button>
+        )}
       </div>
 
       {loading ? (
