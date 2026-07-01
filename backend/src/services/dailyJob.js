@@ -3,7 +3,7 @@ import cron from 'node-cron';
 import { logger } from '../config/logger.js';
 import { query } from '../config/db.js';
 import { syncCollectionPrices } from './priceSync.js';
-import { syncBulk } from './bulkData.js';
+import { syncBulk, syncFrenchNames } from './bulkData.js';
 import { runSnapshots } from './snapshots.js';
 import { evaluateAlerts } from './alerts.js';
 import { getSettings } from './settings.js';
@@ -56,8 +56,13 @@ export async function scheduleDailyJob() {
 
   cron.schedule('0 4 * * 0', () => {
     logger.info('sync bulk-data hebdomadaire : démarrage');
+    // Noms FR après le bulk anglais : ils s'appuient sur les lignes canoniques.
     syncBulk()
-      .then((r) => logger.info(`sync bulk-data hebdo terminé : ${r.count} cartes`))
+      .then((r) => {
+        logger.info(`sync bulk-data hebdo terminé : ${r.count} cartes`);
+        return syncFrenchNames();
+      })
+      .then((r) => logger.info(`sync noms FR hebdo terminé : ${r.matched} appariées, ${r.propagated} propagées`))
       .catch((err) => logger.error({ err: err.message }, 'sync bulk-data hebdo : échec'));
   }, { timezone: 'UTC' });
   logger.info('sync bulk-data hebdomadaire planifié (dimanche 04:00 UTC)');

@@ -44,10 +44,14 @@ docker compose up --build
 ```bash
 # Charge ~90k cartes + tous les sets en base (source primaire des données cartes)
 docker compose exec backend npm run sync:bulk
+
+# Renseigne les noms français (bulk `all_cards` ~2 Go, à lancer APRÈS sync:bulk)
+docker compose exec backend npm run sync:fr
 ```
 
-À lancer une fois après le premier démarrage, puis hebdomadairement. Entre deux
-syncs, les nouvelles cartes entrent en base via *lazy upsert* à l'ajout.
+À lancer une fois après le premier démarrage, puis hebdomadairement (le job hebdo
+enchaîne automatiquement `sync:bulk` puis les noms FR). Entre deux syncs, les
+nouvelles cartes entrent en base via *lazy upsert* à l'ajout.
 
 ### Autres opérations
 

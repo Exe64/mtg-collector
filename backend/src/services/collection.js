@@ -28,6 +28,7 @@ function mapEntry(r) {
     card: {
       scryfall_id: r.scryfall_id,
       name: r.name,
+      name_fr: r.name_fr || null,
       set: r.set_code,
       set_name: r.set_name,
       collector_number: r.collector_number,
@@ -50,7 +51,7 @@ function buildFilters(userId, opts) {
     conds.push(sql(params.length));
   };
 
-  if (opts.q) filter((i) => `c.name ILIKE $${i}`, `%${opts.q}%`);
+  if (opts.q) filter((i) => `(c.name ILIKE $${i} OR c.name_fr ILIKE $${i})`, `%${opts.q}%`);
   if (opts.set) filter((i) => `c.set_code = $${i}`, opts.set);
   if (opts.rarity) filter((i) => `c.rarity = $${i}`, opts.rarity);
   if (opts.condition) filter((i) => `e.condition = $${i}`, opts.condition);
@@ -130,7 +131,7 @@ export async function getCollection(userId, opts = {}) {
   const rowsRes = await query(
     `SELECT e.id, e.quantity, e.finish, e.condition, e.language, e.location, e.acquired_price,
             e.acquired_at, e.notes, e.added_at,
-            c.scryfall_id, c.name, c.set_code, c.set_name, c.collector_number, c.rarity,
+            c.scryfall_id, c.name, c.name_fr, c.set_code, c.set_name, c.collector_number, c.rarity,
             c.image_uri, c.image_uri_small, c.colors, c.color_identity, c.type_line,
             (${UNIT_EUR})::numeric(10,2)               AS unit_price_eur,
             ((${UNIT_EUR}) * e.quantity)::numeric(12,2) AS total_price_eur

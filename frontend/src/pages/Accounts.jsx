@@ -169,6 +169,10 @@ export default function Accounts() {
             className="rounded-md bg-slate-700 hover:bg-slate-600 disabled:opacity-50 px-3 py-2 text-sm">
             🔄 {jobRunning('sync-bulk') ? 'Sync en cours…' : 'Sync bulk-data'}
           </button>
+          <button type="button" onClick={() => runAction('sync-fr', 'Sync noms FR')} disabled={jobRunning('sync-fr')}
+            className="rounded-md bg-slate-700 hover:bg-slate-600 disabled:opacity-50 px-3 py-2 text-sm">
+            🇫🇷 {jobRunning('sync-fr') ? 'Sync FR en cours…' : 'Sync noms FR'}
+          </button>
           <button type="button" onClick={() => runAction('price-job', 'MAJ prix')} disabled={jobRunning('price-job')}
             className="rounded-md bg-slate-700 hover:bg-slate-600 disabled:opacity-50 px-3 py-2 text-sm">
             💶 {jobRunning('price-job') ? 'MAJ en cours…' : 'MAJ des prix'}
@@ -181,6 +185,7 @@ export default function Accounts() {
         {actionMsg && <p className="text-xs text-slate-300 mt-2">{actionMsg}</p>}
         <div className="mt-3 space-y-1">
           <JobLine label="Sync bulk-data" job={status?.jobs?.['sync-bulk']} runningLabel="sync en cours" />
+          <JobLine label="Sync noms FR" job={status?.jobs?.['sync-fr']} runningLabel="sync en cours" />
           <JobLine label="MAJ des prix" job={status?.jobs?.['price-job']} runningLabel="MAJ en cours" />
         </div>
       </section>

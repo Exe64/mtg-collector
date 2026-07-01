@@ -9,7 +9,7 @@ import { getSettings, updateSettings } from '../services/settings.js';
 import { jobState, startJob } from '../services/jobRunner.js';
 import { flushScryfallCache } from '../services/cache.js';
 import { applyPriceSchedule, runDailyJob } from '../services/dailyJob.js';
-import { syncBulk } from '../services/bulkData.js';
+import { syncBulk, syncFrenchNames } from '../services/bulkData.js';
 
 const router = Router();
 router.use(requireAuth, requireAdmin);
@@ -75,6 +75,12 @@ router.get('/status', async (req, res, next) => {
 // POST /api/admin/actions/sync-bulk  (fire-and-forget)
 router.post('/actions/sync-bulk', (req, res) => {
   const started = startJob('sync-bulk', () => syncBulk());
+  res.status(started ? 202 : 409).json({ started, running: !started });
+});
+
+// POST /api/admin/actions/sync-fr  (fire-and-forget : noms français, bulk all_cards)
+router.post('/actions/sync-fr', (req, res) => {
+  const started = startJob('sync-fr', () => syncFrenchNames());
   res.status(started ? 202 : 409).json({ started, running: !started });
 });
 
