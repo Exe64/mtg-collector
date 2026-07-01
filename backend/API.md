@@ -108,6 +108,7 @@ Les alertes sont évaluées par le job quotidien après la MAJ des prix : seuil 
 |---|---|---|---|
 | GET | `/api/admin/status` | — | `{ health, data, backup, jobs, settings }` |
 | POST | `/api/admin/actions/sync-bulk` | — | `202 { started }` / `409 { running }` (fire-and-forget) |
+| POST | `/api/admin/actions/sync-fr` | — | `202 { started }` / `409 { running }` (noms FR, bulk `all_cards`, fire-and-forget) |
 | POST | `/api/admin/actions/price-job` | — | `202 { started }` / `409 { running }` (fire-and-forget) |
 | POST | `/api/admin/actions/flush-cache` | — | `{ cleared }` (clés de cache supprimées) |
 | GET | `/api/admin/settings` | — | `{ price_job_hours, default_threshold, default_days }` |

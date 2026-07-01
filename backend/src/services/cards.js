@@ -132,6 +132,7 @@ export function dbCardToClient(row) {
   return {
     scryfall_id: row.scryfall_id,
     name: row.name,
+    name_fr: row.name_fr || null,
     set: row.set_code,
     set_name: row.set_name,
     collector_number: row.collector_number,

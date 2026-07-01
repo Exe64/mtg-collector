@@ -15,8 +15,10 @@ const SORT_OPTIONS = [
   ['number', 'N° de collecteur'],
   ['price-desc', 'Prix décroissant'],
   ['price-asc', 'Prix croissant'],
-  ['name-asc', 'Nom A→Z'],
-  ['name-desc', 'Nom Z→A'],
+  ['name-fr-asc', 'Nom FR A→Z'],
+  ['name-fr-desc', 'Nom FR Z→A'],
+  ['name-asc', 'Nom EN A→Z'],
+  ['name-desc', 'Nom EN Z→A'],
   ['type', 'Type'],
 ];
 const TYPE_OPTIONS = [
@@ -54,9 +56,13 @@ function matchAttr(c, f) {
 function sortCards(arr, sort) {
   if (sort === 'number') return arr; // ordre du backend (gère les variantes type "250★")
   const price = (c) => Number(c.prices?.eur) || 0;
+  // Nom FR si dispo, sinon retombe sur l'anglais (toutes les cartes n'ont pas de nom FR).
+  const fr = (c) => c.name_fr || c.name;
   const by = {
     'price-desc': (a, b) => price(b) - price(a),
     'price-asc': (a, b) => price(a) - price(b),
+    'name-fr-asc': (a, b) => fr(a).localeCompare(fr(b), 'fr'),
+    'name-fr-desc': (a, b) => fr(b).localeCompare(fr(a), 'fr'),
     'name-asc': (a, b) => a.name.localeCompare(b.name),
     'name-desc': (a, b) => b.name.localeCompare(a.name),
     type: (a, b) => (a.type_line || '').localeCompare(b.type_line || '') || a.name.localeCompare(b.name),
@@ -355,7 +361,7 @@ export default function SetDetail() {
                   <button type="button" onClick={() => openCard(c.scryfall_id)} className="aspect-[5/7] w-full flex items-center justify-center text-xs text-slate-500 p-2 text-center">{c.name}</button>
                 )}
                 <div className="p-2">
-                  <div className="text-xs truncate" title={c.name}>#{c.collector_number} {c.name}</div>
+                  <div className="text-xs truncate" title={c.name_fr ? `${c.name_fr} · ${c.name}` : c.name}>#{c.collector_number} {c.name_fr || c.name}</div>
                   <div className="text-xs text-emerald-400 mt-0.5">{c.prices?.eur ? `${c.prices.eur} €` : '—'}</div>
                   <div className="mt-1.5 space-y-1">
                     <FinishRow label="Normale" count={o.nonfoil || 0} accent="indigo"
