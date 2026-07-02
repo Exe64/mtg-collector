@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Boxes, PlusCircle, Library, Star, Download, Users,
-  ListChecks, History, Bell, TrendingUp, Wrench, ChevronDown, Menu,
+  ListChecks, History, Bell, TrendingUp, Wrench, ChevronDown, Menu, ShieldCheck,
 } from 'lucide-react';
 import { api } from '../../api/client';
 import { useAuth } from '../../stores/auth';
@@ -25,6 +25,7 @@ const toolsNav = [
   { to: '/journal', label: 'Journal', Icon: History },
   { to: '/alerts', label: 'Alertes', Icon: Bell },
   { to: '/import', label: 'Import/Export', Icon: Download },
+  { to: '/security', label: 'Sécurité', Icon: ShieldCheck },
 ];
 const adminNav = { to: '/accounts', label: 'Administration', Icon: Users };
 

@@ -20,10 +20,14 @@ export const useAuth = create((set) => ({
     }
   },
 
-  async login(email, password) {
-    const { user, accessToken } = await api('/auth/login', { method: 'POST', body: { email, password } });
-    setAccessToken(accessToken);
-    set({ user, status: 'authed' });
+  // Renvoie { mfaRequired: true } si le compte a un second facteur et qu'aucun
+  // code n'a été fourni ; l'appelant réaffiche alors le formulaire avec le champ code.
+  async login(email, password, code) {
+    const data = await api('/auth/login', { method: 'POST', body: { email, password, code } });
+    if (data.mfaRequired) return { mfaRequired: true };
+    setAccessToken(data.accessToken);
+    set({ user: data.user, status: 'authed' });
+    return {};
   },
 
   async register(email, password, display_name) {

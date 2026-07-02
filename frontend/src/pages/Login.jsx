@@ -8,6 +8,8 @@ export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [code, setCode] = useState('');
+  const [mfaStep, setMfaStep] = useState(false);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [needsSetup, setNeedsSetup] = useState(false);
@@ -21,7 +23,8 @@ export default function Login() {
     setError(null);
     setBusy(true);
     try {
-      await login(email, password);
+      const r = await login(email, password, mfaStep ? code : undefined);
+      if (r.mfaRequired) { setMfaStep(true); return; }
       navigate('/');
     } catch (err) {
       setError(err.message);
@@ -36,20 +39,28 @@ export default function Login() {
         <h1 className="font-display text-xl font-bold text-center">Connexion</h1>
         {error && <div className="text-sm text-rose-400 bg-rose-950/50 rounded p-2">{error}</div>}
         <input
-          type="email" required placeholder="Email" value={email}
+          type="email" required placeholder="Email" value={email} disabled={mfaStep}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm"
+          className="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm disabled:opacity-50"
         />
         <input
-          type="password" required placeholder="Mot de passe" value={password}
+          type="password" required placeholder="Mot de passe" value={password} disabled={mfaStep}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm"
+          className="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm disabled:opacity-50"
         />
+        {mfaStep && (
+          <input
+            type="text" required autoFocus inputMode="text" autoComplete="one-time-code"
+            placeholder="Code d’authentification (ou code de secours)" value={code}
+            onChange={(e) => setCode(e.target.value)}
+            className="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm tracking-widest"
+          />
+        )}
         <button
           type="submit" disabled={busy}
           className="w-full rounded-md bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 py-2 text-sm font-medium"
         >
-          {busy ? '…' : 'Se connecter'}
+          {busy ? '…' : mfaStep ? 'Vérifier' : 'Se connecter'}
         </button>
         {needsSetup && (
           <p className="text-center text-sm text-slate-400">

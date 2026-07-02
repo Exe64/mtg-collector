@@ -14,15 +14,20 @@ marquées **(admin)** exigent un compte administrateur. Le refresh token circule
 |---|---|---|---|
 | GET | `/api/auth/setup-status` | — | `{ needsSetup }` (public) |
 | POST | `/api/auth/register` | `{ email, password, display_name? }` | `{ user, accessToken }` + cookie — **1er compte uniquement** |
-| POST | `/api/auth/login` | `{ email, password }` | `{ user, accessToken }` + cookie |
+| POST | `/api/auth/login` | `{ email, password, code? }` | `{ user, accessToken }` + cookie — `{ mfaRequired: true }` si MFA activé sans `code` |
 | POST | `/api/auth/refresh` | — (cookie) | `{ accessToken }` (rotation + détection de réutilisation → révocation de la lignée) |
 | POST | `/api/auth/logout` | — (cookie) | `204` |
 | GET | `/api/auth/me` | — | `{ user }` |
 | GET | `/api/auth/users` | — | `{ users[] }` **(admin)** |
 | POST | `/api/auth/users` | `{ email, password, display_name?, is_admin? }` | `{ user }` **(admin)** |
 | DELETE | `/api/auth/users/:id` | — | `204` **(admin)** |
+| GET | `/api/auth/mfa` | — | `{ enabled, backupCodesRemaining }` |
+| POST | `/api/auth/mfa/setup` | — | `{ secret, otpauth, qr }` (QR en data-URL, non activé tant que non confirmé) |
+| POST | `/api/auth/mfa/enable` | `{ code }` | `{ backupCodes[] }` (10 codes à usage unique, affichés une seule fois) |
+| POST | `/api/auth/mfa/disable` | `{ code }` | `204` (code TOTP ou de secours exigé) |
 
 Mot de passe : ≥ 8 caractères, 1 majuscule, 1 chiffre. Access token 30 min. Rate limit auth : 10 req / 15 min / IP.
+MFA : TOTP (RFC 6238, ±30 s), opt-in par utilisateur ; un code de secours consommé est retiré de la liste.
 
 ## Cartes
 | Méthode | Route | Params | Réponse |

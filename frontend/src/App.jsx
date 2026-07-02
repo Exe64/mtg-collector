@@ -17,6 +17,7 @@ import Movements from './pages/Movements';
 import Journal from './pages/Journal';
 import Alerts from './pages/Alerts';
 import Accounts from './pages/Accounts';
+import Security from './pages/Security';
 
 function Protected({ children }) {
   const status = useAuth((s) => s.status);
@@ -59,6 +60,7 @@ export default function App() {
         <Route path="journal" element={<Journal />} />
         <Route path="alerts" element={<Alerts />} />
         <Route path="accounts" element={<Accounts />} />
+        <Route path="security" element={<Security />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
