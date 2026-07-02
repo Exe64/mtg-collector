@@ -68,7 +68,8 @@ export function getCardsCollection(identifiers) {
 
 export function searchCards(query, page = 1, { unique = 'cards', order = 'name', dir = 'auto' } = {}) {
   const q = encodeURIComponent(query);
-  return request(`/cards/search?q=${q}&unique=${unique}&order=${order}&dir=${dir}&page=${page}`);
+  // include_multilingual : sans lui, Scryfall ne matche que les noms EN (nom FR → 404).
+  return request(`/cards/search?q=${q}&unique=${unique}&order=${order}&dir=${dir}&page=${page}&include_multilingual=true`);
 }
 
 export function getCard(scryfallId) {

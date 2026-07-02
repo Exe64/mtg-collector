@@ -48,7 +48,7 @@ function matchAttr(c, f) {
     const ci = c.color_identity || [];
     if (f.color === 'C') return ci.length === 0;
     if (f.color === 'M') return ci.length > 1;
-    return ci.includes(f.color);
+    return ci.length === 1 && ci[0] === f.color; // mono-couleur stricte (exclut les multicolores)
   }
   return true;
 }
