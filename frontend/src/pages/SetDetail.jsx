@@ -45,10 +45,11 @@ function matchAttr(c, f) {
     else if (Number(c.cmc) !== Number(f.cmc)) return false;
   }
   if (f.color) {
-    const ci = c.color_identity || [];
-    if (f.color === 'C') return ci.length === 0;
-    if (f.color === 'M') return ci.length > 1;
-    return ci.length === 1 && ci[0] === f.color; // mono-couleur stricte (exclut les multicolores)
+    // Couleurs du coût de mana (pas l'identité couleur, qui inclut activations/faces arrière)
+    const cols = c.colors || [];
+    if (f.color === 'C') return cols.length === 0;
+    if (f.color === 'M') return cols.length > 1;
+    return cols.length === 1 && cols[0] === f.color; // mono-couleur stricte
   }
   return true;
 }

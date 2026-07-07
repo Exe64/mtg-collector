@@ -26,8 +26,21 @@ router.get('/search', requireAuth, async (req, res, next) => {
     const data = await cached(key, 3600, () => scryfall.searchCards(scryQuery, page, { unique, order, dir }));
     if (!data) return res.json({ cards: [], total: 0, page: Number(page), hasMore: false });
 
+    let cards = data.data.map(toClientCard);
+    if (unique === 'prints') {
+      // include_multilingual renvoie chaque langue comme une impression distincte :
+      // une seule ligne par (set, n° de collecteur), anglais préféré.
+      const seen = new Map();
+      for (const c of cards) {
+        const k = `${c.set}:${c.collector_number}`;
+        const prev = seen.get(k);
+        if (!prev || (prev.lang !== 'en' && c.lang === 'en')) seen.set(k, c);
+      }
+      cards = [...seen.values()];
+    }
+
     res.json({
-      cards: data.data.map(toClientCard),
+      cards,
       total: data.total_cards,
       page: Number(page),
       hasMore: Boolean(data.has_more),

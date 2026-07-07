@@ -113,6 +113,8 @@ export function toClientCard(raw) {
   return {
     scryfall_id: raw.id,
     name: raw.name,
+    lang: raw.lang,
+    colors: raw.colors || raw.card_faces?.[0]?.colors || [],
     set: raw.set,
     set_name: raw.set_name,
     collector_number: raw.collector_number,
