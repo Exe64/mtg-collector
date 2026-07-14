@@ -31,7 +31,7 @@ const RARITY_OPTIONS = [
 ];
 const COLOR_OPTIONS = [
   ['', 'Couleur'], ['W', 'Blanc'], ['U', 'Bleu'], ['B', 'Noir'], ['R', 'Rouge'], ['G', 'Vert'],
-  ['M', 'Multicolore'], ['C', 'Incolore'],
+  ['M', 'Multicolore'], ['C', 'Incolore'], ['L', 'Terrain'],
 ];
 const CMC_OPTIONS = [['', 'Coût'], ['0', '0'], ['1', '1'], ['2', '2'], ['3', '3'], ['4', '4'], ['5', '5'], ['6', '6'], ['7+', '7+']];
 const EMPTY_ATTR = { type: '', rarity: '', color: '', cmc: '' };
@@ -47,7 +47,9 @@ function matchAttr(c, f) {
   if (f.color) {
     // Couleurs du coût de mana (pas l'identité couleur, qui inclut activations/faces arrière)
     const cols = c.colors || [];
-    if (f.color === 'C') return cols.length === 0;
+    const isLand = (c.type_line || '').toLowerCase().includes('land');
+    if (f.color === 'L') return isLand;                       // terrains à part
+    if (f.color === 'C') return cols.length === 0 && !isLand; // incolore hors terrains
     if (f.color === 'M') return cols.length > 1;
     return cols.length === 1 && cols[0] === f.color; // mono-couleur stricte
   }
@@ -101,6 +103,7 @@ export default function SetDetail() {
   const [owned, setOwned] = useState({});
   const [setValue, setSetValue] = useState(0);
   const [filter, setFilter] = useState('all');
+  const [group, setGroup] = useState('base');
   const [sort, setSort] = useState('number');
   const [attr, setAttr] = useState(EMPTY_ATTR);
   const [showMissing, setShowMissing] = useState(false);
@@ -148,6 +151,7 @@ export default function SetDetail() {
       setLoading(true);
       setCards([]);
       setFilter('all');
+      setGroup('base');
       await loadOwned();
       let page = 1;
       let more = true;
@@ -188,16 +192,19 @@ export default function SetDetail() {
     }
   }
 
-  // Base set strict : cartes au numéro de collecteur ≤ printed_size (hors variants/promos)
-  const baseCards = useMemo(() => {
-    const limit = printedSize || cardCount || Infinity;
-    return cards
-      .filter((c) => {
-        const n = Number(c.collector_number);
-        return Number.isInteger(n) && n >= 1 && n <= limit;
-      })
-      .sort((a, b) => Number(a.collector_number) - Number(b.collector_number));
-  }, [cards, printedSize, cardCount]);
+  // Base set strict : n° de collecteur entier dans [1, printed_size]. Les « extras »
+  // (borderless, showcase, promos… numérotés au-delà, ou n° non entier) sont le reste.
+  const limit = printedSize || cardCount || Infinity;
+  const isBase = useCallback((c) => {
+    const n = Number(c.collector_number);
+    return Number.isInteger(n) && n >= 1 && n <= limit;
+  }, [limit]);
+
+  const baseCards = useMemo(
+    () => cards.filter(isBase).sort((a, b) => Number(a.collector_number) - Number(b.collector_number)),
+    [cards, isBase],
+  );
+  const extrasCount = cards.length - baseCards.length;
 
   const ownedCount = baseCards.filter((c) => totalQty(c.scryfall_id) > 0).length;
   const total = baseCards.length || (printedSize ?? cardCount ?? cards.length);
@@ -222,8 +229,13 @@ export default function SetDetail() {
     return { count, qty };
   }, [owned, cards, loading]);
 
-  // Filtres d'attributs (type/rareté/couleur/coût) appliqués avant les compteurs owned/missing
-  const attrCards = useMemo(() => cards.filter((c) => matchAttr(c, attr)), [cards, attr]);
+  // Onglet Base / Extras, puis filtres d'attributs (type/rareté/couleur/coût) —
+  // appliqués avant les compteurs owned/missing.
+  const groupCards = useMemo(
+    () => cards.filter((c) => (group === 'base' ? isBase(c) : !isBase(c))),
+    [cards, group, isBase],
+  );
+  const attrCards = useMemo(() => groupCards.filter((c) => matchAttr(c, attr)), [groupCards, attr]);
 
   const visible = useMemo(() => {
     const filtered = attrCards.filter((c) => {
@@ -302,6 +314,20 @@ export default function SetDetail() {
           <LineChart points={setSnaps.map((s) => ({ date: s.snapshot_date, value: s.total_value_eur }))} />
         </div>
       )}
+
+      {/* Base / Extras */}
+      <div className="flex gap-1 mb-3">
+        {[['base', 'Base', baseCards.length], ['extras', 'Extras', extrasCount]].map(([key, label, n]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setGroup(key)}
+            className={`text-sm rounded px-4 py-1.5 font-medium ${group === key ? 'bg-gold-700 text-white' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'}`}
+          >
+            {label} <span className={group === key ? 'text-gold-200' : 'text-slate-500'}>({n})</span>
+          </button>
+        ))}
+      </div>
 
       {/* Filtres */}
       <div className="flex gap-1 mb-4">
