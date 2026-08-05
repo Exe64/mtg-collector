@@ -56,9 +56,29 @@ function matchAttr(c, f) {
   return true;
 }
 
+// Prix d'affichage. Les impressions foil-only (promos prerelease « 12s », promos
+// datestamped…) n'ont pas de cote non-foil chez Scryfall (`eur` null) : on retombe
+// sur le foil, signalé comme tel, plutôt que d'afficher « — » sur une carte cotée.
+function displayPrice(c) {
+  const p = c.prices || {};
+  if (p.eur != null) return { value: Number(p.eur), foil: false };
+  const foil = p.eur_foil ?? p.eur_etched;
+  return foil != null ? { value: Number(foil), foil: true } : null;
+}
+
+// Finitions réellement imprimées. `finishes` absent ou vide = inconnu → on n'exclut
+// rien (sinon une carte sans métadonnée n'afficherait aucun compteur).
+function finishAvailability(c) {
+  const f = Array.isArray(c.finishes) && c.finishes.length ? c.finishes : null;
+  return {
+    nonfoil: !f || f.includes('nonfoil'),
+    foil: !f || f.some((x) => x !== 'nonfoil'),
+  };
+}
+
 function sortCards(arr, sort) {
   if (sort === 'number') return arr; // ordre du backend (gère les variantes type "250★")
-  const price = (c) => Number(c.prices?.eur) || 0;
+  const price = (c) => displayPrice(c)?.value || 0;
   // Nom FR si dispo, sinon retombe sur l'anglais (toutes les cartes n'ont pas de nom FR).
   const fr = (c) => c.name_fr || c.name;
   const by = {
@@ -176,7 +196,10 @@ export default function SetDetail() {
 
   async function adjust(card, finish, delta) {
     const id = card.scryfall_id;
-    const unit = Number(card.prices?.eur) || 0;
+    // Mise à jour optimiste : même règle que UNIT_EUR côté backend (services/pricing.js),
+    // sinon la valeur affichée dérive de celle rechargée au prochain /collection/owned.
+    const p = card.prices || {};
+    const unit = Number(finish === 'foil' ? p.eur_foil : p.eur) || 0;
     setOwned((o) => {
       const cur = o[id] || { nonfoil: 0, foil: 0 };
       return { ...o, [id]: { ...cur, [finish]: Math.max((cur[finish] || 0) + delta, 0) } };
@@ -210,8 +233,10 @@ export default function SetDetail() {
   const total = baseCards.length || (printedSize ?? cardCount ?? cards.length);
   const pct = total ? Math.min(100, Math.round((100 * ownedCount) / total)) : 0;
   const missingBase = baseCards.filter((c) => totalQty(c.scryfall_id) === 0);
+  // Coût pour compléter : prix non-foil, ou foil pour les impressions qui n'existent
+  // qu'en foil (c'est le seul exemplaire achetable).
   const missingCost = useMemo(
-    () => missingBase.reduce((s, c) => s + (Number(c.prices?.eur) || 0), 0),
+    () => missingBase.reduce((s, c) => s + (displayPrice(c)?.value || 0), 0),
     [missingBase],
   );
 
@@ -368,7 +393,12 @@ export default function SetDetail() {
           {visible.map((c) => {
             const o = owned[c.scryfall_id] || { nonfoil: 0, foil: 0 };
             const qty = (o.nonfoil || 0) + (o.foil || 0);
-            const canFoil = !Array.isArray(c.finishes) || c.finishes.some((f) => f !== 'nonfoil');
+            const avail = finishAvailability(c);
+            // On affiche aussi une ligne non disponible si elle porte déjà une quantité
+            // (donnée antérieure / import), sinon l'exemplaire deviendrait inretirable.
+            const canNonFoil = avail.nonfoil || (o.nonfoil || 0) > 0;
+            const canFoil = avail.foil || (o.foil || 0) > 0;
+            const price = displayPrice(c);
             return (
               <div
                 key={c.scryfall_id}
@@ -389,10 +419,17 @@ export default function SetDetail() {
                 )}
                 <div className="p-2">
                   <div className="text-xs truncate" title={c.name_fr ? `${c.name_fr} · ${c.name}` : c.name}>#{c.collector_number} {c.name_fr || c.name}</div>
-                  <div className="text-xs text-emerald-400 mt-0.5">{c.prices?.eur ? `${c.prices.eur} €` : '—'}</div>
+                  <div className="text-xs text-emerald-400 mt-0.5">
+                    {price ? `${price.value.toFixed(2)} €` : '—'}
+                    {price?.foil && (
+                      <span className="text-gold-400" title="Impression foil uniquement — cote foil"> foil</span>
+                    )}
+                  </div>
                   <div className="mt-1.5 space-y-1">
-                    <FinishRow label="Normale" count={o.nonfoil || 0} accent="indigo"
-                      onMinus={() => adjust(c, 'nonfoil', -1)} onPlus={() => adjust(c, 'nonfoil', 1)} />
+                    {canNonFoil && (
+                      <FinishRow label="Normale" count={o.nonfoil || 0} accent="indigo"
+                        onMinus={() => adjust(c, 'nonfoil', -1)} onPlus={() => adjust(c, 'nonfoil', 1)} />
+                    )}
                     {canFoil && (
                       <FinishRow label="Foil" count={o.foil || 0} accent="gold"
                         onMinus={() => adjust(c, 'foil', -1)} onPlus={() => adjust(c, 'foil', 1)} />
