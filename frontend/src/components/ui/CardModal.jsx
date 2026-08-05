@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { api } from '../../api/client';
 import { useCardModal } from '../../stores/cardModal';
 import LineChart from '../charts/LineChart';
@@ -54,6 +54,17 @@ export default function CardModal() {
     })();
     return () => { cancelled = true; };
   }, [scryfallId]);
+
+  // Série tracée : le non-foil, ou le foil pour les impressions qui n'ont pas de cote
+  // non-foil (promos prerelease…) — sinon la courbe restait vide sur ces cartes.
+  const priceSeries = useMemo(() => {
+    const pick = (key) => history.filter((h) => h[key] != null)
+      .map((h) => ({ date: h.snapshot_date, value: Number(h[key]) }));
+    const eur = pick('eur');
+    if (eur.length >= 2) return { points: eur, foil: false };
+    const foil = pick('eur_foil');
+    return foil.length >= 2 ? { points: foil, foil: true } : null;
+  }, [history]);
 
   useEffect(() => {
     if (!scryfallId) return undefined;
@@ -184,10 +195,12 @@ export default function CardModal() {
                 </div>
               )}
 
-              {history.filter((h) => h.eur != null).length >= 2 && (
+              {priceSeries && (
                 <div className="mt-4">
-                  <h3 className="text-sm font-semibold text-slate-300 mb-1">Évolution du prix (EUR)</h3>
-                  <LineChart points={history.map((h) => ({ date: h.snapshot_date, value: h.eur }))} />
+                  <h3 className="text-sm font-semibold text-slate-300 mb-1">
+                    Évolution du prix (EUR{priceSeries.foil ? ', foil' : ''})
+                  </h3>
+                  <LineChart points={priceSeries.points} />
                 </div>
               )}
 

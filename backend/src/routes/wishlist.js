@@ -5,6 +5,7 @@ import { query } from '../config/db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
 import { ensureCard } from '../services/cards.js';
+import { HIST_EUR_ANY } from '../services/pricing.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -45,13 +46,13 @@ router.get('/movers', async (req, res, next) => {
          WHERE w.user_id = $1
        ),
        latest AS (
-         SELECT h.card_id, h.snapshot_date, h.eur
+         SELECT h.card_id, h.snapshot_date, (${HIST_EUR_ANY}) AS eur
          FROM card_price_history h
          JOIN wished o ON o.card_id = h.card_id
          WHERE h.snapshot_date = (SELECT MAX(snapshot_date) FROM card_price_history h2 WHERE h2.card_id = h.card_id)
        ),
        ref AS (
-         SELECT DISTINCT ON (h.card_id) h.card_id, h.eur
+         SELECT DISTINCT ON (h.card_id) h.card_id, (${HIST_EUR_ANY}) AS eur
          FROM card_price_history h
          JOIN latest l ON l.card_id = h.card_id
          WHERE h.snapshot_date <= l.snapshot_date - $2::int

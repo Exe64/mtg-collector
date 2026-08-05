@@ -1,5 +1,5 @@
 import { query } from '../config/db.js';
-import { UNIT_EUR, UNIT_USD } from './pricing.js';
+import { UNIT_EUR, UNIT_USD, HIST_EUR_BY_FINISH } from './pricing.js';
 
 const SORT_COLUMNS = {
   name: 'c.name',
@@ -317,24 +317,32 @@ export async function getStats(userId) {
 export async function getPriceMovers(userId, days = 7, threshold = 20, limit = 10) {
   const { rows } = await query(
     `WITH owned AS (
-       SELECT DISTINCT c.id AS card_id, c.scryfall_id, c.name, c.set_code, c.image_uri_small
+       -- Finition suivie : celle réellement possédée. Le non-foil prime (cas courant
+       -- et seul cas où plusieurs finitions coexistent) ; à défaut on suit le foil,
+       -- sinon les impressions foil-only n'ont aucun historique en euros à comparer.
+       SELECT c.id AS card_id, c.scryfall_id, c.name, c.set_code, c.image_uri_small,
+              CASE WHEN bool_or(e.finish = 'nonfoil') THEN 'nonfoil'
+                   WHEN bool_or(e.finish = 'etched')  THEN 'etched'
+                   ELSE 'foil' END AS finish
        FROM cards c JOIN collection_entries e ON e.card_id = c.id
        WHERE e.user_id = $1
+       GROUP BY c.id, c.scryfall_id, c.name, c.set_code, c.image_uri_small
      ),
      latest AS (
-       SELECT h.card_id, h.snapshot_date, h.eur
+       SELECT h.card_id, h.snapshot_date, (${HIST_EUR_BY_FINISH}) AS eur
        FROM card_price_history h
        JOIN owned o ON o.card_id = h.card_id
        WHERE h.snapshot_date = (SELECT MAX(snapshot_date) FROM card_price_history h2 WHERE h2.card_id = h.card_id)
      ),
      ref AS (
-       SELECT DISTINCT ON (h.card_id) h.card_id, h.eur
+       SELECT DISTINCT ON (h.card_id) h.card_id, (${HIST_EUR_BY_FINISH}) AS eur
        FROM card_price_history h
+       JOIN owned o ON o.card_id = h.card_id
        JOIN latest l ON l.card_id = h.card_id
        WHERE h.snapshot_date <= l.snapshot_date - $2::int
        ORDER BY h.card_id, h.snapshot_date DESC
      )
-     SELECT o.scryfall_id, o.name, o.set_code, o.image_uri_small,
+     SELECT o.scryfall_id, o.name, o.set_code, o.image_uri_small, o.finish AS tracked_finish,
             l.eur AS current_eur, r.eur AS past_eur,
             (l.eur - r.eur)::numeric(10,2) AS diff_eur,
             round(((l.eur - r.eur) / NULLIF(r.eur, 0)) * 100, 1) AS pct
