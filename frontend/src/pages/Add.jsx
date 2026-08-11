@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from '../api/client';
 import { useCardModal } from '../stores/cardModal';
+import CardPrice from '../components/ui/CardPrice';
 import { CONDITIONS, identityStyle } from '../constants';
 
 // Ajout/retrait rapide partagé entre la ligne (desktop) et la carte (mobile).
@@ -73,7 +74,9 @@ function ResultRow({ card, owned, onAdjust }) {
         <div className="truncate max-w-[14rem]">{card.set_name}</div>
         <div className="text-xs text-slate-500 uppercase">{card.set} #{card.collector_number}</div>
       </td>
-      <td className="p-2 text-right text-emerald-400 text-sm whitespace-nowrap">{card.prices?.eur ? `${card.prices.eur} €` : '—'}</td>
+      <td className="p-2 text-right text-sm">
+        <CardPrice card={card} className="justify-end text-right whitespace-nowrap" />
+      </td>
       <td className="p-2"><CondSel value={c.condition} onChange={(e) => c.setCondition(e.target.value)} /></td>
       <td className="p-2">
         <QtyCtl label="Normale" accent="indigo" count={o.nonfoil || 0} disabled={c.busy}
@@ -105,7 +108,7 @@ function ResultCard({ card, owned, onAdjust }) {
             <span className="block text-xs text-slate-500 truncate">{card.set_name} · {card.set?.toUpperCase()} #{card.collector_number}</span>
           </span>
         </button>
-        <span className="text-emerald-400 text-sm whitespace-nowrap">{card.prices?.eur ? `${card.prices.eur} €` : '—'}</span>
+        <CardPrice card={card} className="text-sm justify-end text-right shrink-0 max-w-[7.5rem]" />
       </div>
       <div className="flex items-center gap-3 mt-2 flex-wrap">
         <CondSel value={c.condition} onChange={(e) => c.setCondition(e.target.value)} />

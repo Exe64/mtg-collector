@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { api } from '../../api/client';
 import { useCardModal } from '../../stores/cardModal';
 import LineChart from '../charts/LineChart';
+import CardPrice from './CardPrice';
 import { manaSymbols } from '../../constants';
 
 function Mana({ cost }) {
@@ -164,8 +165,7 @@ export default function CardModal() {
               )}
 
               <div className="flex gap-4 text-sm mt-3">
-                <span className="text-emerald-400">{card.prices?.eur ? `${card.prices.eur} €` : '—'}</span>
-                {card.prices?.eur_foil && <span className="text-emerald-300">{card.prices.eur_foil} € foil</span>}
+                <CardPrice card={card} />
                 {card.prices?.usd && <span className="text-slate-400">${card.prices.usd}</span>}
               </div>
 

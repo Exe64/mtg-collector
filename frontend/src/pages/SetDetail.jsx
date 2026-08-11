@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useCardModal } from '../stores/cardModal';
 import LineChart from '../components/charts/LineChart';
+import CardPrice, { refPrice } from '../components/ui/CardPrice';
 import { identityStyle } from '../constants';
 
 const FILTERS = [
@@ -56,16 +57,6 @@ function matchAttr(c, f) {
   return true;
 }
 
-// Prix d'affichage. Les impressions foil-only (promos prerelease « 12s », promos
-// datestamped…) n'ont pas de cote non-foil chez Scryfall (`eur` null) : on retombe
-// sur le foil, signalé comme tel, plutôt que d'afficher « — » sur une carte cotée.
-function displayPrice(c) {
-  const p = c.prices || {};
-  if (p.eur != null) return { value: Number(p.eur), foil: false };
-  const foil = p.eur_foil ?? p.eur_etched;
-  return foil != null ? { value: Number(foil), foil: true } : null;
-}
-
 // Finitions réellement imprimées. `finishes` absent ou vide = inconnu → on n'exclut
 // rien (sinon une carte sans métadonnée n'afficherait aucun compteur).
 function finishAvailability(c) {
@@ -78,7 +69,7 @@ function finishAvailability(c) {
 
 function sortCards(arr, sort) {
   if (sort === 'number') return arr; // ordre du backend (gère les variantes type "250★")
-  const price = (c) => displayPrice(c)?.value || 0;
+  const price = (c) => refPrice(c) || 0;
   // Nom FR si dispo, sinon retombe sur l'anglais (toutes les cartes n'ont pas de nom FR).
   const fr = (c) => c.name_fr || c.name;
   const by = {
@@ -236,7 +227,7 @@ export default function SetDetail() {
   // Coût pour compléter : prix non-foil, ou foil pour les impressions qui n'existent
   // qu'en foil (c'est le seul exemplaire achetable).
   const missingCost = useMemo(
-    () => missingBase.reduce((s, c) => s + (displayPrice(c)?.value || 0), 0),
+    () => missingBase.reduce((s, c) => s + (refPrice(c) || 0), 0),
     [missingBase],
   );
 
@@ -398,7 +389,6 @@ export default function SetDetail() {
             // (donnée antérieure / import), sinon l'exemplaire deviendrait inretirable.
             const canNonFoil = avail.nonfoil || (o.nonfoil || 0) > 0;
             const canFoil = avail.foil || (o.foil || 0) > 0;
-            const price = displayPrice(c);
             return (
               <div
                 key={c.scryfall_id}
@@ -419,12 +409,7 @@ export default function SetDetail() {
                 )}
                 <div className="p-2">
                   <div className="text-xs truncate" title={c.name_fr ? `${c.name_fr} · ${c.name}` : c.name}>#{c.collector_number} {c.name_fr || c.name}</div>
-                  <div className="text-xs text-emerald-400 mt-0.5">
-                    {price ? `${price.value.toFixed(2)} €` : '—'}
-                    {price?.foil && (
-                      <span className="text-gold-400" title="Impression foil uniquement — cote foil"> foil</span>
-                    )}
-                  </div>
+                  <CardPrice card={c} className="text-xs mt-0.5" />
                   <div className="mt-1.5 space-y-1">
                     {canNonFoil && (
                       <FinishRow label="Normale" count={o.nonfoil || 0} accent="indigo"
