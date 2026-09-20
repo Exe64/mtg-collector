@@ -2,10 +2,9 @@ import { createWriteStream, createReadStream } from 'node:fs';
 import { mkdir, unlink } from 'node:fs/promises';
 import { pipeline } from 'node:stream/promises';
 import { Readable } from 'node:stream';
+import { createGunzip } from 'node:zlib';
+import { createInterface } from 'node:readline';
 import path from 'node:path';
-
-import streamJson from 'stream-json';
-import streamArrayMod from 'stream-json/streamers/StreamArray.js';
 
 import * as scryfall from './scryfall.js';
 import { mapScryfallCard, upsertCardsBatch } from './cards.js';
@@ -13,11 +12,36 @@ import { syncSets } from './sets.js';
 import { query } from '../config/db.js';
 import { logger } from '../config/logger.js';
 
-const { parser } = streamJson;
-const { streamArray } = streamArrayMod;
-
 const DIR = path.resolve('bulk-data');
 const BATCH = 500;
+
+// Scryfall ne sert plus les bulks en tableau JSON (`download_uri` a disparu) :
+// uniquement en JSONL gzippé (`jsonl_download_uri`), un objet par ligne.
+// Télécharge sur disque (jamais le dump entier en RAM) puis yield objet par objet.
+async function* streamBulk(type, filename) {
+  const meta = await scryfall.getBulkData(type);
+  if (!meta?.jsonl_download_uri) throw new Error(`bulk-data « ${type} » introuvable`);
+
+  await mkdir(DIR, { recursive: true });
+  const file = path.join(DIR, filename);
+  const res = await fetch(meta.jsonl_download_uri, {
+    headers: { 'User-Agent': scryfall.USER_AGENT },
+  });
+  if (!res.ok) throw new Error(`Téléchargement bulk « ${type} » échoué : ${res.status}`);
+  await pipeline(Readable.fromWeb(res.body), createWriteStream(file));
+
+  try {
+    const lines = createInterface({
+      input: createReadStream(file).pipe(createGunzip()),
+      crlfDelay: Infinity,
+    });
+    for await (const line of lines) {
+      if (line.trim()) yield JSON.parse(line);
+    }
+  } finally {
+    await unlink(file).catch(() => {});
+  }
+}
 
 // Upsert d'un lot tolérant aux pannes : si le lot atomique échoue (≥ 1 carte
 // fautive — overflow numérique, donnée aberrante…), on rejoue carte par carte
@@ -51,20 +75,7 @@ export async function syncBulk({ onProgress } = {}) {
   // 1. Sets d'abord : satisfait la FK cards.set_code et alimente le browse.
   await syncSets();
 
-  // 2. Métadonnées du dump du jour.
-  const meta = await scryfall.getBulkData('default_cards');
-  if (!meta?.download_uri) throw new Error('bulk-data « default_cards » introuvable');
-
-  // 3. Téléchargement en streaming vers le disque (jamais 450 Mo en RAM).
-  await mkdir(DIR, { recursive: true });
-  const file = path.join(DIR, 'default_cards.json');
-  const res = await fetch(meta.download_uri, {
-    headers: { 'User-Agent': scryfall.USER_AGENT, Accept: 'application/json' },
-  });
-  if (!res.ok) throw new Error(`Téléchargement bulk échoué : ${res.status}`);
-  await pipeline(Readable.fromWeb(res.body), createWriteStream(file));
-
-  // 4. Parse streaming + upsert par lots (tolérant aux pannes).
+  // 2-3. Téléchargement du dump du jour + parse streaming, upsert par lots.
   let batch = [];
   let count = 0;
   let skipped = 0;
@@ -77,8 +88,7 @@ export async function syncBulk({ onProgress } = {}) {
     onProgress?.(count);
   };
 
-  const source = createReadStream(file).pipe(parser()).pipe(streamArray());
-  for await (const { value } of source) {
+  for await (const value of streamBulk('default_cards', 'default_cards.jsonl.gz')) {
     let mapped;
     try {
       mapped = mapScryfallCard(value);
@@ -92,7 +102,6 @@ export async function syncBulk({ onProgress } = {}) {
   }
   await flush();
 
-  await unlink(file).catch(() => {});
   if (skipped) logger.warn(`sync bulk : ${skipped} carte(s) ignorée(s) (voir logs ci-dessus)`);
   logger.info(`sync bulk terminé : ${count} cartes, ${skipped} ignorée(s)`);
   return { count, skipped };
@@ -141,17 +150,6 @@ async function applyFrenchBatch(batch) {
  * À lancer APRÈS syncBulk (qui crée les lignes anglaises canoniques).
  */
 export async function syncFrenchNames({ onProgress } = {}) {
-  const meta = await scryfall.getBulkData('all_cards');
-  if (!meta?.download_uri) throw new Error('bulk-data « all_cards » introuvable');
-
-  await mkdir(DIR, { recursive: true });
-  const file = path.join(DIR, 'all_cards.json');
-  const res = await fetch(meta.download_uri, {
-    headers: { 'User-Agent': scryfall.USER_AGENT, Accept: 'application/json' },
-  });
-  if (!res.ok) throw new Error(`Téléchargement bulk FR échoué : ${res.status}`);
-  await pipeline(Readable.fromWeb(res.body), createWriteStream(file));
-
   let batch = [];
   let matched = 0;
   const flush = async () => {
@@ -161,8 +159,7 @@ export async function syncFrenchNames({ onProgress } = {}) {
     onProgress?.(matched);
   };
 
-  const source = createReadStream(file).pipe(parser()).pipe(streamArray());
-  for await (const { value } of source) {
+  for await (const value of streamBulk('all_cards', 'all_cards.jsonl.gz')) {
     if (value?.lang !== 'fr') continue;
     const name_fr = frenchName(value);
     if (!name_fr || !value.set || !value.collector_number) continue;
@@ -170,7 +167,6 @@ export async function syncFrenchNames({ onProgress } = {}) {
     if (batch.length >= BATCH) await flush();
   }
   await flush();
-  await unlink(file).catch(() => {});
 
   // Propagation par oracle_id : les impressions restées sans FR héritent du nom
   // FR d'une autre impression de la même carte (oracle_id NULL exclu).
