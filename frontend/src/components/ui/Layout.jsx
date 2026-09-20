@@ -61,10 +61,12 @@ export default function Layout() {
       {/* Bannière + titre */}
       <header>
         <div
-          className="h-24 sm:h-36 bg-cover bg-center relative"
-          style={{ backgroundImage: 'url(/banner.png)' }}
+          className="h-24 sm:h-36 bg-contain bg-left bg-no-repeat bg-slate-900 relative"
+          style={{ backgroundImage: 'url(/banner-02.jpg)' }}
         >
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/85 to-transparent flex items-end">
+          {/* bg-contain : le fond de l'image est exactement slate-900, la zone
+              laissée libre à droite se fond dedans quelle que soit la largeur. */}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/85 to-transparent flex items-end justify-end">
             <h1 className="px-4 pb-3 font-display text-xl sm:text-3xl font-bold text-gold-300 drop-shadow-lg tracking-wide">
               MTG Collection Manager
             </h1>
