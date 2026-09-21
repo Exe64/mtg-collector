@@ -168,6 +168,31 @@ router.get('/owned', async (req, res, next) => {
   }
 });
 
+// GET /api/collection/printings/:scryfallId  → { printings: [{scryfall_id, set_code, set_name, collector_number, nonfoil, foil}] }
+// Toutes les impressions possédées de la même carte (même oracle_id, ou même nom à défaut).
+router.get('/printings/:scryfallId', async (req, res, next) => {
+  try {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(req.params.scryfallId)) {
+      return res.json({ printings: [] });
+    }
+    const { rows } = await query(
+      `WITH ref AS (SELECT oracle_id, name FROM cards WHERE scryfall_id = $2::uuid LIMIT 1)
+       SELECT c.scryfall_id, c.set_code, c.set_name, c.collector_number,
+              COALESCE(SUM(e.quantity) FILTER (WHERE e.finish = 'nonfoil'), 0)::int AS nonfoil,
+              COALESCE(SUM(e.quantity) FILTER (WHERE e.finish <> 'nonfoil'), 0)::int AS foil
+       FROM collection_entries e JOIN cards c ON c.id = e.card_id, ref
+       WHERE e.user_id = $1
+         AND (c.oracle_id = ref.oracle_id OR (ref.oracle_id IS NULL AND c.name = ref.name))
+       GROUP BY c.scryfall_id, c.set_code, c.set_name, c.collector_number
+       ORDER BY c.set_name, c.collector_number`,
+      [req.user.id, req.params.scryfallId],
+    );
+    res.json({ printings: rows });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // POST /api/collection/owned-ids  { ids: [...] }  → { owned: { <id>: {nonfoil, foil} } }
 router.post('/owned-ids', async (req, res, next) => {
   try {

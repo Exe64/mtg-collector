@@ -14,9 +14,11 @@ function Mana({ cost }) {
 export default function CardModal() {
   const scryfallId = useCardModal((s) => s.scryfallId);
   const close = useCardModal((s) => s.close);
+  const open = useCardModal((s) => s.open);
   const [card, setCard] = useState(null);
   const [rulings, setRulings] = useState([]);
   const [history, setHistory] = useState([]);
+  const [printings, setPrintings] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showBack, setShowBack] = useState(false);
   const [wishMsg, setWishMsg] = useState(null);
@@ -32,6 +34,7 @@ export default function CardModal() {
     setCard(null);
     setRulings([]);
     setHistory([]);
+    setPrintings([]);
     setShowBack(false);
     setWishMsg(null);
     setShowAlert(false);
@@ -49,6 +52,9 @@ export default function CardModal() {
         setCard(detail.card);
         setRulings(rul.rulings || []);
         setHistory(hist.history || []);
+        // Après le détail : /cards/:id insère la carte en base, requise pour trouver ses sœurs.
+        const pr = await api(`/collection/printings/${scryfallId}`).catch(() => ({ printings: [] }));
+        if (!cancelled) setPrintings(pr.printings || []);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -168,6 +174,31 @@ export default function CardModal() {
                 <CardPrice card={card} />
                 {card.prices?.usd && <span className="text-slate-400">${card.prices.usd}</span>}
               </div>
+
+              {(() => {
+                const here = printings.find((p) => p.scryfall_id === scryfallId);
+                const others = printings.filter((p) => p.scryfall_id !== scryfallId);
+                return (
+                  <div className="mt-3 text-sm">
+                    <div className="text-slate-300">
+                      Possédées : <span className="font-semibold">{here?.nonfoil || 0}</span> normale(s)
+                      {' · '}<span className="font-semibold text-gold-400">{here?.foil || 0}</span> foil
+                    </div>
+                    {others.length > 0 && (
+                      <ul className="mt-1 text-xs text-slate-400 space-y-0.5">
+                        {others.map((p) => (
+                          <li key={p.scryfall_id}>
+                            <button type="button" onClick={() => open(p.scryfall_id)} className="hover:text-indigo-300 text-left">
+                              {p.set_name} <span className="uppercase text-slate-500">{p.set_code} #{p.collector_number}</span>
+                            </button>
+                            {' — '}{p.nonfoil} normale(s){p.foil > 0 && <>, <span className="text-gold-400">{p.foil} foil</span></>}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                );
+              })()}
 
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <button type="button" onClick={addToWishlist}

@@ -59,6 +59,7 @@ MFA : TOTP (RFC 6238, ±30 s), opt-in par utilisateur ; un code de secours conso
 | GET | `/api/collection/locations` | — | `{ locations[] }` (emplacements physiques distincts) |
 | GET | `/api/collection/owned-by-set` | — | `{ ownedBySet: { <code>: { owned, value } } }` |
 | GET | `/api/collection/owned` | `set?` | `{ owned: { <scryfall_id>: { nonfoil, foil } }, totalEur }` |
+| GET | `/api/collection/printings/:scryfallId` | — | `{ printings: [{ scryfall_id, set_code, set_name, collector_number, nonfoil, foil }] }` (impressions possédées de la même carte) |
 | POST | `/api/collection/owned-ids` | `{ ids[] }` (UUID) | `{ owned: { <scryfall_id>: { nonfoil, foil } } }` |
 | POST | `/api/collection` | `{ scryfall_id, quantity, finish, condition, language, acquired_price?, notes? }` | `{ entry }` (incrément sur conflit) |
 | POST | `/api/collection/adjust` | `{ scryfall_id, delta, finish?, condition?, language?, location? }` | `{ quantity }` |
