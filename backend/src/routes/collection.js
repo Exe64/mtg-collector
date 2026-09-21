@@ -19,8 +19,10 @@ const PATCHABLE = ['quantity', 'condition', 'notes', 'finish', 'language', 'loca
 // GET /api/collection?page&pageSize&sort&order&q&set&color&type&rarity&condition&finish&language
 router.get('/', async (req, res, next) => {
   try {
-    const result = await getCollection(req.user.id, req.query);
-    const stats = await getCollectionTotals(req.user.id);
+    const [result, stats] = await Promise.all([
+      getCollection(req.user.id, req.query),
+      getCollectionTotals(req.user.id),
+    ]);
     res.json({ ...result, stats });
   } catch (err) {
     next(err);

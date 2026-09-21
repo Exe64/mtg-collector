@@ -327,28 +327,25 @@ export async function getPriceMovers(userId, days = 7, threshold = 20, limit = 1
        FROM cards c JOIN collection_entries e ON e.card_id = c.id
        WHERE e.user_id = $1
        GROUP BY c.id, c.scryfall_id, c.name, c.set_code, c.image_uri_small
-     ),
-     latest AS (
-       SELECT h.card_id, h.snapshot_date, (${HIST_EUR_BY_FINISH}) AS eur
-       FROM card_price_history h
-       JOIN owned o ON o.card_id = h.card_id
-       WHERE h.snapshot_date = (SELECT MAX(snapshot_date) FROM card_price_history h2 WHERE h2.card_id = h.card_id)
-     ),
-     ref AS (
-       SELECT DISTINCT ON (h.card_id) h.card_id, (${HIST_EUR_BY_FINISH}) AS eur
-       FROM card_price_history h
-       JOIN owned o ON o.card_id = h.card_id
-       JOIN latest l ON l.card_id = h.card_id
-       WHERE h.snapshot_date <= l.snapshot_date - $2::int
-       ORDER BY h.card_id, h.snapshot_date DESC
      )
+     -- Deux lectures d'index par carte (PK card_id, snapshot_date), indépendantes de la
+     -- profondeur d'historique : dernier snapshot, puis le plus récent ≤ dernier - days.
      SELECT o.scryfall_id, o.name, o.set_code, o.image_uri_small, o.finish AS tracked_finish,
             l.eur AS current_eur, r.eur AS past_eur,
             (l.eur - r.eur)::numeric(10,2) AS diff_eur,
             round(((l.eur - r.eur) / NULLIF(r.eur, 0)) * 100, 1) AS pct
      FROM owned o
-     JOIN latest l ON l.card_id = o.card_id
-     JOIN ref r ON r.card_id = o.card_id
+     CROSS JOIN LATERAL (
+       SELECT h.snapshot_date, (${HIST_EUR_BY_FINISH}) AS eur
+       FROM card_price_history h WHERE h.card_id = o.card_id
+       ORDER BY h.snapshot_date DESC LIMIT 1
+     ) l
+     CROSS JOIN LATERAL (
+       SELECT (${HIST_EUR_BY_FINISH}) AS eur
+       FROM card_price_history h
+       WHERE h.card_id = o.card_id AND h.snapshot_date <= l.snapshot_date - $2::int
+       ORDER BY h.snapshot_date DESC LIMIT 1
+     ) r
      WHERE r.eur > 0 AND l.eur IS NOT NULL AND l.eur <> r.eur`,
     [userId, days],
   );
