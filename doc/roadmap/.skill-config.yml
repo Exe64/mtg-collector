@@ -1,0 +1,11 @@
+ide: auto
+issues:
+  mode: auto
+tests:
+  mode: autonomous
+roadmap-tracking:
+  collaborative: false
+  mode: auto
+  last-calibration: 2026-10-05
+  help:
+    welcomed: true

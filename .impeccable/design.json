@@ -1,0 +1,502 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-05T00:00:00Z",
+  "title": "Design System: Magic Collection Manager",
+  "extensions": {
+    "colorMeta": {
+      "anthracite-fond": {
+        "role": "neutral",
+        "displayName": "Anthracite fond",
+        "canonical": "#17181a",
+        "tonalRamp": [
+          "#0f1011",
+          "#17181a",
+          "#202225",
+          "#2c2f33",
+          "#3a3e44",
+          "#565b62",
+          "#8a9099",
+          "#e8eaed"
+        ]
+      },
+      "anthracite-panneau": {
+        "role": "neutral",
+        "displayName": "Anthracite panneau",
+        "canonical": "#202225",
+        "tonalRamp": [
+          "#0f1011",
+          "#17181a",
+          "#202225",
+          "#2c2f33",
+          "#3a3e44",
+          "#565b62",
+          "#8a9099",
+          "#e8eaed"
+        ]
+      },
+      "anthracite-releve": {
+        "role": "neutral",
+        "displayName": "Anthracite relevé",
+        "canonical": "#2c2f33",
+        "tonalRamp": [
+          "#0f1011",
+          "#17181a",
+          "#202225",
+          "#2c2f33",
+          "#3a3e44",
+          "#565b62",
+          "#8a9099",
+          "#e8eaed"
+        ]
+      },
+      "anthracite-bordure": {
+        "role": "neutral",
+        "displayName": "Anthracite bordure",
+        "canonical": "#3a3e44",
+        "tonalRamp": [
+          "#0f1011",
+          "#17181a",
+          "#202225",
+          "#2c2f33",
+          "#3a3e44",
+          "#565b62",
+          "#8a9099",
+          "#e8eaed"
+        ]
+      },
+      "texte": {
+        "role": "neutral",
+        "displayName": "Texte",
+        "canonical": "#e8eaed",
+        "tonalRamp": [
+          "#3a3e44",
+          "#6b7179",
+          "#868c95",
+          "#a0a6ae",
+          "#b4bac1",
+          "#d2d6db",
+          "#e8eaed",
+          "#f5f6f7"
+        ]
+      },
+      "texte-secondaire": {
+        "role": "neutral",
+        "displayName": "Texte secondaire",
+        "canonical": "#b4bac1",
+        "tonalRamp": [
+          "#3a3e44",
+          "#6b7179",
+          "#868c95",
+          "#a0a6ae",
+          "#b4bac1",
+          "#d2d6db",
+          "#e8eaed",
+          "#f5f6f7"
+        ]
+      },
+      "texte-attenue": {
+        "role": "neutral",
+        "displayName": "Texte atténué",
+        "canonical": "#a0a6ae",
+        "tonalRamp": [
+          "#3a3e44",
+          "#6b7179",
+          "#868c95",
+          "#a0a6ae",
+          "#b4bac1",
+          "#d2d6db",
+          "#e8eaed",
+          "#f5f6f7"
+        ]
+      },
+      "texte-discret": {
+        "role": "neutral",
+        "displayName": "Texte discret",
+        "canonical": "#868c95",
+        "tonalRamp": [
+          "#3a3e44",
+          "#6b7179",
+          "#868c95",
+          "#a0a6ae",
+          "#b4bac1",
+          "#d2d6db",
+          "#e8eaed",
+          "#f5f6f7"
+        ]
+      },
+      "ambre-action": {
+        "role": "primary",
+        "displayName": "Ambre d'action",
+        "canonical": "#a87f2e",
+        "tonalRamp": [
+          "#8a6824",
+          "#a87f2e",
+          "#c2953a",
+          "#d4ab55",
+          "#e3c178"
+        ]
+      },
+      "ambre-survol": {
+        "role": "primary",
+        "displayName": "Ambre survol",
+        "canonical": "#c2953a",
+        "tonalRamp": [
+          "#8a6824",
+          "#a87f2e",
+          "#c2953a",
+          "#d4ab55",
+          "#e3c178"
+        ]
+      },
+      "ambre-lien": {
+        "role": "primary",
+        "displayName": "Ambre lien",
+        "canonical": "#e3c178",
+        "tonalRamp": [
+          "#8a6824",
+          "#a87f2e",
+          "#c2953a",
+          "#d4ab55",
+          "#e3c178"
+        ]
+      },
+      "or-signature": {
+        "role": "secondary",
+        "displayName": "Or signature",
+        "canonical": "#e8cd8a",
+        "tonalRamp": [
+          "#8a6824",
+          "#a87f2e",
+          "#c2953a",
+          "#d9b85f",
+          "#e8cd8a"
+        ]
+      },
+      "or-foil": {
+        "role": "secondary",
+        "displayName": "Or foil",
+        "canonical": "#d9b85f",
+        "tonalRamp": [
+          "#8a6824",
+          "#a87f2e",
+          "#c2953a",
+          "#d9b85f",
+          "#e8cd8a"
+        ]
+      },
+      "or-profond": {
+        "role": "secondary",
+        "displayName": "Or profond",
+        "canonical": "#8a6824",
+        "tonalRamp": [
+          "#8a6824",
+          "#a87f2e",
+          "#c2953a",
+          "#d9b85f",
+          "#e8cd8a"
+        ]
+      },
+      "bleu-valeur": {
+        "role": "tertiary",
+        "displayName": "Bleu valeur",
+        "canonical": "#00b4ff",
+        "tonalRamp": [
+          "#0078b3",
+          "#0098e0",
+          "#00b4ff",
+          "#5cccff"
+        ]
+      },
+      "bleu-jauge": {
+        "role": "tertiary",
+        "displayName": "Bleu jauge",
+        "canonical": "#0098e0",
+        "tonalRamp": [
+          "#0078b3",
+          "#0098e0",
+          "#00b4ff",
+          "#5cccff"
+        ]
+      },
+      "vert-hausse": {
+        "role": "tertiary",
+        "displayName": "Vert hausse",
+        "canonical": "#34d399",
+        "tonalRamp": [
+          "#10b981",
+          "#34d399",
+          "#6ee7b7"
+        ]
+      },
+      "rose-baisse": {
+        "role": "tertiary",
+        "displayName": "Rose baisse",
+        "canonical": "#fb7185",
+        "tonalRamp": [
+          "#4c0519",
+          "#be123c",
+          "#f43f5e",
+          "#fb7185",
+          "#fda4af"
+        ]
+      },
+      "rose-alerte": {
+        "role": "tertiary",
+        "displayName": "Rose alerte",
+        "canonical": "#f43f5e",
+        "tonalRamp": [
+          "#4c0519",
+          "#be123c",
+          "#f43f5e",
+          "#fb7185",
+          "#fda4af"
+        ]
+      },
+      "rose-danger": {
+        "role": "tertiary",
+        "displayName": "Rose danger",
+        "canonical": "#be123c",
+        "tonalRamp": [
+          "#4c0519",
+          "#be123c",
+          "#f43f5e",
+          "#fb7185",
+          "#fda4af"
+        ]
+      },
+      "mana-blanc": {
+        "role": "tertiary",
+        "displayName": "Mana blanc",
+        "canonical": "#e9e4c8"
+      },
+      "mana-bleu": {
+        "role": "tertiary",
+        "displayName": "Mana bleu",
+        "canonical": "#4f8df0"
+      },
+      "mana-noir": {
+        "role": "tertiary",
+        "displayName": "Mana noir",
+        "canonical": "#6b6478"
+      },
+      "mana-rouge": {
+        "role": "tertiary",
+        "displayName": "Mana rouge",
+        "canonical": "#e0483f"
+      },
+      "mana-vert": {
+        "role": "tertiary",
+        "displayName": "Mana vert",
+        "canonical": "#3aa45b"
+      },
+      "mana-incolore": {
+        "role": "tertiary",
+        "displayName": "Mana incolore",
+        "canonical": "#9aa0a6"
+      },
+      "mana-multicolore": {
+        "role": "tertiary",
+        "displayName": "Mana multicolore",
+        "canonical": "#c9a227"
+      },
+      "bordure-champ": {
+        "role": "neutral",
+        "displayName": "Bordure de champ",
+        "canonical": "#6b7179",
+        "tonalRamp": [
+          "#3a3e44",
+          "#6b7179",
+          "#868c95",
+          "#a0a6ae",
+          "#b4bac1",
+          "#d2d6db",
+          "#e8eaed",
+          "#f5f6f7"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Titre de l'application dans la bannière, en or signature."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Titre de page, un seul par écran ; nom de carte dans la modale."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Titre de section à l'intérieur d'un panneau."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Lignes de tableau, texte oracle, champs et boutons."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Libellés de statistiques, métadonnées, codes d'extension."
+      }
+    },
+    "shadows": [
+      {
+        "name": "flottant",
+        "value": "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+        "purpose": "Bouton rond de retour en haut."
+      },
+      {
+        "name": "menu",
+        "value": "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)",
+        "purpose": "Menu déroulant Outils."
+      },
+      {
+        "name": "lisere-identite",
+        "value": "inset 4px 0 0 0 #c9a227",
+        "purpose": "Liseré gauche d'une ligne de carte, teinté selon l'identité de couleur."
+      }
+    ],
+    "motion": [],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Bouton principal",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Action principale d'un formulaire ou d'une barre d'outils.",
+      "html": "<button class=\"ds-btn-primary\">Importer</button>",
+      "css": ".ds-btn-primary { background: #a87f2e; color: #17181a; font: 400 14px/20px Inter, system-ui, sans-serif; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; } .ds-btn-primary:hover { background: #c2953a; } .ds-btn-primary:disabled { opacity: 0.5; } .ds-btn-primary:focus-visible { outline: 2px solid #d9b85f; outline-offset: 2px; }"
+    },
+    {
+      "name": "Bouton secondaire",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Action d'appoint à l'intérieur d'un panneau ou d'une modale.",
+      "html": "<button class=\"ds-btn-secondary\">★ Wishlist</button>",
+      "css": ".ds-btn-secondary { background: #2c2f33; color: #e8eaed; font: 400 14px/20px Inter, system-ui, sans-serif; padding: 4px 12px; border: none; border-radius: 4px; cursor: pointer; } .ds-btn-secondary:hover { background: #3a3e44; }"
+    },
+    {
+      "name": "Bouton destructif",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Suppression ou action irréversible.",
+      "html": "<button class=\"ds-btn-danger\">Supprimer</button>",
+      "css": ".ds-btn-danger { background: #be123c; color: #e8eaed; font: 400 14px/20px Inter, system-ui, sans-serif; padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer; } .ds-btn-danger:hover { background: #e11d48; } .ds-btn-danger:disabled { opacity: 0.5; }"
+    },
+    {
+      "name": "Champ de saisie",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Champ standard : un creux plus sombre que son panneau.",
+      "html": "<input class=\"ds-input\" placeholder=\"Rechercher une carte\" />",
+      "css": ".ds-input { background: #17181a; color: #e8eaed; border: 1px solid #6b7179; border-radius: 6px; padding: 8px 12px; font: 400 14px/20px Inter, system-ui, sans-serif; width: 240px; } .ds-input:disabled { opacity: 0.5; } .ds-input:focus-visible { outline: 2px solid #d9b85f; outline-offset: 2px; }"
+    },
+    {
+      "name": "Onglets de navigation",
+      "kind": "nav",
+      "refersTo": "nav-tab",
+      "description": "Barre horizontale sous la bannière ; l'onglet actif est doré et souligné d'ambre.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-tab ds-nav-tab-active\" href=\"#\">Tableau de bord</a><a class=\"ds-nav-tab\" href=\"#\">Collection</a><a class=\"ds-nav-tab\" href=\"#\">Extensions</a></nav>",
+      "css": ".ds-nav { display: flex; background: #202225; border-bottom: 1px solid #2c2f33; padding: 0 4px; } .ds-nav-tab { padding: 12px 16px; font: 400 14px/20px Inter, system-ui, sans-serif; color: #b4bac1; text-decoration: none; border-bottom: 2px solid transparent; white-space: nowrap; } .ds-nav-tab:hover { color: #fff; background: rgb(44 47 51 / 0.5); } .ds-nav-tab-active, .ds-nav-tab-active:hover { color: #e8cd8a; border-bottom-color: #c2953a; background: none; }"
+    },
+    {
+      "name": "Sélecteur à segments",
+      "kind": "chip",
+      "refersTo": "segment",
+      "description": "Choix d'une période ou d'un regroupement.",
+      "html": "<div class=\"ds-segments\"><button class=\"ds-segment\">30 j</button><button class=\"ds-segment ds-segment-active\">90 j</button><button class=\"ds-segment\">1 an</button></div>",
+      "css": ".ds-segments { display: flex; gap: 4px; } .ds-segment { background: #202225; color: #b4bac1; font: 500 14px/20px Inter, system-ui, sans-serif; padding: 6px 16px; border: none; border-radius: 4px; cursor: pointer; } .ds-segment:hover { background: #2c2f33; } .ds-segment-active, .ds-segment-active:hover { background: #8a6824; color: #fff; }"
+    },
+    {
+      "name": "Panneau de statistique",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Libellé atténué au-dessus d'une valeur en gras ; le montant en euros est bleu.",
+      "html": "<div class=\"ds-stat\"><div class=\"ds-stat-label\">Valeur (Cardmarket €)</div><div class=\"ds-stat-value\">4 218,60 €</div></div>",
+      "css": ".ds-stat { background: #202225; border: 1px solid #2c2f33; border-radius: 8px; padding: 12px; font-family: Inter, system-ui, sans-serif; width: 200px; } .ds-stat-label { font-size: 12px; line-height: 16px; color: #a0a6ae; } .ds-stat-value { font-size: 18px; line-height: 28px; font-weight: 700; color: #00b4ff; }"
+    },
+    {
+      "name": "Ligne de mouvement de prix",
+      "kind": "custom",
+      "description": "Nom de carte cliquable, code d'extension discret, variation alignée à droite.",
+      "html": "<ul class=\"ds-movers\"><li class=\"ds-mover\"><button class=\"ds-mover-name\">Ragavan, Nimble Pilferer <span class=\"ds-mover-set\">MH2</span></button><span class=\"ds-mover-up\">+3.20 €</span></li><li class=\"ds-mover\"><button class=\"ds-mover-name\">Sheoldred, the Apocalypse <span class=\"ds-mover-set\">DMU</span></button><span class=\"ds-mover-down\">-1.75 €</span></li></ul>",
+      "css": ".ds-movers { list-style: none; margin: 0; padding: 0; width: 360px; font: 400 14px/20px Inter, system-ui, sans-serif; color: #e8eaed; } .ds-mover { display: flex; align-items: center; gap: 8px; padding: 4px 0; } .ds-mover + .ds-mover { border-top: 1px solid #202225; } .ds-mover-name { flex: 1; text-align: left; background: none; border: none; padding: 0; font: inherit; color: inherit; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .ds-mover-name:hover { color: #e3c178; } .ds-mover-set { font-size: 12px; color: #868c95; text-transform: uppercase; } .ds-mover-up { width: 80px; text-align: right; color: #34d399; } .ds-mover-down { width: 80px; text-align: right; color: #fb7185; }"
+    },
+    {
+      "name": "Jauge de complétion",
+      "kind": "custom",
+      "description": "Piste arrondie remplie en bleu pour l'avancement d'une extension.",
+      "html": "<div class=\"ds-gauge\"><div class=\"ds-gauge-fill\"></div></div>",
+      "css": ".ds-gauge { width: 240px; height: 8px; border-radius: 9999px; background: #202225; overflow: hidden; } .ds-gauge-fill { width: 62%; height: 100%; background: #0098e0; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Le Registre du collectionneur",
+    "overview": "Un livre de comptes tenu par quelqu'un qui connaît sa collection. L'interface est un fond anthracite neutre sur lequel s'alignent des lignes denses : noms de cartes, codes d'extension, quantités, prix. L'or n'apparaît que là où un registre mettrait une dorure : le titre de la page et l'onglet actif. Tout le reste est au service de la lecture rapide et de la saisie.\n\nLa densité est assumée. Le texte courant est petit (14 px), les libellés plus petits encore (12 px), les marges internes serrées (8 à 16 px). Les composants sont compacts et utilitaires : plats, sans ombre, sans animation, ils ne cherchent pas à se faire remarquer. La seule image riche est celle des cartes elles-mêmes, plus la bannière illustrée en tête d'application.\n\nLe rejet confirmé est la fantasy surchargée : pas de parchemin, pas de texture, pas de cadre orné, pas de lueur. L'univers Magic passe par la typographie gravée des titres, les symboles de mana et d'extension, et les illustrations des cartes, jamais par un décor.",
+    "keyCharacteristics": [
+      "Thème sombre unique, anthracite neutre, sans variante claire.",
+      "Or réservé aux titres et aux états actifs ; ambre pour les actions.",
+      "Bleu vif exclusivement pour les valeurs monétaires et les jauges de complétion.",
+      "Surfaces plates, hiérarchie par paliers de gris et filets d'un pixel.",
+      "Texte petit, lignes serrées, tableaux et listes plutôt que cartes."
+    ],
+    "rules": [
+      {
+        "name": "La règle de la dorure",
+        "body": "L'or ne colore jamais un bouton d'action ni un chiffre. Il marque le titre, l'onglet où l'on se trouve et ce qui est foil.",
+        "section": "colors"
+      },
+      {
+        "name": "La règle du chiffre bleu",
+        "body": "Un montant en euros est bleu. Rien d'autre n'est bleu, hormis les jauges de complétion.",
+        "section": "colors"
+      },
+      {
+        "name": "La règle hausse / baisse",
+        "body": "Le vert et le rose appartiennent aux variations de prix. Une hausse est verte, une baisse est rose, toujours précédées de leur signe.",
+        "section": "colors"
+      },
+      {
+        "name": "La règle du titre gravé",
+        "body": "Cinzel nomme une page ou une carte, jamais un bouton, un libellé ou un chiffre.",
+        "section": "typography"
+      },
+      {
+        "name": "La règle du plat",
+        "body": "Un panneau, une ligne ou un bouton n'a jamais d'ombre. Seul ce qui flotte au-dessus du contenu en porte une.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do garder le texte courant à 14 px et les libellés à 12 px : la densité est une qualité de ce produit.",
+      "Do réserver Cinzel aux titres de page et aux noms de carte, en graisse 700.",
+      "Do afficher tout montant en euros en bleu valeur, toute hausse en vert précédée de « + », toute baisse en rose.",
+      "Do marquer ce qui est foil en or foil.",
+      "Do utiliser les icônes Lucide pour toute nouvelle action, pas de glyphe ni d'emoji.",
+      "Do construire la profondeur avec les trois paliers d'anthracite et des filets d'un pixel.",
+      "Do aligner les chiffres à droite dans les tableaux.",
+      "Do prévoir chaque écran pour la barre d'onglets mobile : 96 px de réserve en bas, grilles qui s'empilent sous 640 px."
+    ],
+    "donts": [
+      "Don't ajouter de parchemin, de texture, de cadre orné, de lueur ou de dégradé décoratif : la fantasy surchargée est le rejet confirmé.",
+      "Don't utiliser l'or pour un bouton d'action ou un chiffre.",
+      "Don't utiliser le bleu pour autre chose qu'un montant ou une jauge de complétion.",
+      "Don't poser d'ombre sur un panneau, une ligne ou un bouton.",
+      "Don't se fier au nom des classes pour deviner une teinte : indigo est ambre, emerald est bleu.",
+      "Don't utiliser de nuance absente de tailwind.config.js : elle ne produit rien, ou retombe sur la teinte par défaut de Tailwind (violet pour indigo, vert pour emerald).",
+      "Don't poser de texte clair sur l'ambre, ni de texte slate-600 ou plus sombre sur un fond anthracite. npm run check:contrast vérifie les paires de la palette."
+    ]
+  }
+}
