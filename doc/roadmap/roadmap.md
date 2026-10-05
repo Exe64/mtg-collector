@@ -13,15 +13,14 @@ Backlog consolidé : plans nommés d'après leur issue GitHub (voir `doc/roadmap
 
 ## À faire
 
-### [Issue: #2] Corrections de l'audit d'interface [PRIORITÉ: MOYENNE] [Complexité: M] 🟢
-
-Plan : [`2-corrections-audit-interface.md`](2-corrections-audit-interface.md)
-
-Contraste, focus, modales, étiquettes, cibles tactiles, couleurs des graphiques et chargement du frontend.
-
 ---
 
 ## Fait
+
+### Plans livrés (2026-10-05 → 2026-10-05)
+
+- **[Issue: #2] `#2` — Corrections de l'audit d'interface** (2026-10-05) 🔵 — Contraste, focus, modales natives, étiquettes, cibles tactiles, couleurs des graphiques et chargement par route du frontend.
+  [`2-corrections-audit-interface.md`](done/2-corrections-audit-interface.md)
 
 ---
 

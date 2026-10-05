@@ -2,8 +2,8 @@
 plan:
   id: '2'
   name: 2-corrections-audit-interface.md
-  link: https://github.com/Exe64/mtg-collector/blob/main/doc/roadmap/2-corrections-audit-interface.md
-status: active
+  link: https://github.com/Exe64/mtg-collector/blob/main/doc/roadmap/done/2-corrections-audit-interface.md
+status: done
 date: 2026-10-05
 enriched: 2026-10-05
 description: >
@@ -55,7 +55,7 @@ son identité visuelle (voir `DESIGN.md`). Audit de départ : 12/20.
 - [x] Étape 6 — Couleurs des graphiques : une seule source pour mana, rareté, type et état (S · standard → Sonnet)
 - [x] Étape 7 — Chargement : pages chargées à la demande par route, `loading="lazy"` sur les vignettes (S · standard → Sonnet)
 - [x] 🧪 Tests — Rédiger et exécuter la procédure de test (avant-dernière étape, obligatoire)
-- [ ] ✅ Validation — Vérifier les résultats des tests et clôturer (dernière étape, obligatoire)
+- [x] ✅ Validation — Vérifier les résultats des tests et clôturer (dernière étape, obligatoire)
 
 ## Décisions techniques
 
@@ -142,6 +142,7 @@ de zoom sur les champs dans Safari iOS, confort des boutons −/+ et éditer / s
 |------|------|---------|---------|---------|
 | 2026-10-05 | T1 Lint (itération 1, vérificateur) | 0 erreur, code 0 | 22 erreurs `no-undef`, code 1, dans `scripts/gen-icons.mjs` (20, fichier préexistant) et `scripts/check-contrast.mjs` (2) ; `src/` à 0 erreur | ❌ |
 | 2026-10-05 | T1 Lint (itération 2, auto-check même contexte, garantie moindre) | 0 erreur, code 0 | `eslint src` exécuté sans le filtre de sortie `rtk` : 0 erreur, code 0. L'échec de l'itération 1 venait du filtre, qui remplace `npm run lint` par un lint de tout le dossier, `scripts/` compris. `check-contrast.mjs` déclare désormais ses globales Node et passe aussi | ✅ |
+| 2026-10-05 | Vérification visuelle (propriétaire, ordinateur et téléphone) | Rendu conforme, modales et champs utilisables | « C'est validé » | ✅ |
 | 2026-10-05 | T2 Build (vérificateur) | `✓ built`, code 0 | `✓ built in 4.60s`, code 0 | ✅ |
 | 2026-10-05 | T3 Contraste (vérificateur) | 14 `OK`, code 0 | 14 `OK`, 0 `FAIL`, code 0 | ✅ |
 | 2026-10-05 | T4 Chunks par route (vérificateur) | 14 | 14 | ✅ |
@@ -158,6 +159,5 @@ de zoom sur les champs dans Safari iOS, confort des boutons −/+ et éditer / s
 ### Session 2026-10-05
 - ✅ Fait : audit Impeccable, cadrage, création du plan et de l'issue #2
 - ✅ Fait : étapes 1 à 7 implémentées en one-shot sur la branche `fix/2-corrections-audit-interface` ; tests automatiques T1 à T11 passés
-- 🔄 En cours : ✅ Validation, en attente de la vérification visuelle du propriétaire (ordinateur et téléphone)
-- 📋 Prochain : commit, vérification visuelle, clôture
+- ✅ Fait : commits `8d40c78` et `da6271e` poussés sur `main` ; rendu validé par le propriétaire ; plan clôturé
 - ℹ️ Écarts au plan : la valeur de l'infobulle de courbe passe du vert au bleu (règle « un montant est bleu ») ; les boutons −/+ passent à 36 px sur mobile (44 px débordait de la tuile d'extension) ; glyphes ✎ ✕ ⎋ remplacés par des icônes Lucide sur les boutons retouchés
