@@ -24,6 +24,8 @@ const FINISHES = ['nonfoil', 'foil', 'etched'];
 const PAGE_SIZE = 100;   // mode "plat"
 const GROUP_PAGE = 500;  // cartes chargées par extension à l'ouverture
 
+const FILTER_LABEL = { type: 'Type', rarity: 'Rareté', color: 'Couleur', cmc: 'Coût de mana' };
+
 export default function Collection() {
   const [stats, setStats] = useState(null);
   const [q, setQ] = useState('');
@@ -231,7 +233,8 @@ export default function Collection() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Rechercher dans ma collection…"
-          className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm"
+          aria-label="Rechercher dans ma collection"
+          className="w-full rounded-md bg-slate-800 border border-edge px-3 py-2 text-sm"
         />
         {q && (
           <button type="button" onClick={() => setQ('')} aria-label="Effacer la recherche"
@@ -241,23 +244,23 @@ export default function Collection() {
 
       <div className="flex flex-wrap gap-2 mb-3">
         {[['type', TYPE_OPTIONS], ['rarity', RARITY_OPTIONS], ['color', COLOR_OPTIONS], ['cmc', CMC_OPTIONS]].map(([key, opts]) => (
-          <select key={key} value={filters[key]} onChange={(e) => setFilter(key, e.target.value)}
-            className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1.5 text-sm">
+          <select key={key} aria-label={FILTER_LABEL[key]} value={filters[key]} onChange={(e) => setFilter(key, e.target.value)}
+            className="rounded-md bg-slate-800 border border-edge px-2 py-1.5 text-sm">
             {opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
         ))}
-        <select value={filters.condition} onChange={(e) => setFilter('condition', e.target.value)}
-          className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1.5 text-sm">
+        <select value={filters.condition} onChange={(e) => setFilter('condition', e.target.value)} aria-label="État"
+          className="rounded-md bg-slate-800 border border-edge px-2 py-1.5 text-sm">
           <option value="">État</option>
           {CONDITIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
         </select>
-        <select value={filters.finish} onChange={(e) => setFilter('finish', e.target.value)}
-          className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1.5 text-sm">
+        <select value={filters.finish} onChange={(e) => setFilter('finish', e.target.value)} aria-label="Finition"
+          className="rounded-md bg-slate-800 border border-edge px-2 py-1.5 text-sm">
           {FINISH_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
         {locations.length > 0 && (
-          <select value={filters.location} onChange={(e) => setFilter('location', e.target.value)}
-            className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1.5 text-sm">
+          <select value={filters.location} onChange={(e) => setFilter('location', e.target.value)} aria-label="Emplacement"
+            className="rounded-md bg-slate-800 border border-edge px-2 py-1.5 text-sm">
             <option value="">Emplacement</option>
             {locations.map((l) => <option key={l} value={l}>{l}</option>)}
           </select>
@@ -271,9 +274,9 @@ export default function Collection() {
       {/* Tri (mobile) — le desktop trie via les en-têtes */}
       <div className="sm:hidden flex items-center gap-2 mb-3">
         <span className="text-xs text-slate-400">Trier :</span>
-        <select value={sort}
+        <select value={sort} aria-label="Trier par"
           onChange={(e) => { setSort(e.target.value); setOrder(e.target.value === 'name' || e.target.value === 'set' ? 'asc' : 'desc'); }}
-          className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1 text-sm">
+          className="rounded-md bg-slate-800 border border-edge px-2 py-1 text-sm">
           <option value="value">Valeur</option>
           <option value="name">Nom</option>
           <option value="type">Type</option>
@@ -282,7 +285,7 @@ export default function Collection() {
           <option value="added_at">Ajout</option>
         </select>
         <button type="button" onClick={() => setOrder((o) => (o === 'asc' ? 'desc' : 'asc'))} aria-label="Inverser l'ordre"
-          className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1 text-sm">{order === 'asc' ? '▲' : '▼'}</button>
+          className="rounded-md bg-slate-800 border border-edge px-2 py-1 text-sm">{order === 'asc' ? '▲' : '▼'}</button>
       </div>
 
       <div className="flex items-center gap-3 mb-3">
@@ -291,8 +294,8 @@ export default function Collection() {
           Grouper
         </label>
         {grouped && (
-          <select value={groupBy} onChange={(e) => setGroupBy(e.target.value)}
-            className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1 text-xs">
+          <select value={groupBy} onChange={(e) => setGroupBy(e.target.value)} aria-label="Grouper par"
+            className="rounded-md bg-slate-800 border border-edge px-2 py-1 text-xs">
             <option value="set">par extension</option>
             <option value="color">par couleur</option>
             <option value="rarity">par rareté</option>
@@ -306,18 +309,18 @@ export default function Collection() {
           <span className="text-sm font-medium">{selected.size} sélectionnée(s)</span>
           <input value={bulk.location} onChange={(e) => setBulk({ ...bulk, location: e.target.value })}
             placeholder="Emplacement" aria-label="Emplacement (masse)"
-            className="rounded bg-slate-900 border border-slate-600 px-2 py-1 text-sm w-40" />
+            className="rounded bg-slate-900 border border-edge px-2 py-1 text-sm w-40" />
           <select value={bulk.condition} onChange={(e) => setBulk({ ...bulk, condition: e.target.value })}
-            className="rounded bg-slate-900 border border-slate-600 px-2 py-1 text-sm" aria-label="État (masse)">
+            className="rounded bg-slate-900 border border-edge px-2 py-1 text-sm" aria-label="État (masse)">
             <option value="">État…</option>
             {CONDITIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
           <select value={bulk.finish} onChange={(e) => setBulk({ ...bulk, finish: e.target.value })}
-            className="rounded bg-slate-900 border border-slate-600 px-2 py-1 text-sm" aria-label="Finition (masse)">
+            className="rounded bg-slate-900 border border-edge px-2 py-1 text-sm" aria-label="Finition (masse)">
             <option value="">Finition…</option>
             {FINISHES.map((f) => <option key={f} value={f}>{f}</option>)}
           </select>
-          <button type="button" onClick={applyBulk} className="rounded bg-indigo-600 hover:bg-indigo-500 px-3 py-1 text-sm">Appliquer</button>
+          <button type="button" onClick={applyBulk} className="rounded bg-indigo-600 hover:bg-indigo-500 text-slate-900 px-3 py-1 text-sm">Appliquer</button>
           <button type="button" onClick={() => setSelected(new Set())} className="text-slate-300 text-sm px-2">Annuler</button>
         </div>
       )}
@@ -362,7 +365,7 @@ export default function Collection() {
           {hasMore && (
             <div className="text-center py-4">
               <button type="button" onClick={loadMore} disabled={loadingMore}
-                className="rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-2 text-sm disabled:opacity-50">
+                className="rounded-md bg-slate-800 hover:bg-slate-700 border border-edge px-4 py-2 text-sm disabled:opacity-50">
                 {loadingMore ? 'Chargement…' : `Charger plus (${flat.entries.length} / ${flat.total})`}
               </button>
             </div>

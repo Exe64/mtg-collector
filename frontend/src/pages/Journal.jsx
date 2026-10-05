@@ -115,13 +115,13 @@ export default function Journal() {
                   <span className="w-10 text-xs text-slate-500 shrink-0">
                     {new Date(r.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                   </span>
-                  {r.image_uri_small && <img src={r.image_uri_small} alt="" className="w-7 rounded-sm" />}
+                  {r.image_uri_small && <img loading="lazy" src={r.image_uri_small} alt="" className="w-7 rounded-sm" />}
                   <button type="button" onClick={() => openCard(r.scryfall_id)} className="flex-1 text-left truncate hover:text-indigo-300">
                     {r.name} <span className="text-xs text-slate-500 uppercase">{r.set_code}</span>
                     {r.finish !== 'nonfoil' && <span className="text-xs text-gold-300"> ★ {r.finish}</span>}
                   </button>
-                  <span className={`text-xs hidden sm:inline ${r.undone_at ? 'text-slate-600 line-through' : 'text-slate-500'}`}>{SOURCE_LABEL[r.source] || r.source}</span>
-                  <span className={`w-12 text-right font-semibold ${r.undone_at ? 'text-slate-600 line-through' : r.quantity_delta > 0 ? 'text-gain-400' : 'text-rose-400'}`}>
+                  <span className={`text-xs hidden sm:inline ${r.undone_at ? 'text-slate-500 line-through' : 'text-slate-500'}`}>{SOURCE_LABEL[r.source] || r.source}</span>
+                  <span className={`w-12 text-right font-semibold ${r.undone_at ? 'text-slate-500 line-through' : r.quantity_delta > 0 ? 'text-gain-400' : 'text-rose-400'}`}>
                     {r.quantity_delta > 0 ? '+' : '−'}{Math.abs(r.quantity_delta)}
                   </span>
                   {r.undoable ? (

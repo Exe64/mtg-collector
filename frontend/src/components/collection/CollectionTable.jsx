@@ -1,3 +1,4 @@
+import { Pencil, Trash2 } from 'lucide-react';
 import { useCardModal } from '../../stores/cardModal';
 import { CONDITIONS, identityStyle } from '../../constants';
 
@@ -13,7 +14,7 @@ const RARITY_COLORS = {
 function FinishSelect({ value, onChange }) {
   return (
     <select value={value} onChange={onChange} aria-label="Finition"
-      className="bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-xs">
+      className="bg-slate-900 border border-edge rounded px-1 py-0.5 text-xs">
       {FINISHES.map((f) => <option key={f} value={f}>{f}</option>)}
     </select>
   );
@@ -22,7 +23,7 @@ function FinishSelect({ value, onChange }) {
 function ConditionSelect({ value, onChange }) {
   return (
     <select value={value} onChange={onChange} aria-label="État"
-      className="bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-xs">
+      className="bg-slate-900 border border-edge rounded px-1 py-0.5 text-xs">
       {CONDITIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
     </select>
   );
@@ -31,7 +32,7 @@ function ConditionSelect({ value, onChange }) {
 function Th({ col, label, align = 'left', extra = '', sort, order, onSort }) {
   const active = sort === col;
   return (
-    <th className={`p-2 text-${align} ${extra}`}>
+    <th aria-sort={active ? (order === 'asc' ? 'ascending' : 'descending') : 'none'} className={`p-2 text-${align} ${extra}`}>
       <button type="button" onClick={() => onSort(col)} className="uppercase hover:text-white">
         {label}{active ? (order === 'asc' ? ' ▲' : ' ▼') : ''}
       </button>
@@ -63,7 +64,7 @@ export default function CollectionTable({ entries, onUpdate, onDelete, onEdit, s
             <div className="flex items-center gap-2">
               {selected && <input type="checkbox" checked={selected.has(e.id)} onChange={() => onToggleSelect(e.id)} aria-label="Sélectionner" />}
               <button type="button" onClick={() => openCard(e.card.scryfall_id)} className="flex items-center gap-2 min-w-0 flex-1 text-left">
-                {e.card.image_small && <img src={e.card.image_small} alt="" className="w-9 rounded-sm shrink-0" />}
+                {e.card.image_small && <img loading="lazy" src={e.card.image_small} alt="" className="w-9 rounded-sm shrink-0" />}
                 <span className="min-w-0">
                   <span className="block truncate text-sm">{e.card.name}</span>
                   <span className={`text-xs uppercase ${RARITY_COLORS[e.card.rarity] || 'text-slate-400'}`}>
@@ -73,14 +74,14 @@ export default function CollectionTable({ entries, onUpdate, onDelete, onEdit, s
                 </span>
               </button>
               <span className="text-emerald-400 text-sm whitespace-nowrap">{e.total_price_eur ?? '—'} €</span>
-              <button type="button" onClick={() => onEdit(e)} aria-label="Éditer" className="text-slate-300 px-1">✎</button>
-              <button type="button" onClick={() => confirmDelete(e)} aria-label="Supprimer" className="text-rose-400 px-1">✕</button>
+              <button type="button" onClick={() => onEdit(e)} aria-label="Éditer" className="w-11 h-11 -my-1 shrink-0 flex items-center justify-center text-slate-300"><Pencil size={16} /></button>
+              <button type="button" onClick={() => confirmDelete(e)} aria-label="Supprimer" className="w-11 h-11 -my-1 -mr-1 shrink-0 flex items-center justify-center text-rose-400"><Trash2 size={16} /></button>
             </div>
             <div className="flex items-center gap-2 mt-2 flex-wrap">
-              <label className="text-[10px] text-slate-400">Qté
+              <label className="text-xs text-slate-400">Qté
                 <input type="number" min="1" defaultValue={e.quantity} key={`${e.id}-${e.quantity}`}
                   onBlur={(ev) => { const v = Number(ev.target.value); if (v >= 1 && v !== e.quantity) onUpdate(e.id, { quantity: v }); }}
-                  className="block w-14 rounded bg-slate-900 border border-slate-700 px-1 py-0.5 text-right" />
+                  className="block w-14 rounded bg-slate-900 border border-edge px-1 py-0.5 text-right" />
               </label>
               <FinishSelect value={e.finish} onChange={(ev) => onUpdate(e.id, { finish: ev.target.value })} />
               <ConditionSelect value={e.condition} onChange={(ev) => onUpdate(e.id, { condition: ev.target.value })} />
@@ -123,7 +124,7 @@ export default function CollectionTable({ entries, onUpdate, onDelete, onEdit, s
                 <td className="p-2">
                   <button type="button" onClick={() => openCard(e.card.scryfall_id)}
                     className="flex items-center gap-2 text-left hover:text-indigo-300 w-full min-w-0">
-                    {e.card.image_small && <img src={e.card.image_small} alt="" className="w-8 rounded-sm shrink-0" />}
+                    {e.card.image_small && <img loading="lazy" src={e.card.image_small} alt="" className="w-8 rounded-sm shrink-0" />}
                     <span className="min-w-0">
                       <span className="block truncate">{e.card.name}</span>
                       {e.location && <span className="block text-[10px] text-slate-500 truncate">📍 {e.location}</span>}
@@ -136,15 +137,15 @@ export default function CollectionTable({ entries, onUpdate, onDelete, onEdit, s
                   <input type="number" min="1" defaultValue={e.quantity} key={`${e.id}-qty-${e.quantity}`}
                     onBlur={(ev) => { const v = Number(ev.target.value); if (v >= 1 && v !== e.quantity) onUpdate(e.id, { quantity: v }); }}
                     aria-label="Quantité"
-                    className="w-14 rounded bg-slate-900 border border-slate-700 px-1 py-0.5 text-right" />
+                    className="w-14 rounded bg-slate-900 border border-edge px-1 py-0.5 text-right" />
                 </td>
                 <td className="p-2"><FinishSelect value={e.finish} onChange={(ev) => onUpdate(e.id, { finish: ev.target.value })} /></td>
                 <td className="p-2"><ConditionSelect value={e.condition} onChange={(ev) => onUpdate(e.id, { condition: ev.target.value })} /></td>
                 <td className="p-2 text-right text-slate-300">{e.unit_price_eur ?? '—'}</td>
                 <td className="p-2 text-right text-emerald-400">{e.total_price_eur ?? '—'}</td>
                 <td className="p-2 text-right whitespace-nowrap">
-                  <button type="button" onClick={() => onEdit(e)} aria-label="Éditer" className="text-slate-300 hover:text-white mr-1">✎</button>
-                  <button type="button" onClick={() => confirmDelete(e)} aria-label="Supprimer" className="text-rose-400 hover:text-rose-300">✕</button>
+                  <button type="button" onClick={() => onEdit(e)} aria-label="Éditer" className="p-1 align-middle text-slate-300 hover:text-white"><Pencil size={15} /></button>
+                  <button type="button" onClick={() => confirmDelete(e)} aria-label="Supprimer" className="p-1 align-middle text-rose-400 hover:text-rose-300"><Trash2 size={15} /></button>
                 </td>
               </tr>
             ))}

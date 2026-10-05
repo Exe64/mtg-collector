@@ -49,7 +49,7 @@ export default function Wishlist() {
               const up = Number(m.pct) >= 0;
               return (
                 <li key={m.scryfall_id} className="flex items-center gap-2 py-1.5 text-sm">
-                  {m.image_uri_small && <img src={m.image_uri_small} alt="" className="w-7 rounded-sm" />}
+                  {m.image_uri_small && <img loading="lazy" src={m.image_uri_small} alt="" className="w-7 rounded-sm" />}
                   <button type="button" onClick={() => openCard(m.scryfall_id)} className="flex-1 min-w-0 text-left hover:text-indigo-300">
                     <span className="block truncate">{m.name} <span className="text-xs text-slate-500 uppercase">{m.set_code}</span></span>
                     <span className="block text-xs text-slate-400">{m.past_eur} € → {m.current_eur} €</span>
@@ -75,7 +75,7 @@ export default function Wishlist() {
         <ul className="rounded-lg border border-slate-800 divide-y divide-slate-800">
           {data.items.map((it) => (
             <li key={it.id} className="flex items-center gap-2 p-2 hover:bg-slate-800/50">
-              {it.image_uri_small && <img src={it.image_uri_small} alt="" className="w-9 rounded-sm" />}
+              {it.image_uri_small && <img loading="lazy" src={it.image_uri_small} alt="" className="w-9 rounded-sm" />}
               <button type="button" onClick={() => openCard(it.scryfall_id)} className="flex-1 min-w-0 text-left hover:text-indigo-300">
                 <span className="block truncate text-sm">{it.name}</span>
                 <span className="text-xs text-slate-500 uppercase">{it.set_code} · {it.rarity}</span>

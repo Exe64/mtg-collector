@@ -74,7 +74,7 @@ export default function Alerts() {
           <ul className="divide-y divide-slate-800">
             {alerts.map((a) => (
               <li key={a.id} className="flex items-center gap-2 py-1.5 text-sm">
-                {a.image_uri_small && <img src={a.image_uri_small} alt="" className="w-7 rounded-sm" />}
+                {a.image_uri_small && <img loading="lazy" src={a.image_uri_small} alt="" className="w-7 rounded-sm" />}
                 <button type="button" onClick={() => openCard(a.scryfall_id)} className="flex-1 min-w-0 text-left hover:text-indigo-300">
                   <span className="block truncate">{a.name} <span className="text-xs text-slate-500 uppercase">{a.set_code}</span></span>
                   <span className="block text-xs text-slate-400">

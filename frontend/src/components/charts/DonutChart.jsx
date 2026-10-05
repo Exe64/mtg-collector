@@ -8,9 +8,9 @@ export default function DonutChart({ data, size = 168, thickness = 26 }) {
 
   return (
     <div className="flex items-center gap-4">
-      <svg width={size} height={size} className="-rotate-90 shrink-0">
+      <svg width={size} height={size} className="-rotate-90 shrink-0" aria-hidden="true">
         {total === 0 ? (
-          <circle cx={cx} cy={cy} r={r} fill="none" stroke="#334155" strokeWidth={thickness} />
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="#2c2f33" strokeWidth={thickness} />
         ) : (
           data.map((d, i) => {
             const seg = (d.value / total) * c;

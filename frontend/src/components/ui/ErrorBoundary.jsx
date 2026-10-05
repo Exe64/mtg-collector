@@ -26,7 +26,7 @@ export default class ErrorBoundary extends Component {
           </p>
           <div className="flex gap-2 justify-center">
             <button type="button" onClick={() => window.location.reload()}
-              className="rounded-md bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-sm">Recharger</button>
+              className="rounded-md bg-indigo-600 hover:bg-indigo-500 text-slate-900 px-4 py-2 text-sm">Recharger</button>
             <button type="button" onClick={() => window.location.assign('/')}
               className="rounded-md bg-slate-700 hover:bg-slate-600 px-4 py-2 text-sm">Tableau de bord</button>
           </div>

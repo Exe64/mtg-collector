@@ -48,13 +48,15 @@ export default function DeckCheck() {
         <input
           value={url} onChange={(e) => setUrl(e.target.value)}
           placeholder="https://www.moxfield.com/decks/…"
-          className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm"
+          aria-label="URL du deck Moxfield"
+          className="w-full rounded-md bg-slate-800 border border-edge px-3 py-2 text-sm"
         />
         <div className="text-center text-xs text-slate-500">— ou —</div>
         <textarea
           value={text} onChange={(e) => setText(e.target.value)} rows={8}
+          aria-label="Liste du deck"
           placeholder={'4 Lightning Bolt\n2 Counterspell\n1 Sol Ring\n…'}
-          className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm font-mono"
+          className="w-full rounded-md bg-slate-800 border border-edge px-3 py-2 text-sm font-mono"
         />
         <div className="flex items-center gap-3 flex-wrap">
           <label className="text-xs text-slate-400">
@@ -63,7 +65,7 @@ export default function DeckCheck() {
           </label>
           <button
             type="button" onClick={check} disabled={!canCheck || loading}
-            className="ml-auto rounded-md bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 px-4 py-2 text-sm"
+            className="ml-auto rounded-md bg-indigo-600 hover:bg-indigo-500 text-slate-900 disabled:opacity-50 px-4 py-2 text-sm"
           >
             {loading ? 'Vérification…' : 'Vérifier'}
           </button>

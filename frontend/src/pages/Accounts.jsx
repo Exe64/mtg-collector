@@ -125,8 +125,8 @@ export default function Accounts() {
     }
   }
 
-  const field = 'w-full rounded bg-slate-900 border border-slate-700 px-2 py-1.5 text-sm';
-  const numField = 'w-24 rounded bg-slate-900 border border-slate-700 px-2 py-1.5 text-sm';
+  const field = 'w-full rounded bg-slate-900 border border-edge px-2 py-1.5 text-sm';
+  const numField = 'w-24 rounded bg-slate-900 border border-edge px-2 py-1.5 text-sm';
   const jobRunning = (name) => Boolean(status?.jobs?.[name]?.running);
 
   return (
@@ -211,7 +211,7 @@ export default function Accounts() {
                 onChange={(e) => setSettings({ ...settings, default_days: e.target.value })} className={numField} />
             </label>
             <button type="submit" disabled={savingSettings}
-              className="rounded-md bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 px-4 py-2 text-sm">
+              className="rounded-md bg-indigo-600 hover:bg-indigo-500 text-slate-900 disabled:opacity-50 px-4 py-2 text-sm">
               {savingSettings ? '…' : 'Enregistrer'}
             </button>
           </form>
@@ -222,11 +222,11 @@ export default function Accounts() {
       <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
         <h2 className="text-sm font-semibold text-slate-300 mb-3">Créer un compte</h2>
         <form onSubmit={create} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <input type="email" required placeholder="Email" value={form.email}
+          <input type="email" required placeholder="Email" aria-label="Email" value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })} className={field} />
-          <input type="text" placeholder="Nom affiché (optionnel)" value={form.display_name}
+          <input type="text" placeholder="Nom affiché (optionnel)" aria-label="Nom affiché" value={form.display_name}
             onChange={(e) => setForm({ ...form, display_name: e.target.value })} className={field} />
-          <input type="password" required placeholder="Mot de passe (8+, 1 maj, 1 chiffre)" value={form.password}
+          <input type="password" required placeholder="Mot de passe (8+, 1 maj, 1 chiffre)" aria-label="Mot de passe" value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })} className={field} />
           <label className="flex items-center gap-2 text-sm text-slate-400">
             <input type="checkbox" checked={form.is_admin}
@@ -235,7 +235,7 @@ export default function Accounts() {
           </label>
           <div className="sm:col-span-2 flex items-center gap-3">
             <button type="submit" disabled={busy}
-              className="rounded-md bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 px-4 py-2 text-sm">
+              className="rounded-md bg-indigo-600 hover:bg-indigo-500 text-slate-900 disabled:opacity-50 px-4 py-2 text-sm">
               {busy ? '…' : 'Créer le compte'}
             </button>
             {msg && <span className="text-xs text-emerald-400">{msg}</span>}

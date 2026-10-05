@@ -1,23 +1,24 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
 import { useAuth } from './stores/auth';
 import Layout from './components/ui/Layout';
 import Login from './pages/Login';
-import Register from './pages/Register';
-import Collection from './pages/Collection';
-import Add from './pages/Add';
-import Dashboard from './pages/Dashboard';
-import Sets from './pages/Sets';
-import SetDetail from './pages/SetDetail';
-import ImportExport from './pages/ImportExport';
-import Wishlist from './pages/Wishlist';
-import DeckCheck from './pages/DeckCheck';
-import Movements from './pages/Movements';
-import Journal from './pages/Journal';
-import Alerts from './pages/Alerts';
-import Accounts from './pages/Accounts';
-import Security from './pages/Security';
+
+const Collection = lazy(() => import('./pages/Collection'));
+const Add = lazy(() => import('./pages/Add'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Sets = lazy(() => import('./pages/Sets'));
+const SetDetail = lazy(() => import('./pages/SetDetail'));
+const ImportExport = lazy(() => import('./pages/ImportExport'));
+const Wishlist = lazy(() => import('./pages/Wishlist'));
+const DeckCheck = lazy(() => import('./pages/DeckCheck'));
+const Movements = lazy(() => import('./pages/Movements'));
+const Journal = lazy(() => import('./pages/Journal'));
+const Alerts = lazy(() => import('./pages/Alerts'));
+const Accounts = lazy(() => import('./pages/Accounts'));
+const Security = lazy(() => import('./pages/Security'));
+const Register = lazy(() => import('./pages/Register'));
 
 function Protected({ children }) {
   const status = useAuth((s) => s.status);
@@ -39,7 +40,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+      <Route path="/register" element={<Suspense fallback={null}><Register /></Suspense>} />
       <Route
         path="/"
         element={(

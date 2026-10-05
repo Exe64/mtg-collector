@@ -94,7 +94,7 @@ export default function ImportExport() {
           <input
             type="text" value={location} onChange={(e) => setLocation(e.target.value)}
             placeholder="ex. Classeur Rares Bleues"
-            className="block w-full max-w-sm mt-1 rounded bg-slate-900 border border-slate-700 px-2 py-1.5 text-sm"
+            className="block w-full max-w-sm mt-1 rounded bg-slate-900 border border-edge px-2 py-1.5 text-sm"
           />
         </label>
 
@@ -104,7 +104,7 @@ export default function ImportExport() {
             Prévisualiser
           </button>
           <button type="button" onClick={() => doImport(false)} disabled={!file || busy}
-            className="rounded-md bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 px-4 py-2 text-sm">
+            className="rounded-md bg-indigo-600 hover:bg-indigo-500 text-slate-900 disabled:opacity-50 px-4 py-2 text-sm">
             {busy ? '…' : 'Importer'}
           </button>
         </div>

@@ -77,6 +77,8 @@ export default function LineChart({ points }) {
         ref={svgRef}
         viewBox={`0 0 ${width} ${height}`}
         className="w-full cursor-crosshair"
+        role="img"
+        aria-label={`Évolution de ${fmtDate(points[0].date)} à ${fmtDate(points[n - 1].date)} : de ${values[0].toFixed(2)} € à ${last.toFixed(2)} €, minimum ${min.toFixed(2)} €, maximum ${max.toFixed(2)} €`}
         onMouseMove={handleMove}
         onMouseLeave={() => setHover(null)}
         onTouchStart={handleMove}
@@ -94,19 +96,19 @@ export default function LineChart({ points }) {
         {points.map((p, i) => (
           <circle key={i} cx={x(i)} cy={y(values[i])} r="1.8" fill="#00b4ff" />
         ))}
-        <text x={pad} y={11} fill="#64748b" fontSize="8">{max.toFixed(0)} €</text>
-        <text x={pad} y={height - 5} fill="#64748b" fontSize="8">{fmtDate(points[0].date)}</text>
-        <text x={width - pad} y={height - 5} fill="#64748b" fontSize="8" textAnchor="end">
+        <text x={pad} y={11} fill="#a0a6ae" fontSize="8">{max.toFixed(0)} €</text>
+        <text x={pad} y={height - 5} fill="#a0a6ae" fontSize="8">{fmtDate(points[0].date)}</text>
+        <text x={width - pad} y={height - 5} fill="#a0a6ae" fontSize="8" textAnchor="end">
           {fmtDate(points[n - 1].date)}
         </text>
 
         {box && (
           <g pointerEvents="none">
-            <line x1={box.px} y1={pad} x2={box.px} y2={height - pad} stroke="#475569" strokeWidth="0.75" strokeDasharray="3 3" />
-            <circle cx={box.px} cy={box.py} r="3" fill="#00b4ff" stroke="#0f172a" strokeWidth="1" />
-            <rect x={box.bx} y={box.by} width={box.bw} height={box.bh} rx="3" fill="#0f172a" stroke="#334155" strokeWidth="0.75" />
-            <text x={box.bx + 6} y={box.by + 11} fill="#94a3b8" fontSize="7.5">{fmtDate(points[hover].date)}</text>
-            <text x={box.bx + 6} y={box.by + 22} fill="#34d399" fontSize="9" fontWeight="bold">
+            <line x1={box.px} y1={pad} x2={box.px} y2={height - pad} stroke="#3a3e44" strokeWidth="0.75" strokeDasharray="3 3" />
+            <circle cx={box.px} cy={box.py} r="3" fill="#00b4ff" stroke="#17181a" strokeWidth="1" />
+            <rect x={box.bx} y={box.by} width={box.bw} height={box.bh} rx="3" fill="#17181a" stroke="#2c2f33" strokeWidth="0.75" />
+            <text x={box.bx + 6} y={box.by + 11} fill="#a0a6ae" fontSize="7.5">{fmtDate(points[hover].date)}</text>
+            <text x={box.bx + 6} y={box.by + 22} fill="#00b4ff" fontSize="9" fontWeight="bold">
               {values[hover].toFixed(2)} €
             </text>
             {hover > 0 && (() => {
@@ -114,7 +116,7 @@ export default function LineChart({ points }) {
               const pct = prev ? ((values[hover] - prev) / prev) * 100 : 0;
               const up = pct >= 0;
               return (
-                <text x={box.bx + 6} y={box.by + 33} fill={up ? '#34d399' : '#f87171'} fontSize="7.5">
+                <text x={box.bx + 6} y={box.by + 33} fill={up ? '#34d399' : '#fb7185'} fontSize="7.5">
                   {up ? '▲' : '▼'} {up ? '+' : ''}{pct.toFixed(1)}% vs préc.
                 </text>
               );

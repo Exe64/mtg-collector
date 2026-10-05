@@ -84,20 +84,22 @@ function sortCards(arr, sort) {
   return by[sort] ? [...arr].sort(by[sort]) : arr;
 }
 
+const ATTR_LABEL = { type: 'Type', rarity: 'Rareté', color: 'Couleur', cmc: 'Coût de mana' };
+
 function FinishRow({ label, count, accent, onMinus, onPlus }) {
-  const plusCls = accent === 'gold' ? 'bg-gold-600 hover:bg-gold-500' : 'bg-indigo-600 hover:bg-indigo-500';
+  const plusCls = accent === 'gold' ? 'bg-gold-600 hover:bg-gold-500 text-slate-900' : 'bg-indigo-600 hover:bg-indigo-500 text-slate-900';
   return (
     <div className="flex items-center justify-between gap-1">
       <span className="text-[11px] text-slate-400">{label}</span>
       <div className="flex items-center gap-1">
-        <span className={`text-xs w-4 text-center ${count > 0 ? 'text-slate-100' : 'text-slate-600'}`}>{count}</span>
+        <span className={`text-xs w-4 text-center ${count > 0 ? 'text-slate-100' : 'text-slate-500'}`}>{count}</span>
         <button
           type="button" onClick={onMinus} disabled={count === 0} aria-label={`Retirer ${label}`}
-          className="w-6 h-6 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-30 text-sm leading-none"
+          className="w-9 h-9 sm:w-6 sm:h-6 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-30 text-sm leading-none"
         >−</button>
         <button
           type="button" onClick={onPlus} aria-label={`Ajouter ${label}`}
-          className={`w-6 h-6 rounded ${plusCls} text-sm leading-none`}
+          className={`w-9 h-9 sm:w-6 sm:h-6 rounded ${plusCls} text-sm leading-none`}
         >+</button>
       </div>
     </div>
@@ -313,7 +315,7 @@ export default function SetDetail() {
                     type="button"
                     onClick={() => openCard(c.scryfall_id)}
                     title={c.name}
-                    className="text-[11px] bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded px-1.5 py-0.5"
+                    className="text-[11px] bg-slate-800 hover:bg-slate-700 border border-edge rounded px-1.5 py-0.5"
                   >
                     #{c.collector_number}
                   </button>
@@ -361,13 +363,13 @@ export default function SetDetail() {
 
       {/* Tri + filtres d'attributs */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
-        <select value={sort} onChange={(e) => setSort(e.target.value)}
-          className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1.5 text-sm">
+        <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Trier par"
+          className="rounded-md bg-slate-800 border border-edge px-2 py-1.5 text-sm">
           {SORT_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
         {[['type', TYPE_OPTIONS], ['rarity', RARITY_OPTIONS], ['color', COLOR_OPTIONS], ['cmc', CMC_OPTIONS]].map(([key, opts]) => (
-          <select key={key} value={attr[key]} onChange={(e) => setAttr((a) => ({ ...a, [key]: e.target.value }))}
-            className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1.5 text-sm">
+          <select key={key} aria-label={ATTR_LABEL[key]} value={attr[key]} onChange={(e) => setAttr((a) => ({ ...a, [key]: e.target.value }))}
+            className="rounded-md bg-slate-800 border border-edge px-2 py-1.5 text-sm">
             {opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
         ))}

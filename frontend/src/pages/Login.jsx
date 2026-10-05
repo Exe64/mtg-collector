@@ -39,26 +39,26 @@ export default function Login() {
         <h1 className="font-display text-xl font-bold text-center">Connexion</h1>
         {error && <div className="text-sm text-rose-400 bg-rose-950/50 rounded p-2">{error}</div>}
         <input
-          type="email" required placeholder="Email" value={email} disabled={mfaStep}
+          type="email" required placeholder="Email" aria-label="Email" value={email} disabled={mfaStep}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm disabled:opacity-50"
+          className="w-full rounded-md bg-slate-900 border border-edge px-3 py-2 text-sm disabled:opacity-50"
         />
         <input
-          type="password" required placeholder="Mot de passe" value={password} disabled={mfaStep}
+          type="password" required placeholder="Mot de passe" aria-label="Mot de passe" value={password} disabled={mfaStep}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm disabled:opacity-50"
+          className="w-full rounded-md bg-slate-900 border border-edge px-3 py-2 text-sm disabled:opacity-50"
         />
         {mfaStep && (
           <input
             type="text" required autoFocus inputMode="text" autoComplete="one-time-code"
-            placeholder="Code d’authentification (ou code de secours)" value={code}
+            placeholder="Code d’authentification (ou code de secours)" aria-label="Code d’authentification" value={code}
             onChange={(e) => setCode(e.target.value)}
-            className="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm tracking-widest"
+            className="w-full rounded-md bg-slate-900 border border-edge px-3 py-2 text-sm tracking-widest"
           />
         )}
         <button
           type="submit" disabled={busy}
-          className="w-full rounded-md bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 py-2 text-sm font-medium"
+          className="w-full rounded-md bg-indigo-600 hover:bg-indigo-500 text-slate-900 disabled:opacity-50 py-2 text-sm font-medium"
         >
           {busy ? '…' : mfaStep ? 'Vérifier' : 'Se connecter'}
         </button>

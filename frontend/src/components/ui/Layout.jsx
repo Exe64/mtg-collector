@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Boxes, PlusCircle, Library, Star, Download, Users,
-  ListChecks, History, Bell, TrendingUp, Wrench, ChevronDown, Menu, ShieldCheck,
+  ListChecks, History, Bell, TrendingUp, Wrench, ChevronDown, Menu, ShieldCheck, LogOut,
 } from 'lucide-react';
 import { api } from '../../api/client';
 import { useAuth } from '../../stores/auth';
 import CardModal from './CardModal';
+import Modal from './Modal';
 import ScrollToTop from './ScrollToTop';
 import ErrorBoundary from './ErrorBoundary';
 
@@ -53,7 +54,7 @@ export default function Layout() {
   }, []);
 
   const Badge = () => (unread > 0 ? (
-    <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[9px] leading-none rounded-full min-w-[14px] h-[14px] flex items-center justify-center px-0.5">{unread}</span>
+    <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-slate-900 text-[9px] leading-none rounded-full min-w-[14px] h-[14px] flex items-center justify-center px-0.5">{unread}</span>
   ) : null);
 
   return (
@@ -76,12 +77,12 @@ export default function Layout() {
             type="button"
             onClick={logout}
             aria-label="Se déconnecter"
-            className="sm:hidden absolute top-2 right-2 bg-slate-900/60 rounded-full w-8 h-8 text-rose-300"
-          >⎋</button>
+            className="sm:hidden absolute top-1 right-1 bg-slate-900/60 rounded-full w-11 h-11 flex items-center justify-center text-rose-300"
+          ><LogOut size={18} /></button>
         </div>
 
         {/* Menu horizontal (desktop / tablette) */}
-        <nav className="hidden sm:flex items-stretch bg-slate-800 border-b border-slate-700 px-1">
+        <nav aria-label="Navigation principale" className="hidden sm:flex items-stretch bg-slate-800 border-b border-slate-700 px-1">
           {primaryNav.map((it) => (
             <NavLink
               key={it.to}
@@ -148,12 +149,14 @@ export default function Layout() {
       {/* Contenu (padding bas en mobile pour la bottom bar) */}
       <main className="flex-1 w-full max-w-[1800px] mx-auto p-4 pb-24 sm:pb-4">
         <ErrorBoundary key={location.pathname}>
-          <Outlet />
+          <Suspense fallback={<div className="text-center text-slate-500 py-12">Chargement…</div>}>
+            <Outlet />
+          </Suspense>
         </ErrorBoundary>
       </main>
 
       {/* Bottom tab bar (mobile uniquement) : 4 onglets + Plus */}
-      <nav className="sm:hidden fixed bottom-0 inset-x-0 z-30 bg-slate-800 border-t border-slate-700 flex">
+      <nav aria-label="Navigation principale" className="sm:hidden fixed bottom-0 inset-x-0 z-30 bg-slate-800 border-t border-slate-700 flex">
         {primaryNav.map((it) => (
           <NavLink
             key={it.to}
@@ -169,6 +172,7 @@ export default function Layout() {
         <button
           type="button"
           onClick={() => setPlusOpen(true)}
+          aria-haspopup="dialog"
           className={`flex-1 flex flex-col items-center gap-0.5 py-2 text-[10px] ${inTools ? 'text-gold-300' : 'text-slate-400'}`}
         >
           <span className="relative"><Menu size={18} /><Badge /></span>
@@ -178,9 +182,11 @@ export default function Layout() {
 
       {/* Feuille « Plus » (mobile) */}
       {plusOpen && (
-        <div className="sm:hidden fixed inset-0 z-40">
-          <button type="button" aria-label="Fermer" className="absolute inset-0 bg-black/50" onClick={() => setPlusOpen(false)} />
-          <div className="absolute bottom-0 inset-x-0 bg-slate-800 border-t border-slate-700 rounded-t-2xl p-3 pb-6">
+        <Modal
+          onClose={() => setPlusOpen(false)}
+          label="Plus d'outils"
+          className="mt-auto mb-0 mx-0 w-full max-w-full border-t border-slate-700 rounded-t-2xl p-3 pb-6"
+        >
             <div className="w-10 h-1 rounded-full bg-slate-600 mx-auto mb-3" />
             <div className="grid grid-cols-3 gap-2">
               {tools.map((it) => (
@@ -196,8 +202,7 @@ export default function Layout() {
                 </NavLink>
               ))}
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       <CardModal />

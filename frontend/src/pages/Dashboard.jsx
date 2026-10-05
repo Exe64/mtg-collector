@@ -4,22 +4,22 @@ import { api } from '../api/client';
 import { useCardModal } from '../stores/cardModal';
 import DonutChart from '../components/charts/DonutChart';
 import LineChart from '../components/charts/LineChart';
-import { CONDITION_ORDER, CONDITION_LABEL, CONDITION_COLOR } from '../constants';
+import { CONDITION_ORDER, CONDITION_LABEL, CONDITION_COLOR, MANA_HEX } from '../constants';
 
 const COLOR_META = {
-  W: { label: 'Blanc', color: '#e9e4b0' },
-  U: { label: 'Bleu', color: '#3b82f6' },
-  B: { label: 'Noir', color: '#52525b' },
-  R: { label: 'Rouge', color: '#ef4444' },
-  G: { label: 'Vert', color: '#22c55e' },
-  M: { label: 'Multicolore', color: '#eab308' },
-  C: { label: 'Incolore', color: '#94a3b8' },
+  W: { label: 'Blanc', color: MANA_HEX.W },
+  U: { label: 'Bleu', color: MANA_HEX.U },
+  B: { label: 'Noir', color: MANA_HEX.B },
+  R: { label: 'Rouge', color: MANA_HEX.R },
+  G: { label: 'Vert', color: MANA_HEX.G },
+  M: { label: 'Multicolore', color: MANA_HEX.M },
+  C: { label: 'Incolore', color: MANA_HEX.C },
 };
 const COLOR_ORDER = ['W', 'U', 'B', 'R', 'G', 'M', 'C'];
 
 const RARITY_META = {
-  common: { label: 'Commune', color: '#94a3b8' },
-  uncommon: { label: 'Peu commune', color: '#cbd5e1' },
+  common: { label: 'Commune', color: '#a0a6ae' },
+  uncommon: { label: 'Peu commune', color: '#d2d6db' },
   rare: { label: 'Rare', color: '#eab308' },
   mythic: { label: 'Mythique', color: '#f97316' },
   special: { label: 'Spéciale', color: '#a855f7' },
@@ -33,9 +33,9 @@ const TYPE_COLORS = {
   Bataille: '#dc2626',
   Éphémère: '#3b82f6',
   Rituel: '#ef4444',
-  Artefact: '#94a3b8',
+  Artefact: '#a0a6ae',
   Enchantement: '#eab308',
-  Autre: '#64748b',
+  Autre: '#565b62',
 };
 
 const VALUE_ORDER = ['≥ 20 €', '5–19,99 €', '1–4,99 €', '0,10–0,99 €', '< 0,10 €', 'Sans prix'];
@@ -122,7 +122,7 @@ export default function Dashboard() {
   const rarityData = stats.rarityBreakdown.map((r) => ({
     label: RARITY_META[r.bucket]?.label || r.bucket,
     value: r.count,
-    color: RARITY_META[r.bucket]?.color || '#64748b',
+    color: RARITY_META[r.bucket]?.color || '#565b62',
   }));
 
   const conditionData = CONDITION_ORDER
@@ -135,7 +135,7 @@ export default function Dashboard() {
   const typeData = (stats.typeBreakdown || []).map((r) => ({
     label: r.bucket,
     value: r.count,
-    color: TYPE_COLORS[r.bucket] || '#64748b',
+    color: TYPE_COLORS[r.bucket] || '#565b62',
   }));
 
   const valueRows = VALUE_ORDER
@@ -167,7 +167,7 @@ export default function Dashboard() {
         const up = pf.gain >= 0;
         const Mover = ({ m }) => (
           <li className="flex items-center gap-2 py-1 text-sm">
-            {m.image_uri_small && <img src={m.image_uri_small} alt="" className="w-6 rounded-sm" />}
+            {m.image_uri_small && <img loading="lazy" src={m.image_uri_small} alt="" className="w-6 rounded-sm" />}
             <button type="button" onClick={() => openCard(m.scryfall_id)} className="flex-1 text-left truncate hover:text-indigo-300">
               {m.name} <span className="text-xs text-slate-500 uppercase">{m.set_code}</span>
             </button>
@@ -224,7 +224,7 @@ export default function Dashboard() {
             const up = Number(m.pct) >= 0;
             return (
               <li className="flex items-center gap-2 py-1.5 text-sm">
-                {m.image_uri_small && <img src={m.image_uri_small} alt="" className="w-7 rounded-sm" />}
+                {m.image_uri_small && <img loading="lazy" src={m.image_uri_small} alt="" className="w-7 rounded-sm" />}
                 <button type="button" onClick={() => openCard(m.scryfall_id)} className="flex-1 min-w-0 text-left hover:text-indigo-300">
                   <span className="block truncate">{m.name} <span className="text-xs text-slate-500 uppercase">{m.set_code}</span></span>
                   <span className="block text-xs text-slate-400">{m.past_eur} € → {m.current_eur} €</span>
@@ -337,7 +337,7 @@ export default function Dashboard() {
           {stats.topCards.map((c, i) => (
             <li key={`${c.scryfall_id}-${c.finish}`} className="flex items-center gap-2 text-sm">
               <span className="w-5 text-slate-500 text-xs">{i + 1}.</span>
-              {c.image_uri_small && <img src={c.image_uri_small} alt="" className="w-7 rounded-sm" />}
+              {c.image_uri_small && <img loading="lazy" src={c.image_uri_small} alt="" className="w-7 rounded-sm" />}
               <span className="flex-1 truncate">{c.name}</span>
               <span className="text-xs text-slate-400 uppercase">{c.set_code}</span>
               <span className="text-xs text-slate-500">×{c.quantity}</span>

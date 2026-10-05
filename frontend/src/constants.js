@@ -27,11 +27,11 @@ export const LANGUAGES = [
 ];
 
 // Couleur d'identité Magic (pour les liserés de cartes-UI)
-const MANA_HEX = { W: '#e9e4c8', U: '#4f8df0', B: '#6b6478', R: '#e0483f', G: '#3aa45b' };
+export const MANA_HEX = { W: '#e9e4c8', U: '#4f8df0', B: '#6b6478', R: '#e0483f', G: '#3aa45b', M: '#c9a227', C: '#9aa0a6' };
 export function identityColor(ci) {
-  if (!ci || ci.length === 0) return '#9aa0a6'; // incolore
-  if (ci.length > 1) return '#c9a227'; // multicolore → or
-  return MANA_HEX[ci[0]] || '#9aa0a6';
+  if (!ci || ci.length === 0) return MANA_HEX.C; // incolore
+  if (ci.length > 1) return MANA_HEX.M; // multicolore → or
+  return MANA_HEX[ci[0]] || MANA_HEX.C;
 }
 export function identityStyle(ci) {
   return { boxShadow: `inset 4px 0 0 0 ${identityColor(ci)}` };

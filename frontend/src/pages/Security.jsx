@@ -41,7 +41,7 @@ export default function Security() {
     finally { setBusy(false); }
   }
 
-  const box = 'w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm';
+  const box = 'w-full rounded-md bg-slate-900 border border-edge px-3 py-2 text-sm';
 
   return (
     <div className="max-w-lg mx-auto">
@@ -84,7 +84,7 @@ export default function Security() {
           <form onSubmit={disable} className="space-y-2">
             <label className="text-xs text-slate-400">Désactiver (saisis un code actuel ou de secours)</label>
             <input value={code} onChange={(e) => setCode(e.target.value)} required
-              placeholder="Code" className={box} />
+              placeholder="Code" aria-label="Code actuel ou de secours" className={box} />
             <button type="submit" disabled={busy}
               className="inline-flex items-center gap-1.5 rounded-md bg-rose-700 hover:bg-rose-600 disabled:opacity-50 px-3 py-2 text-sm">
               <ShieldOff size={16} /> Désactiver le MFA
@@ -94,23 +94,23 @@ export default function Security() {
       ) : setup ? (
         <div className="rounded-lg border border-slate-700 bg-slate-800 p-4">
           <p className="text-sm mb-3">1. Scanne ce QR code dans ton application d’authentification :</p>
-          <img src={setup.qr} alt="QR code MFA" className="w-44 h-44 bg-white rounded mb-2" />
+          <img loading="lazy" src={setup.qr} alt="QR code MFA" className="w-44 h-44 bg-white rounded mb-2" />
           <p className="text-xs text-slate-400 mb-3">
             Ou saisis la clé manuellement : <span className="font-mono text-slate-300 break-all">{setup.secret}</span>
           </p>
           <form onSubmit={enable} className="space-y-2">
             <label className="text-sm">2. Saisis le code affiché pour confirmer :</label>
             <input value={code} onChange={(e) => setCode(e.target.value)} required autoFocus
-              inputMode="numeric" placeholder="123456" className={`${box} tracking-widest`} />
+              inputMode="numeric" placeholder="123456" aria-label="Code de confirmation" className={`${box} tracking-widest`} />
             <button type="submit" disabled={busy}
-              className="rounded-md bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 px-3 py-2 text-sm font-medium">
+              className="rounded-md bg-indigo-600 hover:bg-indigo-500 text-slate-900 disabled:opacity-50 px-3 py-2 text-sm font-medium">
               Activer
             </button>
           </form>
         </div>
       ) : (
         <button type="button" onClick={begin} disabled={busy}
-          className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 px-4 py-2 text-sm font-medium">
+          className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-slate-900 disabled:opacity-50 px-4 py-2 text-sm font-medium">
           <ShieldCheck size={16} /> Activer le MFA
         </button>
       )}

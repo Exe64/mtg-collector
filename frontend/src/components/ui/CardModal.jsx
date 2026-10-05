@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
+import { X } from 'lucide-react';
 import { api } from '../../api/client';
 import { useCardModal } from '../../stores/cardModal';
 import LineChart from '../charts/LineChart';
 import CardPrice from './CardPrice';
+import Modal from './Modal';
 import { manaSymbols } from '../../constants';
 
 function Mana({ cost }) {
@@ -73,13 +75,6 @@ export default function CardModal() {
     return foil.length >= 2 ? { points: foil, foil: true } : null;
   }, [history]);
 
-  useEffect(() => {
-    if (!scryfallId) return undefined;
-    const onKey = (e) => { if (e.key === 'Escape') close(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [scryfallId, close]);
-
   async function addToWishlist() {
     setWishMsg(null);
     try {
@@ -114,16 +109,13 @@ export default function CardModal() {
   const faces = card?.card_faces;
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
-      onClick={close}
+    <Modal
+      onClose={close}
+      label={card?.name || 'Détail de la carte'}
+      className="rounded-xl w-[calc(100%-2rem)] max-w-3xl max-h-[90vh] overflow-auto p-4"
     >
-      <div
-        className="bg-slate-800 rounded-xl max-w-3xl w-full max-h-[90vh] overflow-auto p-4"
-        onClick={(e) => e.stopPropagation()}
-      >
         <div className="flex justify-end">
-          <button type="button" onClick={close} aria-label="Fermer" className="text-slate-400 hover:text-white text-xl leading-none">✕</button>
+          <button type="button" onClick={close} aria-label="Fermer" className="w-11 h-11 -mt-2 -mr-2 shrink-0 flex items-center justify-center rounded-md text-slate-400 hover:text-white"><X size={20} /></button>
         </div>
 
         {loading || !card ? (
@@ -136,7 +128,7 @@ export default function CardModal() {
               if (!src) return null;
               return (
                 <div className="md:w-64 shrink-0 self-start">
-                  <img src={src} alt={card.name} className="w-full rounded-lg" />
+                  <img loading="lazy" src={src} alt={card.name} className="w-full rounded-lg" />
                   {back && (
                     <button type="button" onClick={() => setShowBack((v) => !v)}
                       className="mt-1 w-full rounded bg-slate-700 hover:bg-slate-600 text-xs py-1">
@@ -211,18 +203,18 @@ export default function CardModal() {
 
               {showAlert && (
                 <div className="mt-2 flex flex-wrap items-center gap-2 bg-slate-900 rounded p-2">
-                  <select value={alertDir} onChange={(e) => setAlertDir(e.target.value)}
-                    className="rounded bg-slate-800 border border-slate-700 px-2 py-1 text-sm">
+                  <select value={alertDir} onChange={(e) => setAlertDir(e.target.value)} aria-label="Sens de l'alerte"
+                    className="rounded bg-slate-800 border border-edge px-2 py-1 text-sm">
                     <option value="below">Prévenir si le prix descend sous</option>
                     <option value="above">Prévenir si le prix monte au-dessus de</option>
                   </select>
                   <input
                     type="number" step="0.01" min="0" value={alertThreshold}
                     onChange={(e) => setAlertThreshold(e.target.value)}
-                    placeholder="€" className="w-24 rounded bg-slate-800 border border-slate-700 px-2 py-1 text-sm"
+                    placeholder="€" aria-label="Seuil en euros" className="w-24 rounded bg-slate-800 border border-edge px-2 py-1 text-sm"
                   />
                   <button type="button" onClick={createAlert}
-                    className="text-sm rounded bg-indigo-600 hover:bg-indigo-500 px-3 py-1">Créer</button>
+                    className="text-sm rounded bg-indigo-600 hover:bg-indigo-500 text-slate-900 px-3 py-1">Créer</button>
                 </div>
               )}
 
@@ -254,7 +246,6 @@ export default function CardModal() {
             </div>
           </div>
         )}
-      </div>
-    </div>
+    </Modal>
   );
 }

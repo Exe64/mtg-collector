@@ -34,7 +34,7 @@ function useQuickAdd(card, onAdjust) {
 function CondSel({ value, onChange }) {
   return (
     <select value={value} onChange={onChange} aria-label="État"
-      className="bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-xs">
+      className="bg-slate-900 border border-edge rounded px-1 py-0.5 text-xs">
       {CONDITIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
     </select>
   );
@@ -42,15 +42,15 @@ function CondSel({ value, onChange }) {
 
 // Contrôle -/+ pour une finition donnée
 function QtyCtl({ label, count, accent, onMinus, onPlus, disabled }) {
-  const plus = accent === 'gold' ? 'bg-gold-600 hover:bg-gold-500' : 'bg-indigo-600 hover:bg-indigo-500';
+  const plus = accent === 'gold' ? 'bg-gold-600 hover:bg-gold-500 text-slate-900' : 'bg-indigo-600 hover:bg-indigo-500 text-slate-900';
   return (
     <div className="flex items-center gap-1">
       <span className="text-[11px] text-slate-400 w-12 shrink-0">{label}</span>
       <button type="button" onClick={onMinus} disabled={disabled || count === 0} aria-label={`Retirer ${label}`}
-        className="w-6 h-6 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-30 text-sm leading-none">−</button>
-      <span className={`text-xs w-4 text-center ${count > 0 ? 'text-slate-100' : 'text-slate-600'}`}>{count}</span>
+        className="w-9 h-9 sm:w-6 sm:h-6 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-30 text-sm leading-none">−</button>
+      <span className={`text-xs w-4 text-center ${count > 0 ? 'text-slate-100' : 'text-slate-500'}`}>{count}</span>
       <button type="button" onClick={onPlus} disabled={disabled} aria-label={`Ajouter ${label}`}
-        className={`w-6 h-6 rounded ${plus} disabled:opacity-50 text-sm leading-none`}>+</button>
+        className={`w-9 h-9 sm:w-6 sm:h-6 rounded ${plus} disabled:opacity-50 text-sm leading-none`}>+</button>
     </div>
   );
 }
@@ -66,7 +66,7 @@ function ResultRow({ card, owned, onAdjust }) {
     <tr style={identityStyle(card.color_identity)} className="border-t border-slate-800 hover:bg-slate-800/40">
       <td className="p-2">
         <button type="button" onClick={() => openCard(card.scryfall_id)} className="flex items-center gap-2 text-left hover:text-indigo-300">
-          {card.image_small && <img src={card.image_small} alt="" className="w-9 rounded-sm" />}
+          {card.image_small && <img loading="lazy" src={card.image_small} alt="" className="w-9 rounded-sm" />}
           <span className="text-sm">{card.name}</span>
         </button>
       </td>
@@ -86,7 +86,7 @@ function ResultRow({ card, owned, onAdjust }) {
         {cardCanFoil(card)
           ? <QtyCtl label="Foil" accent="gold" count={o.foil || 0} disabled={c.busy}
               onMinus={() => c.adjust('foil', -1)} onPlus={() => c.adjust('foil', 1)} />
-          : <span className="text-slate-600 text-xs">—</span>}
+          : <span className="text-slate-500 text-xs">—</span>}
         {c.err && <div className="text-rose-400 text-[10px]">{c.err}</div>}
       </td>
     </tr>
@@ -102,7 +102,7 @@ function ResultCard({ card, owned, onAdjust }) {
     <li style={identityStyle(card.color_identity)} className="bg-slate-800 border border-slate-700 rounded-lg p-2 pl-3">
       <div className="flex items-center gap-2">
         <button type="button" onClick={() => openCard(card.scryfall_id)} className="flex items-center gap-2 min-w-0 flex-1 text-left">
-          {card.image_small && <img src={card.image_small} alt="" className="w-9 rounded-sm shrink-0" />}
+          {card.image_small && <img loading="lazy" src={card.image_small} alt="" className="w-9 rounded-sm shrink-0" />}
           <span className="min-w-0">
             <span className="block truncate text-sm">{card.name}</span>
             <span className="block text-xs text-slate-500 truncate">{card.set_name} · {card.set?.toUpperCase()} #{card.collector_number}</span>
@@ -225,7 +225,8 @@ export default function Add() {
             onKeyDown={onKeyDown}
             onFocus={() => suggestions.length && setShowSug(true)}
             placeholder="Rechercher une carte…"
-            className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm"
+            aria-label="Rechercher une carte"
+            className="w-full rounded-md bg-slate-800 border border-edge px-3 py-2 text-sm"
           />
         {showSug && suggestions.length > 0 && (
           <ul className="absolute z-10 mt-1 w-full max-h-72 overflow-auto bg-slate-800 border border-slate-700 rounded-md shadow-xl">
@@ -236,7 +237,7 @@ export default function Add() {
                   onClick={() => { setQ(c.name); runSearch(c.name, { exact: true }, 1); }}
                   className="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-slate-700 text-left"
                 >
-                  {c.image_small && <img src={c.image_small} alt="" className="w-7 rounded-sm" />}
+                  {c.image_small && <img loading="lazy" src={c.image_small} alt="" className="w-7 rounded-sm" />}
                   <span className="flex-1 text-sm truncate">{c.name}</span>
                   <span className="text-xs text-slate-400 uppercase">{c.set}</span>
                 </button>
@@ -253,13 +254,13 @@ export default function Add() {
           onChange={(e) => setSetF(e.target.value.trim())}
           placeholder="Code extension (ex. MH3)"
           aria-label="Filtrer par extension"
-          className="w-44 rounded-md bg-slate-800 border border-slate-700 px-2 py-1.5 text-sm"
+          className="w-44 rounded-md bg-slate-800 border border-edge px-2 py-1.5 text-sm"
         />
         <select
           value={colorF}
           onChange={(e) => setColorF(e.target.value)}
           aria-label="Filtrer par couleur"
-          className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1.5 text-sm"
+          className="rounded-md bg-slate-800 border border-edge px-2 py-1.5 text-sm"
         >
           <option value="">Couleur</option>
           <option value="W">Blanc</option>
@@ -310,7 +311,7 @@ export default function Add() {
           <button
             type="button"
             onClick={() => runSearch(lastSearch.term, { exact: lastSearch.exact }, page + 1)}
-            className="rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-2 text-sm"
+            className="rounded-md bg-slate-800 hover:bg-slate-700 border border-edge px-4 py-2 text-sm"
           >
             Charger plus
           </button>

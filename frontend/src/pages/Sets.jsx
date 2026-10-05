@@ -54,15 +54,17 @@ export default function Sets() {
 
       <div className="flex flex-wrap gap-2 mb-4">
         <select
+          aria-label="Type d'extension"
           value={type} onChange={(e) => setType(e.target.value)}
-          className="rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm"
+          className="rounded-md bg-slate-800 border border-edge px-3 py-2 text-sm"
         >
           {TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
         <input
           value={q} onChange={(e) => setQ(e.target.value)}
           placeholder="Filtrer par nom…"
-          className="flex-1 min-w-[10rem] rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm"
+          aria-label="Filtrer par nom"
+          className="flex-1 min-w-[10rem] rounded-md bg-slate-800 border border-edge px-3 py-2 text-sm"
         />
       </div>
 

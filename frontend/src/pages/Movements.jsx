@@ -9,7 +9,7 @@ function MoveItem({ m, onOpen }) {
   const up = Number(m.pct) >= 0;
   return (
     <li className="flex items-center gap-2 py-1.5 text-sm">
-      {m.image_uri_small && <img src={m.image_uri_small} alt="" className="w-7 rounded-sm" />}
+      {m.image_uri_small && <img loading="lazy" src={m.image_uri_small} alt="" className="w-7 rounded-sm" />}
       <button type="button" onClick={() => onOpen(m.scryfall_id)} className="flex-1 min-w-0 text-left hover:text-indigo-300">
         <span className="block truncate">{m.name} <span className="text-xs text-slate-500 uppercase">{m.set_code}</span></span>
         <span className="block text-xs text-slate-400">{m.past_eur} € → {m.current_eur} €</span>

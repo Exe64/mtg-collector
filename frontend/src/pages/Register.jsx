@@ -47,23 +47,23 @@ export default function Register() {
         <p className="text-xs text-slate-400 text-center">Première installation : ce compte sera l'administrateur.</p>
         {error && <div className="text-sm text-rose-400 bg-rose-950/50 rounded p-2">{error}</div>}
         <input
-          type="email" required placeholder="Email" value={email}
+          type="email" required placeholder="Email" aria-label="Email" value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm"
+          className="w-full rounded-md bg-slate-900 border border-edge px-3 py-2 text-sm"
         />
         <input
-          type="text" placeholder="Nom affiché (optionnel)" value={displayName}
+          type="text" placeholder="Nom affiché (optionnel)" aria-label="Nom affiché" value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
-          className="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm"
+          className="w-full rounded-md bg-slate-900 border border-edge px-3 py-2 text-sm"
         />
         <input
-          type="password" required placeholder="Mot de passe (8+, 1 maj, 1 chiffre)" value={password}
+          type="password" required placeholder="Mot de passe (8+, 1 maj, 1 chiffre)" aria-label="Mot de passe" value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm"
+          className="w-full rounded-md bg-slate-900 border border-edge px-3 py-2 text-sm"
         />
         <button
           type="submit" disabled={busy}
-          className="w-full rounded-md bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 py-2 text-sm font-medium"
+          className="w-full rounded-md bg-indigo-600 hover:bg-indigo-500 text-slate-900 disabled:opacity-50 py-2 text-sm font-medium"
         >
           {busy ? '…' : 'Créer le compte'}
         </button>
