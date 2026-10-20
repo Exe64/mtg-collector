@@ -139,6 +139,37 @@ router.get('/owned-by-set', async (req, res, next) => {
   }
 });
 
+// GET /api/collection/hero-arts?limit=12 → { source, cards[] } : cartes au hasard pour les fonds du
+// tableau de bord ; tirées de la collection, sinon des rares/mythiques des dernières extensions.
+router.get('/hero-arts', async (req, res, next) => {
+  try {
+    const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 12, 1), 30);
+    const fields = 'c.scryfall_id, c.name, c.image_uri_small, c.color_identity';
+    let { rows } = await query(
+      `SELECT ${fields} FROM cards c
+       WHERE c.id IN (SELECT card_id FROM collection_entries WHERE user_id = $1)
+         AND c.image_uri_small IS NOT NULL
+       ORDER BY random() LIMIT $2`,
+      [req.user.id, limit],
+    );
+    let source = 'collection';
+    if (!rows.length) {
+      ({ rows } = await query(
+        `SELECT ${fields} FROM cards c
+         WHERE c.rarity IN ('rare', 'mythic') AND c.image_uri_small IS NOT NULL
+           AND c.set_code IN (SELECT code FROM sets WHERE set_type = 'expansion' AND released_at <= CURRENT_DATE
+                              ORDER BY released_at DESC LIMIT 6)
+         ORDER BY random() LIMIT $1`,
+        [limit],
+      ));
+      source = 'catalog';
+    }
+    res.json({ source, cards: rows });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/collection/owned?set=CODE  → { owned: { <id>: {nonfoil, foil} }, totalEur }
 router.get('/owned', async (req, res, next) => {
   try {
