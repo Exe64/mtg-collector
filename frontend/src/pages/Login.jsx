@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../stores/auth';
 import { api } from '../api/client';
+import AuthShell, { authField, PasswordField } from '../components/ui/AuthShell';
 
 export default function Login() {
   const login = useAuth((s) => s.login);
@@ -34,40 +35,39 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center p-4">
-      <form onSubmit={onSubmit} className="w-full max-w-sm bg-slate-800 rounded-xl p-6 space-y-4">
-        <h1 className="font-display text-xl font-bold text-center">Connexion</h1>
-        {error && <div className="text-sm text-rose-400 bg-rose-950/50 rounded p-2">{error}</div>}
+    <AuthShell>
+      <form onSubmit={onSubmit} className="space-y-3">
+        <h1 className="sr-only">Connexion</h1>
+        <p className="text-xs text-slate-400 text-center">
+          {mfaStep ? 'Saisis le code de ton application d’authentification.' : 'Saisis ton email et ton mot de passe.'}
+        </p>
+        {error && <div role="alert" className="text-sm text-rose-400 bg-rose-950/50 rounded-md p-2 text-center">{error}</div>}
         <input
-          type="email" required placeholder="Email" aria-label="Email" value={email} disabled={mfaStep}
+          type="email" required autoComplete="email" placeholder="vous@exemple.com" aria-label="Email" value={email} disabled={mfaStep}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-md bg-slate-900 border border-edge px-3 py-2 text-sm disabled:opacity-50"
+          className={authField}
         />
-        <input
-          type="password" required placeholder="Mot de passe" aria-label="Mot de passe" value={password} disabled={mfaStep}
+        <PasswordField
+          required autoComplete="current-password" placeholder="Mot de passe" aria-label="Mot de passe" value={password} disabled={mfaStep}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-md bg-slate-900 border border-edge px-3 py-2 text-sm disabled:opacity-50"
         />
         {mfaStep && (
           <input
             type="text" required autoFocus inputMode="text" autoComplete="one-time-code"
-            placeholder="Code d’authentification (ou code de secours)" aria-label="Code d’authentification" value={code}
+            placeholder="Code (ou code de secours)" aria-label="Code d’authentification" value={code}
             onChange={(e) => setCode(e.target.value)}
-            className="w-full rounded-md bg-slate-900 border border-edge px-3 py-2 text-sm tracking-widest"
+            className={`${authField} tracking-widest`}
           />
         )}
-        <button
-          type="submit" disabled={busy}
-          className="w-full rounded-md bg-indigo-600 hover:bg-indigo-500 text-slate-900 disabled:opacity-50 py-2 text-sm font-medium"
-        >
-          {busy ? '…' : mfaStep ? 'Vérifier' : 'Se connecter'}
+        <button type="submit" disabled={busy} className="btn-outline w-full h-10 py-0 font-semibold disabled:opacity-50">
+          {busy ? '…' : mfaStep ? 'Vérifier' : 'Connexion'}
         </button>
         {needsSetup && (
-          <p className="text-center text-sm text-slate-400">
-            Première installation ? <Link to="/register" className="text-indigo-400">Créer le compte administrateur</Link>
+          <p className="pt-1 text-center text-xs text-slate-400">
+            Première installation ? <Link to="/register" className="text-gold-300 hover:text-gold-200">Créer le compte administrateur</Link>
           </p>
         )}
       </form>
-    </div>
+    </AuthShell>
   );
 }

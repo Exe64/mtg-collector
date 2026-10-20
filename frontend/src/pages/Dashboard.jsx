@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Search } from 'lucide-react';
 import { api } from '../api/client';
 import { useCardModal } from '../stores/cardModal';
+import Wordmark, { WUBRG_DOTS } from '../components/ui/Wordmark';
 import DonutChart from '../components/charts/DonutChart';
 import LineChart from '../components/charts/LineChart';
-import { CONDITION_ORDER, CONDITION_LABEL, CONDITION_COLOR, MANA_HEX } from '../constants';
+import { CONDITION_ORDER, CONDITION_LABEL, CONDITION_COLOR, MANA_HEX, artCrop } from '../constants';
 
 const COLOR_META = {
   W: { label: 'Blanc', color: MANA_HEX.W },
@@ -66,11 +68,135 @@ function downsample(snaps, gran) {
   return [...m.values()];
 }
 
+// Ordre des pastilles WUBRG
+const DOT_COLORS = [['W', 'blanche'], ['U', 'bleue'], ['B', 'noire'], ['R', 'rouge'], ['G', 'verte']];
+
+const SLIDE_MS = 7000;
+
+function Hero({ updatedAt }) {
+  const navigate = useNavigate();
+  const openCard = useCardModal((s) => s.open);
+  const input = useRef(null);
+  const [q, setQ] = useState('');
+  const [current, setCurrent] = useState(0);
+  const [slides, setSlides] = useState([]);
+
+  // Cartes au hasard de la collection (du catalogue si elle est vide), renouvelées à chaque visite
+  useEffect(() => {
+    api('/collection/hero-arts?limit=12')
+      .then((d) => setSlides((d.cards || []).map((c) => ({
+        id: c.scryfall_id, name: c.name, art: artCrop(c.image_uri_small), colors: c.color_identity || [],
+      }))))
+      .catch(() => {});
+  }, []);
+
+  // Rotation des illustrations ; figée si l'utilisateur limite les animations.
+  // `current` en dépendance : un clic sur une pastille relance le minuteur.
+  useEffect(() => {
+    if (slides.length < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+    const t = setTimeout(() => setCurrent((i) => (i + 1) % slides.length), SLIDE_MS);
+    return () => clearTimeout(t);
+  }, [current, slides.length]);
+  const slide = slides[current];
+
+  // « / » place le curseur dans la recherche, sauf si l'on tape déjà ailleurs
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName)) return;
+      e.preventDefault();
+      input.current?.focus();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const submit = (e) => {
+    e.preventDefault();
+    navigate(q.trim() ? `/collection?q=${encodeURIComponent(q.trim())}` : '/collection');
+  };
+
+  return (
+    <div className="relative mx-[calc(50%-50vw)] -mt-6 sm:-mt-8 overflow-hidden">
+      {/* Illustrations très floutées, en fondu enchaîné */}
+      {slides.map((s, i) => (
+        <div
+          key={s.id}
+          aria-hidden
+          className={`absolute inset-0 bg-cover bg-center scale-110 blur-[16px] transition-opacity duration-[1600ms] ease-out motion-reduce:transition-none ${i === current ? 'opacity-80' : 'opacity-0'}`}
+          style={{ backgroundImage: `url(${s.art})` }}
+        />
+      ))}
+      <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-slate-900/30 via-slate-900/25 to-slate-900" />
+
+      <div className="relative flex flex-col items-center px-4 pt-10 sm:pt-14 pb-20 sm:pb-24">
+        <Wordmark />
+        {/* Pastilles WUBRG : s'allument selon les couleurs de la carte affichée ; un clic
+            passe à la prochaine carte de cette couleur */}
+        <div className="flex mt-5 sm:mt-7">
+          {DOT_COLORS.map(([letter, label], k) => {
+            const lit = slide?.colors.includes(letter);
+            const next = slides.length
+              ? [...Array(slides.length).keys()].map((n) => (current + 1 + n) % slides.length)
+                .find((j) => slides[j].colors.includes(letter))
+              : undefined;
+            const dot = (
+              <span
+                className={`w-1.5 h-1.5 rounded-full transition-transform duration-300 ${lit ? 'scale-[1.7]' : 'opacity-50 group-hover:opacity-100'}`}
+                style={{ background: WUBRG_DOTS[k] }}
+              />
+            );
+            return next === undefined ? (
+              <span key={letter} aria-hidden className="w-6 h-6 flex items-center justify-center">{dot}</span>
+            ) : (
+              <button
+                key={letter}
+                type="button"
+                onClick={() => setCurrent(next)}
+                aria-label={`Afficher une carte ${label}`}
+                aria-pressed={lit}
+                className="group w-6 h-6 flex items-center justify-center"
+              >{dot}</button>
+            );
+          })}
+        </div>
+
+        <form onSubmit={submit} role="search" className="glass mt-5 sm:mt-7 w-full max-w-2xl rounded-xl border border-white/10 focus-within:border-gold-500/60 shadow-2xl shadow-black/40">
+          <label className="flex items-center gap-3 px-4 sm:px-5 h-14 sm:h-16">
+            <Search size={20} className="shrink-0 text-slate-400" aria-hidden />
+            <input
+              ref={input}
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Rechercher dans ma collection…"
+              aria-label="Rechercher dans ma collection"
+              className="flex-1 min-w-0 bg-transparent border-0 p-0 text-base text-slate-50 placeholder:text-slate-400 focus:outline-none"
+            />
+            <kbd className="hidden sm:flex items-center justify-center w-6 h-6 rounded border border-white/20 text-xs text-slate-400 font-sans">/</kbd>
+          </label>
+        </form>
+        {updatedAt && (
+          <p className="mt-3 text-xs text-slate-400">Prix à jour le {String(updatedAt).slice(0, 10)}</p>
+        )}
+        {slide && (
+          <button
+            type="button"
+            onClick={() => openCard(slide.id)}
+            className="glass mt-6 sm:mt-8 rounded-full border border-white/10 px-3.5 py-1.5 text-xs text-slate-100 hover:text-gold-200 hover:border-gold-500/40"
+          >
+            {slide.name}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Stat({ label, value, accent }) {
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-lg p-3">
-      <div className="text-xs text-slate-400">{label}</div>
-      <div className={`text-lg font-bold ${accent || ''}`}>{value}</div>
+    <div className="glass border border-white/[0.08] rounded-xl px-4 py-3">
+      <div className="text-[11px] uppercase tracking-[0.1em] text-slate-400">{label}</div>
+      <div className={`mt-0.5 text-xl font-semibold ${accent || 'text-slate-50'}`}>{value}</div>
     </div>
   );
 }
@@ -147,14 +273,9 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-baseline justify-between flex-wrap gap-2">
-        <h1 className="font-display text-xl font-bold">Tableau de bord</h1>
-        {stats.pricesUpdatedAt && (
-          <span className="text-xs text-slate-500">Prix à jour le {String(stats.pricesUpdatedAt).slice(0, 10)}</span>
-        )}
-      </div>
+      <Hero updatedAt={stats.pricesUpdatedAt} />
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+      <div className="relative !-mt-12 sm:!-mt-14 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
         <Stat label="Valeur (Cardmarket €)" value={`${stats.totalValue.eur.toFixed(2)} €`} accent="text-emerald-400" />
         <Stat label="Valeur (TCGplayer $)" value={`$${stats.totalValue.usd.toFixed(2)}`} />
         <Stat label="Cartes" value={stats.cardCount} />
@@ -177,7 +298,7 @@ export default function Dashboard() {
           </li>
         );
         return (
-          <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
+          <section className="bg-slate-800/50 border border-white/[0.06] rounded-xl p-4">
             <h2 className="text-sm font-semibold text-slate-300 mb-2">Plus-value <span className="text-xs text-slate-500">({pf.pricedCount} cartes avec prix d'achat)</span></h2>
             <div className="grid grid-cols-3 gap-2 mb-3 text-center">
               <div><div className="text-xs text-slate-400">Investi</div><div className="font-bold">{pf.acquiredTotal.toFixed(2)} €</div></div>
@@ -204,16 +325,16 @@ export default function Dashboard() {
         );
       })()}
 
-      <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
+      <section className="bg-slate-800/50 border border-white/[0.06] rounded-xl p-4">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-sm font-semibold text-slate-300">
             ⚡ Mouvements de prix
             <Link to="/movements" className="ml-2 text-xs font-normal text-indigo-400 hover:text-indigo-300">tout voir →</Link>
           </h2>
-          <div className="flex gap-1">
+          <div className="seg">
             {[7, 30].map((d) => (
               <button key={d} type="button" onClick={() => setSpikeDays(d)}
-                className={`text-xs rounded px-2 py-1 ${spikeDays === d ? 'bg-slate-600' : 'bg-slate-800 hover:bg-slate-700'}`}>
+                aria-pressed={spikeDays === d} className={`seg-btn ${spikeDays === d ? 'seg-btn-on' : ''}`}>
                 {d} j
               </button>
             ))}
@@ -262,29 +383,29 @@ export default function Dashboard() {
         })()}
       </section>
 
-      <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
+      <section className="bg-slate-800/50 border border-white/[0.06] rounded-xl p-4">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-sm font-semibold text-slate-300">Évolution de la valeur</h2>
           <div className="flex flex-wrap gap-2">
-            <div className="flex gap-1">
+            <div className="seg">
               {PERIODS.map((p) => (
                 <button
                   key={p.days}
                   type="button"
                   onClick={() => setDays(p.days)}
-                  className={`text-xs rounded px-2 py-1 ${days === p.days ? 'bg-slate-600' : 'bg-slate-800 hover:bg-slate-700'}`}
+                  aria-pressed={days === p.days} className={`seg-btn ${days === p.days ? 'seg-btn-on' : ''}`}
                 >
                   {p.label}
                 </button>
               ))}
             </div>
-            <div className="flex gap-1">
+            <div className="seg">
               {GRANS.map((g) => (
                 <button
                   key={g.key}
                   type="button"
                   onClick={() => setGran(g.key)}
-                  className={`text-xs rounded px-2 py-1 ${gran === g.key ? 'bg-slate-600' : 'bg-slate-800 hover:bg-slate-700'}`}
+                  aria-pressed={gran === g.key} className={`seg-btn ${gran === g.key ? 'seg-btn-on' : ''}`}
                 >
                   {g.label}
                 </button>
@@ -296,25 +417,25 @@ export default function Dashboard() {
       </section>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
+        <section className="bg-slate-800/50 border border-white/[0.06] rounded-xl p-4">
           <h2 className="text-sm font-semibold text-slate-300 mb-3">Répartition par couleur</h2>
           <DonutChart data={colorData} />
         </section>
-        <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
+        <section className="bg-slate-800/50 border border-white/[0.06] rounded-xl p-4">
           <h2 className="text-sm font-semibold text-slate-300 mb-3">Répartition par rareté</h2>
           <DonutChart data={rarityData} />
         </section>
-        <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
+        <section className="bg-slate-800/50 border border-white/[0.06] rounded-xl p-4">
           <h2 className="text-sm font-semibold text-slate-300 mb-3">Répartition par état</h2>
           <DonutChart data={conditionData} />
         </section>
-        <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
+        <section className="bg-slate-800/50 border border-white/[0.06] rounded-xl p-4">
           <h2 className="text-sm font-semibold text-slate-300 mb-3">Répartition par type</h2>
           <DonutChart data={typeData} />
         </section>
       </div>
 
-      <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
+      <section className="bg-slate-800/50 border border-white/[0.06] rounded-xl p-4">
         <h2 className="text-sm font-semibold text-slate-300 mb-3">Répartition par valeur</h2>
         <ul className="space-y-1.5">
           {valueRows.map((r) => (
@@ -331,7 +452,7 @@ export default function Dashboard() {
         </ul>
       </section>
 
-      <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
+      <section className="bg-slate-800/50 border border-white/[0.06] rounded-xl p-4">
         <h2 className="text-sm font-semibold text-slate-300 mb-3">Top 10 cartes</h2>
         <ol className="space-y-1">
           {stats.topCards.map((c, i) => (

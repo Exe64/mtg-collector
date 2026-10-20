@@ -41,9 +41,9 @@ export default function Alerts() {
 
   return (
     <div className="space-y-5">
-      <h1 className="font-display text-xl font-bold">Alertes de prix</h1>
+      <h1 className="page-title">Alertes de prix</h1>
 
-      <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
+      <section className="bg-slate-800/50 border border-white/[0.06] rounded-xl p-4">
         <h2 className="text-sm font-semibold text-slate-300 mb-2">Notifications récentes</h2>
         {notifs.length === 0 ? (
           <p className="text-xs text-slate-500">Aucune notification. Les alertes déclenchées apparaîtront ici.</p>
@@ -64,7 +64,7 @@ export default function Alerts() {
         )}
       </section>
 
-      <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
+      <section className="bg-slate-800/50 border border-white/[0.06] rounded-xl p-4">
         <h2 className="text-sm font-semibold text-slate-300 mb-2">Alertes définies</h2>
         {alerts.length === 0 ? (
           <p className="text-xs text-slate-500">

@@ -5,7 +5,7 @@ import { useCardModal } from '../../stores/cardModal';
 import LineChart from '../charts/LineChart';
 import CardPrice from './CardPrice';
 import Modal from './Modal';
-import { manaSymbols } from '../../constants';
+import { manaSymbols, artCrop } from '../../constants';
 
 function Mana({ cost }) {
   const syms = manaSymbols(cost);
@@ -112,8 +112,15 @@ export default function CardModal() {
     <Modal
       onClose={close}
       label={card?.name || 'Détail de la carte'}
-      className="rounded-xl w-[calc(100%-2rem)] max-w-3xl max-h-[90vh] overflow-auto p-4"
+      className="isolate rounded-2xl w-[calc(100%-2rem)] max-w-3xl max-h-[90vh] overflow-auto p-4 sm:p-5"
     >
+        {/* Illustration floutée en tête de modale */}
+        {card?.image && (
+          <div aria-hidden className="absolute inset-x-0 top-0 h-80 -z-10 overflow-hidden">
+            <div className="absolute inset-0 bg-cover bg-center scale-125 blur-2xl opacity-40" style={{ backgroundImage: `url(${artCrop(card.image)})` }} />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-slate-800" />
+          </div>
+        )}
         <div className="flex justify-end">
           <button type="button" onClick={close} aria-label="Fermer" className="w-11 h-11 -mt-2 -mr-2 shrink-0 flex items-center justify-center rounded-md text-slate-400 hover:text-white"><X size={20} /></button>
         </div>
@@ -128,7 +135,7 @@ export default function CardModal() {
               if (!src) return null;
               return (
                 <div className="md:w-64 shrink-0 self-start">
-                  <img loading="lazy" src={src} alt={card.name} className="w-full rounded-lg" />
+                  <img loading="lazy" src={src} alt={card.name} className="w-full rounded-[4.75%/3.5%] shadow-xl shadow-black/50" />
                   {back && (
                     <button type="button" onClick={() => setShowBack((v) => !v)}
                       className="mt-1 w-full rounded bg-slate-700 hover:bg-slate-600 text-xs py-1">
@@ -140,7 +147,7 @@ export default function CardModal() {
             })()}
             <div className="flex-1 min-w-0">
               <div className="flex items-baseline justify-between gap-2">
-                <h2 className="font-display text-lg font-bold">{card.name}</h2>
+                <h2 className="font-display text-2xl font-semibold leading-tight text-slate-50">{card.name}</h2>
                 <span className="text-sm text-slate-400"><Mana cost={card.mana_cost} /></span>
               </div>
               <div className="text-xs text-slate-400 mt-0.5">

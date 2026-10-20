@@ -3,6 +3,16 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    color-scheme: dark;
+    scrollbar-color: theme('colors.slate.600') transparent;
+  }
+
+  body {
+    background: theme('colors.slate.900');
+    font-variant-numeric: tabular-nums;
+  }
+
   :focus-visible {
     outline: 2px solid theme('colors.gold.400');
     outline-offset: 2px;
@@ -20,8 +30,52 @@
     caret-color: theme('colors.gold.300');
   }
 
+  input:focus,
+  select:focus,
+  textarea:focus {
+    border-color: theme('colors.gold.500');
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: theme('colors.slate.500');
+  }
+
   dialog {
     color: inherit;
+  }
+
+  dialog::backdrop {
+    backdrop-filter: blur(6px);
+  }
+}
+
+@layer components {
+  /* Titre de page : serif en petites capitales, un seul par écran */
+  .page-title {
+    @apply font-display font-semibold text-[1.75rem] sm:text-[2.125rem] leading-tight text-slate-50;
+    letter-spacing: 0.01em;
+  }
+
+  /* Verre dépoli : réservé à ce qui flotte au-dessus de l'image ou du contenu */
+  .glass {
+    @apply bg-slate-900/70 backdrop-blur-xl backdrop-saturate-150;
+  }
+
+  /* Sélecteur à segments : piste sombre, libellés en capitales espacées */
+  .seg {
+    @apply inline-flex flex-wrap gap-1 rounded-lg border border-slate-700 bg-slate-900/60 p-1;
+  }
+  .seg-btn {
+    @apply rounded-md px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.12em] text-slate-400 hover:text-slate-100;
+  }
+  .seg-btn-on {
+    @apply bg-gold-500/15 text-gold-200 ring-1 ring-inset ring-gold-500/40 hover:text-gold-100;
+  }
+
+  /* Bouton contour sable (appel secondaire mis en avant) */
+  .btn-outline {
+    @apply rounded-md border border-gold-500/70 px-4 py-2 text-sm text-gold-300 hover:bg-gold-500/10 hover:text-gold-200;
   }
 }
 

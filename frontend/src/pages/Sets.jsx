@@ -50,13 +50,13 @@ export default function Sets() {
 
   return (
     <div>
-      <h1 className="font-display text-xl font-bold mb-4">Extensions</h1>
+      <h1 className="page-title mb-5">Extensions</h1>
 
       <div className="flex flex-wrap gap-2 mb-4">
         <select
           aria-label="Type d'extension"
           value={type} onChange={(e) => setType(e.target.value)}
-          className="rounded-md bg-slate-800 border border-edge px-3 py-2 text-sm"
+          className="rounded-lg bg-slate-800 border border-edge px-3 py-2 text-sm"
         >
           {TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
@@ -64,14 +64,14 @@ export default function Sets() {
           value={q} onChange={(e) => setQ(e.target.value)}
           placeholder="Filtrer par nom…"
           aria-label="Filtrer par nom"
-          className="flex-1 min-w-[10rem] rounded-md bg-slate-800 border border-edge px-3 py-2 text-sm"
+          className="flex-1 min-w-[10rem] rounded-lg bg-slate-800 border border-edge px-3 py-2 text-sm"
         />
       </div>
 
       {loading ? (
         <div className="text-center text-slate-500 py-12">Chargement…</div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
           {filtered.map((s) => {
             const info = ownedBySet[s.code] || {};
             const owned = info.owned || 0;
@@ -80,30 +80,30 @@ export default function Sets() {
             return (
               <Link
                 key={s.code} to={`/sets/${s.code}`}
-                className="flex items-center gap-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg p-3"
+                className="group relative overflow-hidden flex flex-col justify-between min-h-[7.5rem] rounded-tile border border-white/[0.06] bg-gradient-to-br from-slate-800 to-slate-900 hover:border-gold-500/40 p-4"
               >
-                <i className={`ss ss-${s.code} ss-2x shrink-0 text-slate-300`} aria-hidden="true" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-baseline gap-2">
-                    <div className="text-sm font-medium truncate flex-1">{s.name}</div>
-                    {value > 0 && (
-                      <span className="text-xs text-emerald-400 font-semibold whitespace-nowrap">{value.toFixed(2)} €</span>
-                    )}
-                  </div>
-                  <div className="text-xs text-slate-400 uppercase">
-                    {s.code} · {s.card_count ?? '?'} cartes · {s.released_at ? String(s.released_at).slice(0, 10) : '—'}
-                  </div>
-                  {owned > 0 && (
-                    <div className="mt-1.5">
-                      <div className="h-1 rounded-full bg-slate-700 overflow-hidden">
-                        <div className="h-full bg-emerald-500" style={{ width: `${pct}%` }} />
-                      </div>
-                      <div className="text-[10px] text-emerald-400 mt-0.5">
-                        {owned}/{s.card_count ?? '?'} · {pct}%
-                      </div>
+                {/* Symbole d'extension en filigrane */}
+                <i className={`ss ss-${s.code} absolute -right-3 -bottom-4 text-[6.5rem] leading-none text-slate-50/[0.05] group-hover:text-gold-300/10`} aria-hidden="true" />
+                <div className="relative flex items-start gap-3">
+                  <i className={`ss ss-${s.code} ss-2x shrink-0 ${owned > 0 ? 'text-gold-300' : 'text-slate-400'}`} aria-hidden="true" />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-display text-lg font-semibold leading-tight text-slate-50 truncate group-hover:text-gold-200">{s.name}</div>
+                    <div className="text-[11px] text-slate-400 uppercase tracking-[0.12em] mt-0.5 truncate">
+                      {s.code} · {s.card_count ?? '?'} cartes · {s.released_at ? String(s.released_at).slice(0, 10) : '—'}
                     </div>
-                  )}
+                  </div>
                 </div>
+                {owned > 0 && (
+                  <div className="relative mt-3">
+                    <div className="h-1 rounded-full bg-slate-700 overflow-hidden">
+                      <div className="h-full bg-emerald-500" style={{ width: `${pct}%` }} />
+                    </div>
+                    <div className="flex justify-between text-[11px] text-emerald-400 mt-1">
+                      <span>{owned}/{s.card_count ?? '?'} · {pct}%</span>
+                      {value > 0 && <span className="font-semibold">{value.toFixed(2)} €</span>}
+                    </div>
+                  </div>
+                )}
               </Link>
             );
           })}

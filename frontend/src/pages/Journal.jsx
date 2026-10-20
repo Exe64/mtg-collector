@@ -75,14 +75,14 @@ export default function Journal() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="font-display text-xl font-bold">Journal des modifications</h1>
-        <div className="flex gap-1">
+        <h1 className="page-title">Journal des modifications</h1>
+        <div className="seg">
           {PERIODS.map((p) => (
             <button
               key={p.days}
               type="button"
               onClick={() => setDays(p.days)}
-              className={`text-xs rounded px-2 py-1 ${days === p.days ? 'bg-slate-600' : 'bg-slate-800 hover:bg-slate-700'}`}
+              aria-pressed={days === p.days} className={`seg-btn ${days === p.days ? 'seg-btn-on' : ''}`}
             >
               {p.label}
             </button>
@@ -100,7 +100,7 @@ export default function Journal() {
         </p>
       ) : (
         groups.map((g) => (
-          <section key={g.day} className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
+          <section key={g.day} className="bg-slate-800/50 border border-white/[0.06] rounded-xl p-4">
             <div className="flex items-baseline justify-between flex-wrap gap-1 mb-2">
               <h2 className="text-sm font-semibold text-slate-300">{formatDay(g.day)}</h2>
               <span className="text-xs text-slate-400">

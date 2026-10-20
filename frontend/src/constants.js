@@ -37,6 +37,14 @@ export function identityStyle(ci) {
   return { boxShadow: `inset 4px 0 0 0 ${identityColor(ci)}` };
 }
 
+// Fond de tuile : teinte d'identité qui s'efface vers le bas
+export function identityTint(ci) {
+  return { backgroundImage: `linear-gradient(to bottom, ${identityColor(ci)}38, transparent 80%)` };
+}
+
+// Illustration seule (recadrage Scryfall) dérivée d'une URL d'image de carte jpg
+export const artCrop = (url) => url?.replace(/\/(small|normal|large)\/(front|back)\//, '/art_crop/$2/');
+
 // Tokens d'un coût de mana "{2}{U}{U}" → classes mana-font
 export function manaSymbols(cost) {
   if (!cost) return [];

@@ -99,7 +99,7 @@ function ResultCard({ card, owned, onAdjust }) {
   const c = useQuickAdd(card, onAdjust);
   const o = owned || { nonfoil: 0, foil: 0 };
   return (
-    <li style={identityStyle(card.color_identity)} className="bg-slate-800 border border-slate-700 rounded-lg p-2 pl-3">
+    <li style={identityStyle(card.color_identity)} className="bg-slate-800 border border-white/[0.06] rounded-xl p-2 pl-3">
       <div className="flex items-center gap-2">
         <button type="button" onClick={() => openCard(card.scryfall_id)} className="flex items-center gap-2 min-w-0 flex-1 text-left">
           {card.image_small && <img loading="lazy" src={card.image_small} alt="" className="w-9 rounded-sm shrink-0" />}
@@ -209,8 +209,8 @@ export default function Add() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <h1 className="font-display text-xl font-bold mb-1">Ajouter des cartes</h1>
+    <div>
+      <h1 className="page-title mb-1">Ajouter des cartes</h1>
       <p className="text-sm text-slate-400 mb-4">
         Tape un nom : choisis une suggestion ou valide avec <kbd className="px-1 bg-slate-700 rounded">Entrée</kbd> pour
         afficher toutes les versions, puis ajuste les compteurs <span className="text-slate-300">Normale</span> et
@@ -226,7 +226,7 @@ export default function Add() {
             onFocus={() => suggestions.length && setShowSug(true)}
             placeholder="Rechercher une carte…"
             aria-label="Rechercher une carte"
-            className="w-full rounded-md bg-slate-800 border border-edge px-3 py-2 text-sm"
+            className="w-full rounded-lg bg-slate-800 border border-edge px-3 py-2 text-sm"
           />
         {showSug && suggestions.length > 0 && (
           <ul className="absolute z-10 mt-1 w-full max-h-72 overflow-auto bg-slate-800 border border-slate-700 rounded-md shadow-xl">

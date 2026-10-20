@@ -20,7 +20,7 @@ export default class ErrorBoundary extends Component {
     if (this.state.error) {
       return (
         <div className="max-w-lg mx-auto text-center py-16">
-          <h1 className="font-display text-xl font-bold mb-2">Une erreur est survenue</h1>
+          <h1 className="page-title mb-2">Une erreur est survenue</h1>
           <p className="text-sm text-slate-400 mb-4">
             Cette page a rencontré un problème. Tu peux la recharger ou revenir au tableau de bord.
           </p>

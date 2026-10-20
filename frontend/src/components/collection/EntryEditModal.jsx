@@ -46,7 +46,7 @@ export default function EntryEditModal({ entry, onSave, onClose }) {
   const field = 'w-full rounded bg-slate-900 border border-edge px-2 py-1.5 text-sm';
 
   return (
-    <Modal onClose={onClose} label={`Éditer ${entry.card.name}`} className="rounded-xl w-[calc(100%-2rem)] max-w-md max-h-[90vh] overflow-auto p-4">
+    <Modal onClose={onClose} label={`Éditer ${entry.card.name}`} className="rounded-2xl w-[calc(100%-2rem)] max-w-md max-h-[90vh] overflow-auto p-4">
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-sm font-semibold truncate">{entry.card.name}</h2>

@@ -44,8 +44,8 @@ export default function Security() {
   const box = 'w-full rounded-md bg-slate-900 border border-edge px-3 py-2 text-sm';
 
   return (
-    <div className="max-w-lg mx-auto">
-      <h1 className="font-display text-xl font-bold mb-1">Sécurité</h1>
+    <div>
+      <h1 className="page-title mb-1">Sécurité</h1>
       <p className="text-sm text-slate-400 mb-4">
         Double authentification (TOTP) : un code temporaire de ton application d’authentification
         (Google Authenticator, Aegis, etc.) est demandé à la connexion.
@@ -92,7 +92,7 @@ export default function Security() {
           </form>
         </div>
       ) : setup ? (
-        <div className="rounded-lg border border-slate-700 bg-slate-800 p-4">
+        <div className="rounded-xl border border-white/[0.06] bg-slate-800 p-4">
           <p className="text-sm mb-3">1. Scanne ce QR code dans ton application d’authentification :</p>
           <img loading="lazy" src={setup.qr} alt="QR code MFA" className="w-44 h-44 bg-white rounded mb-2" />
           <p className="text-xs text-slate-400 mb-3">

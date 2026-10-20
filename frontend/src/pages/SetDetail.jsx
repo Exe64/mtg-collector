@@ -4,7 +4,7 @@ import { api } from '../api/client';
 import { useCardModal } from '../stores/cardModal';
 import LineChart from '../components/charts/LineChart';
 import CardPrice, { refPrice } from '../components/ui/CardPrice';
-import { identityStyle } from '../constants';
+import { identityTint } from '../constants';
 
 const FILTERS = [
   { key: 'all', label: 'Toutes' },
@@ -272,11 +272,11 @@ export default function SetDetail() {
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-3">
-        <Link to="/sets" className="text-slate-400 hover:text-slate-200 text-sm">← Extensions</Link>
+      <Link to="/sets" className="inline-block mb-2 text-[11px] uppercase tracking-[0.12em] text-slate-400 hover:text-slate-200">← Extensions</Link>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-4">
         <i className={`ss ss-${code} ss-2x text-gold-400`} aria-hidden="true" />
-        <h1 className="font-display text-xl font-bold">
-          {setName || code.toUpperCase()} <span className="text-slate-500 text-sm uppercase">({code})</span>
+        <h1 className="page-title min-w-0">
+          {setName || code.toUpperCase()} <span className="font-sans text-slate-500 text-sm uppercase tracking-[0.12em]">{code}</span>
         </h1>
         <span className="ml-auto text-sm whitespace-nowrap">
           <span className="text-slate-400">Valeur : </span>
@@ -334,29 +334,29 @@ export default function SetDetail() {
       )}
 
       {/* Base / Extras */}
-      <div className="flex gap-1 mb-3">
+      <div className="seg mb-3">
         {[['base', 'Base', baseCards.length], ['extras', 'Extras', extrasCount]].map(([key, label, n]) => (
           <button
             key={key}
             type="button"
             onClick={() => setGroup(key)}
-            className={`text-sm rounded px-4 py-1.5 font-medium ${group === key ? 'bg-gold-700 text-white' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'}`}
+            aria-pressed={group === key} className={`seg-btn ${group === key ? 'seg-btn-on' : ''}`}
           >
-            {label} <span className={group === key ? 'text-gold-200' : 'text-slate-500'}>({n})</span>
+            {label} <span className={group === key ? 'text-gold-300' : 'text-slate-500'}>({n})</span>
           </button>
         ))}
       </div>
 
       {/* Filtres */}
-      <div className="flex gap-1 mb-4">
+      <div className="seg mb-4">
         {FILTERS.map((f) => (
           <button
             key={f.key}
             type="button"
             onClick={() => setFilter(f.key)}
-            className={`text-xs rounded px-3 py-1.5 ${filter === f.key ? 'bg-slate-600' : 'bg-slate-800 hover:bg-slate-700'}`}
+            aria-pressed={filter === f.key} className={`seg-btn ${filter === f.key ? 'seg-btn-on' : ''}`}
           >
-            {f.label} <span className="text-slate-400">({counts[f.key]})</span>
+            {f.label} <span className="text-slate-500">({counts[f.key]})</span>
           </button>
         ))}
       </div>
@@ -394,22 +394,22 @@ export default function SetDetail() {
             return (
               <div
                 key={c.scryfall_id}
-                style={identityStyle(c.color_identity)}
-                className={`relative rounded-lg overflow-hidden border ${qty > 0 ? 'border-emerald-500' : 'border-slate-700'} bg-slate-800`}
+                style={identityTint(c.color_identity)}
+                className={`relative rounded-tile overflow-hidden border bg-slate-800 ${qty > 0 ? 'border-emerald-500/70' : 'border-white/[0.06]'}`}
               >
                 {qty > 0 && (
-                  <span className="absolute top-1 right-1 z-10 bg-emerald-500 text-slate-900 text-xs font-bold rounded-full px-2 py-0.5">
+                  <span className="absolute top-2 right-2 z-10 bg-emerald-500 text-slate-900 text-xs font-bold rounded-full px-2 py-0.5 shadow-md shadow-black/40">
                     ×{qty}
                   </span>
                 )}
                 {c.image ? (
-                  <button type="button" onClick={() => openCard(c.scryfall_id)} className="block w-full">
-                    <img src={c.image} alt={c.name} className={`w-full ${qty > 0 ? '' : 'opacity-60'}`} loading="lazy" />
+                  <button type="button" onClick={() => openCard(c.scryfall_id)} className="block w-full p-1.5 pb-0">
+                    <img src={c.image} alt={c.name} className={`w-full rounded-[4.75%/3.5%] ${qty > 0 ? '' : 'opacity-50 saturate-50'}`} loading="lazy" />
                   </button>
                 ) : (
                   <button type="button" onClick={() => openCard(c.scryfall_id)} className="aspect-[5/7] w-full flex items-center justify-center text-xs text-slate-500 p-2 text-center">{c.name}</button>
                 )}
-                <div className="p-2">
+                <div className="p-2.5">
                   <div className="text-xs truncate" title={c.name_fr ? `${c.name_fr} · ${c.name}` : c.name}>#{c.collector_number} {c.name_fr || c.name}</div>
                   <CardPrice card={c} className="text-xs mt-0.5" />
                   <div className="mt-1.5 space-y-1">

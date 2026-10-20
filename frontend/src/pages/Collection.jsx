@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
 import CollectionTable from '../components/collection/CollectionTable';
 import EntryEditModal from '../components/collection/EntryEditModal';
@@ -28,7 +29,8 @@ const FILTER_LABEL = { type: 'Type', rarity: 'Rareté', color: 'Couleur', cmc: '
 
 export default function Collection() {
   const [stats, setStats] = useState(null);
-  const [q, setQ] = useState('');
+  const [searchParams] = useSearchParams();
+  const [q, setQ] = useState(searchParams.get('q') || '');
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [sort, setSort] = useState('value');
   const [order, setOrder] = useState('desc');
@@ -219,7 +221,7 @@ export default function Collection() {
   return (
     <div>
       <header className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="font-display text-xl font-bold">Ma collection</h1>
+        <h1 className="page-title">Ma collection</h1>
         {stats && (
           <div className="text-sm text-slate-400">
             <span className="text-emerald-400 font-semibold">{stats.totalValueEur.toFixed(2)} €</span>
@@ -234,7 +236,7 @@ export default function Collection() {
           onChange={(e) => setQ(e.target.value)}
           placeholder="Rechercher dans ma collection…"
           aria-label="Rechercher dans ma collection"
-          className="w-full rounded-md bg-slate-800 border border-edge px-3 py-2 text-sm"
+          className="w-full rounded-lg bg-slate-800 border border-edge px-3 py-2 text-sm"
         />
         {q && (
           <button type="button" onClick={() => setQ('')} aria-label="Effacer la recherche"

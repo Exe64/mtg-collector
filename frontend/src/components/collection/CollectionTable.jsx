@@ -60,7 +60,7 @@ export default function CollectionTable({ entries, onUpdate, onDelete, onEdit, s
       {/* Mobile : cartes empilées */}
       <ul className="sm:hidden space-y-2">
         {entries.map((e) => (
-          <li key={e.id} style={identityStyle(e.card.color_identity)} className="bg-slate-800 border border-slate-700 rounded-lg p-2 pl-3">
+          <li key={e.id} style={identityStyle(e.card.color_identity)} className="bg-slate-800 border border-white/[0.06] rounded-xl p-2 pl-3">
             <div className="flex items-center gap-2">
               {selected && <input type="checkbox" checked={selected.has(e.id)} onChange={() => onToggleSelect(e.id)} aria-label="Sélectionner" />}
               <button type="button" onClick={() => openCard(e.card.scryfall_id)} className="flex items-center gap-2 min-w-0 flex-1 text-left">

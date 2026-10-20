@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../api/client';
 import { useCardModal } from '../stores/cardModal';
+import { X } from 'lucide-react';
+import { artCrop } from '../constants';
 
 export default function Wishlist() {
   const openCard = useCardModal((s) => s.open);
@@ -31,7 +33,7 @@ export default function Wishlist() {
   return (
     <div>
       <header className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="font-display text-xl font-bold">Liste de souhaits</h1>
+        <h1 className="page-title">Liste de souhaits</h1>
         {data.items.length > 0 && (
           <div className="text-sm text-slate-400">
             Coût estimé : <span className="text-emerald-400 font-semibold">{data.totalEur.toFixed(2)} €</span> · {data.items.length} carte(s)
@@ -40,7 +42,7 @@ export default function Wishlist() {
       </header>
 
       {movers.length > 0 && (
-        <section className="mb-4 bg-slate-800/40 border border-slate-800 rounded-lg p-4">
+        <section className="mb-4 bg-slate-800/50 border border-white/[0.06] rounded-xl p-4">
           <h2 className="text-sm font-semibold text-slate-300 mb-2">
             ⚡ Mouvements de prix (7 j) <span className="text-xs text-slate-500">— baisses en tête = signaux d'achat</span>
           </h2>
@@ -72,17 +74,31 @@ export default function Wishlist() {
           Liste vide. Ouvre une carte et clique sur « ★ Wishlist » pour l'ajouter.
         </div>
       ) : (
-        <ul className="rounded-lg border border-slate-800 divide-y divide-slate-800">
+        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {data.items.map((it) => (
-            <li key={it.id} className="flex items-center gap-2 p-2 hover:bg-slate-800/50">
-              {it.image_uri_small && <img loading="lazy" src={it.image_uri_small} alt="" className="w-9 rounded-sm" />}
-              <button type="button" onClick={() => openCard(it.scryfall_id)} className="flex-1 min-w-0 text-left hover:text-indigo-300">
-                <span className="block truncate text-sm">{it.name}</span>
-                <span className="text-xs text-slate-500 uppercase">{it.set_code} · {it.rarity}</span>
-                {it.note && <span className="block text-xs text-slate-500 truncate">{it.note}</span>}
+            <li key={it.id} className="group relative rounded-tile overflow-hidden border border-white/[0.06] bg-slate-800 hover:border-gold-500/40">
+              <button type="button" onClick={() => openCard(it.scryfall_id)} className="block w-full text-left">
+                <div className="relative aspect-[16/9] bg-slate-700">
+                  {it.image_uri_small && (
+                    <img loading="lazy" src={artCrop(it.image_uri_small)} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-800 via-slate-800/10 to-transparent" />
+                  <span className="glass absolute top-2 right-2 rounded-md px-2 py-0.5 text-xs font-semibold text-emerald-400">
+                    {it.eur ? `${it.eur} €` : '—'}
+                  </span>
+                </div>
+                <div className="relative -mt-6 px-3 pb-3">
+                  <span className="block truncate font-display text-lg font-semibold leading-snug text-slate-50 group-hover:text-gold-200">{it.name}</span>
+                  <span className="text-[11px] uppercase tracking-[0.12em] text-slate-400">{it.set_code} · {it.rarity}</span>
+                  {it.note && <span className="block text-xs text-slate-400 truncate mt-1">{it.note}</span>}
+                </div>
               </button>
-              <span className="text-emerald-400 text-sm whitespace-nowrap">{it.eur ? `${it.eur} €` : '—'}</span>
-              <button type="button" onClick={() => remove(it.id)} aria-label="Retirer" className="text-rose-400 hover:text-rose-300 px-1">✕</button>
+              <button
+                type="button"
+                onClick={() => remove(it.id)}
+                aria-label={`Retirer ${it.name}`}
+                className="glass absolute top-2 left-2 w-11 h-11 sm:w-8 sm:h-8 flex items-center justify-center rounded-md text-slate-300 hover:text-rose-300"
+              ><X size={16} /></button>
             </li>
           ))}
         </ul>

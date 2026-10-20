@@ -5,40 +5,45 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
-        display: ['Cinzel', 'Georgia', 'serif'],
+        // Vraies petites capitales (la police ne dessine que des capitales)
+        display: ['"Cormorant SC"', 'Georgia', 'serif'],
       },
       colors: {
-        // Anthracite : charbon neutre (re-skin sans toucher aux classes bg-slate-*)
+        // Zinc chaud (re-skin sans toucher aux classes bg-slate-*)
         slate: {
-          50: '#f5f6f7',
-          100: '#e8eaed', // texte
-          200: '#d2d6db',
-          300: '#b4bac1',
-          400: '#a0a6ae', // texte atténué (≥ 4.5:1 jusque sur slate-700)
-          500: '#868c95', // texte discret (≥ 4.5:1 sur slate-800)
-          600: '#3a3e44', // bordures
-          700: '#2c2f33',
-          800: '#202225', // panneaux
-          900: '#17181a', // fond
-          950: '#0f1011',
+          50: '#f7f6f4',
+          100: '#e9e7e3', // texte
+          200: '#d6d3ce',
+          300: '#bab6af', // texte secondaire
+          400: '#a8a49d', // texte atténué (≥ 4.5:1 jusque sur slate-700)
+          500: '#8f8b84', // texte discret (≥ 4.5:1 sur slate-800)
+          600: '#45454c', // bordures
+          700: '#323238', // relevé
+          800: '#202024', // panneaux
+          900: '#18181b', // fond
+          950: '#0e0e10',
         },
-        // Accent primaire : ambre/miel chaud (boutons, liens actifs)
+        // Accent d'action : sable doré (boutons, liens actifs)
         indigo: {
-          300: '#e3c178',
-          400: '#d4ab55',
-          500: '#c2953a',
-          600: '#a87f2e',
-          700: '#8a6824',
+          300: '#dec287',
+          400: '#d4b36f',
+          500: '#c8a45c',
+          600: '#b08a45',
+          700: '#8c6c36',
         },
-        // Signature : or chaud (titre, états actifs)
+        // Signature : même sable, échelle complète (titres, états actifs, foil)
         gold: {
-          200: '#f1dfb0',
-          300: '#e8cd8a',
-          400: '#d9b85f',
-          500: '#c2953a',
-          600: '#a87f2e',
-          700: '#8a6824',
-          950: '#2a1f0a',
+          50: '#faf7ee',
+          100: '#f5ecd6',
+          200: '#ebd9ae',
+          300: '#dec287',
+          400: '#d4b36f',
+          500: '#c8a45c',
+          600: '#b08a45',
+          700: '#8c6c36',
+          800: '#6b5228',
+          900: '#4e3c1e',
+          950: '#2a2010',
         },
         // Valeurs / prix / courbes : bleu vif (#00b4ff)
         emerald: {
@@ -56,7 +61,10 @@ export default {
           500: '#10b981',
         },
         // Bordure des champs de saisie (≥ 3:1 sur slate-900 et slate-800)
-        edge: '#6b7179',
+        edge: '#6e6c72',
+      },
+      borderRadius: {
+        tile: '1rem',
       },
     },
   },

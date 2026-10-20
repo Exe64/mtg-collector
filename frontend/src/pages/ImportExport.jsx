@@ -51,12 +51,12 @@ export default function ImportExport() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <h1 className="font-display text-xl font-bold">Import / Export</h1>
+    <div className="space-y-6">
+      <h1 className="page-title">Import / Export</h1>
       {error && <div className="text-sm text-rose-400 bg-rose-950/40 rounded p-2">{error}</div>}
 
       {/* IMPORT */}
-      <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4 space-y-3">
+      <section className="bg-slate-800/50 border border-white/[0.06] rounded-xl p-4 space-y-3">
         <h2 className="text-sm font-semibold text-slate-300">Importer un CSV (Moxfield ou générique)</h2>
 
         <label className="block border-2 border-dashed border-slate-700 rounded-lg p-6 text-center cursor-pointer hover:border-slate-600"
@@ -135,7 +135,7 @@ export default function ImportExport() {
       </section>
 
       {/* EXPORT */}
-      <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4 space-y-3">
+      <section className="bg-slate-800/50 border border-white/[0.06] rounded-xl p-4 space-y-3">
         <h2 className="text-sm font-semibold text-slate-300">Exporter</h2>
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={() => download('csv')}

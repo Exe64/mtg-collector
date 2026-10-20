@@ -37,8 +37,8 @@ export default function DeckCheck() {
     : [];
 
   return (
-    <div className="max-w-3xl mx-auto">
-      <h1 className="font-display text-xl font-bold mb-1">Vérifier un deck</h1>
+    <div>
+      <h1 className="page-title mb-1">Vérifier un deck</h1>
       <p className="text-sm text-slate-400 mb-4">
         Colle une liste (format Moxfield / MTGO), importe un <code className="text-slate-300">.txt</code>, ou indique l'URL d'un deck
         Moxfield public. La comparaison se fait <span className="text-slate-200">sur le nom de la carte</span>, toutes versions confondues.
@@ -49,14 +49,14 @@ export default function DeckCheck() {
           value={url} onChange={(e) => setUrl(e.target.value)}
           placeholder="https://www.moxfield.com/decks/…"
           aria-label="URL du deck Moxfield"
-          className="w-full rounded-md bg-slate-800 border border-edge px-3 py-2 text-sm"
+          className="w-full rounded-lg bg-slate-800 border border-edge px-3 py-2 text-sm"
         />
         <div className="text-center text-xs text-slate-500">— ou —</div>
         <textarea
           value={text} onChange={(e) => setText(e.target.value)} rows={8}
           aria-label="Liste du deck"
           placeholder={'4 Lightning Bolt\n2 Counterspell\n1 Sol Ring\n…'}
-          className="w-full rounded-md bg-slate-800 border border-edge px-3 py-2 text-sm font-mono"
+          className="w-full rounded-lg bg-slate-800 border border-edge px-3 py-2 text-sm font-mono"
         />
         <div className="flex items-center gap-3 flex-wrap">
           <label className="text-xs text-slate-400">
@@ -79,7 +79,7 @@ export default function DeckCheck() {
 
       {result && (
         <>
-          <div className="rounded-lg border border-slate-700 bg-slate-800 p-3 mb-3 text-sm">
+          <div className="rounded-xl border border-white/[0.06] bg-slate-800 p-3 mb-3 text-sm">
             {result.summary.missingDistinct === 0 ? (
               <span className="text-emerald-400 font-semibold">
                 ✓ Deck complet — tu possèdes toutes les cartes ({result.summary.distinct} différentes).

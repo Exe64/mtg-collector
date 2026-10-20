@@ -26,7 +26,7 @@ export default function Modal({ onClose, label, className = '', children }) {
       aria-label={label}
       onCancel={(e) => { e.preventDefault(); onClose(); }}
       onClick={onBackdrop}
-      className={`bg-slate-800 text-slate-100 backdrop:bg-black/70 ${className}`}
+      className={`bg-slate-800 text-slate-100 border border-white/10 shadow-2xl shadow-black/60 backdrop:bg-black/60 ${className}`}
     >
       {children}
     </dialog>

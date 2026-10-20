@@ -130,12 +130,12 @@ export default function Accounts() {
   const jobRunning = (name) => Boolean(status?.jobs?.[name]?.running);
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <h1 className="font-display text-xl font-bold">Administration</h1>
+    <div className="space-y-6">
+      <h1 className="page-title">Administration</h1>
       {error && <div className="text-sm text-rose-400 bg-rose-950/40 rounded p-2">{error}</div>}
 
       {/* État du système */}
-      <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
+      <section className="bg-slate-800/50 border border-white/[0.06] rounded-xl p-4">
         <h2 className="text-sm font-semibold text-slate-300 mb-3">État du système</h2>
         {!status ? (
           <p className="text-xs text-slate-500">Chargement…</p>
@@ -162,7 +162,7 @@ export default function Accounts() {
       </section>
 
       {/* Actions */}
-      <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
+      <section className="bg-slate-800/50 border border-white/[0.06] rounded-xl p-4">
         <h2 className="text-sm font-semibold text-slate-300 mb-3">Actions</h2>
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={() => runAction('sync-bulk', 'Sync bulk-data')} disabled={jobRunning('sync-bulk')}
@@ -192,7 +192,7 @@ export default function Accounts() {
 
       {/* Réglages globaux */}
       {settings && (
-        <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
+        <section className="bg-slate-800/50 border border-white/[0.06] rounded-xl p-4">
           <h2 className="text-sm font-semibold text-slate-300 mb-3">Réglages globaux</h2>
           <form onSubmit={saveSettings} className="space-y-3">
             <label className="flex items-center justify-between gap-3 text-sm">
@@ -219,7 +219,7 @@ export default function Accounts() {
       )}
 
       {/* Création de compte */}
-      <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
+      <section className="bg-slate-800/50 border border-white/[0.06] rounded-xl p-4">
         <h2 className="text-sm font-semibold text-slate-300 mb-3">Créer un compte</h2>
         <form onSubmit={create} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <input type="email" required placeholder="Email" aria-label="Email" value={form.email}
@@ -244,7 +244,7 @@ export default function Accounts() {
       </section>
 
       {/* Utilisateurs */}
-      <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
+      <section className="bg-slate-800/50 border border-white/[0.06] rounded-xl p-4">
         <h2 className="text-sm font-semibold text-slate-300 mb-3">Utilisateurs ({users.length})</h2>
         <ul className="divide-y divide-slate-800">
           {users.map((u) => (

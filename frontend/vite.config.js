@@ -12,8 +12,8 @@ export default defineConfig({
         'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png',
       ],
       manifest: {
-        name: 'MTG Collection Manager',
-        short_name: 'MTG Collection',
+        name: 'MTG Collector',
+        short_name: 'MTG Collector',
         description: 'Inventaire et valorisation de collection Magic: The Gathering',
         start_url: '/',
         display: 'standalone',

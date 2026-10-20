@@ -8,6 +8,11 @@ const lum = (hex) => {
     .map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 };
+// Couleur `fg` posée à `alpha` sur `bg` (fonds translucides)
+const mix = (fg, bg, alpha) => '#' + [1, 3, 5].map((i) => {
+  const v = Math.round(parseInt(fg.slice(i, i + 2), 16) * alpha + parseInt(bg.slice(i, i + 2), 16) * (1 - alpha));
+  return v.toString(16).padStart(2, '0');
+}).join('');
 const ratio = (a, b) => {
   const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
   return (hi + 0.05) / (lo + 0.05);
@@ -22,7 +27,8 @@ const pairs = [
   ['libellé / bouton ambre', c.slate[900], c.indigo[600], 4.5],
   ['libellé / bouton ambre survol', c.slate[900], c.indigo[500], 4.5],
   ['libellé / bouton or (foil)', c.slate[900], c.gold[600], 4.5],
-  ['blanc / segment actif', '#ffffff', c.gold[700], 4.5],
+  ['segment actif', c.gold[200], mix(c.gold[500], c.slate[900], 0.15), 4.5],
+  ['bouton contour', c.gold[300], c.slate[900], 4.5],
   ['montant / panneau', c.emerald[400], c.slate[800], 4.5],
   ['hausse / fond', c.gain[400], c.slate[900], 4.5],
   ['or signature / panneau', c.gold[300], c.slate[800], 4.5],

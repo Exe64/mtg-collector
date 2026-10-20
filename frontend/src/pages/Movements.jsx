@@ -24,7 +24,7 @@ function MoveItem({ m, onOpen }) {
 
 function Column({ title, items, empty, onOpen }) {
   return (
-    <section className="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
+    <section className="bg-slate-800/50 border border-white/[0.06] rounded-xl p-4">
       <h2 className="text-sm font-semibold text-slate-300 mb-2">
         {title} <span className="text-xs text-slate-500">({items.length})</span>
       </h2>
@@ -59,21 +59,25 @@ export default function Movements() {
   return (
     <div>
       <header className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-xl font-bold">Mouvements de prix</h1>
+        <h1 className="page-title">Mouvements de prix</h1>
         <div className="flex flex-wrap items-center gap-4 text-xs">
-          <div className="flex items-center gap-1">
-            <span className="text-slate-400">Période :</span>
+          <div className="flex items-center gap-2">
+            <span className="text-slate-400">Période</span>
+            <div className="seg">
             {DAYS.map((d) => (
               <button key={d} type="button" onClick={() => setDays(d)}
-                className={`rounded px-2 py-1 ${days === d ? 'bg-slate-600' : 'bg-slate-800 hover:bg-slate-700'}`}>{d} j</button>
+                aria-pressed={days === d} className={`seg-btn ${days === d ? 'seg-btn-on' : ''}`}>{d} j</button>
             ))}
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <span className="text-slate-400">Seuil :</span>
+          <div className="flex items-center gap-2">
+            <span className="text-slate-400">Seuil</span>
+            <div className="seg">
             {THRESHOLDS.map((t) => (
               <button key={t} type="button" onClick={() => setThreshold(t)}
-                className={`rounded px-2 py-1 ${threshold === t ? 'bg-slate-600' : 'bg-slate-800 hover:bg-slate-700'}`}>{t}%</button>
+                aria-pressed={threshold === t} className={`seg-btn ${threshold === t ? 'seg-btn-on' : ''}`}>{t}%</button>
             ))}
+            </div>
           </div>
         </div>
       </header>
