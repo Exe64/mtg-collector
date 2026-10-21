@@ -60,3 +60,18 @@ test('dbCardToClient : forme client depuis une ligne DB', () => {
   assert.equal(d.prices.eur, 1.5);
   assert.equal(d.prices.usd, 2);
 });
+
+test('mapScryfallCard : données Commander', () => {
+  const m = mapScryfallCard({
+    ...RAW, legalities: { commander: 'legal' }, edhrec_rank: 12, game_changer: true, keywords: ['Partner'],
+  });
+  assert.equal(m.legal_commander, true);
+  assert.equal(m.edhrec_rank, 12);
+  assert.equal(m.game_changer, true);
+  assert.deepEqual(m.keywords, ['Partner']);
+  const bare = mapScryfallCard({ ...RAW, legalities: { commander: 'banned' }, keywords: [] });
+  assert.equal(bare.legal_commander, false);
+  assert.equal(bare.game_changer, false);
+  assert.equal(bare.keywords, null);
+  assert.equal(bare.edhrec_rank, null);
+});

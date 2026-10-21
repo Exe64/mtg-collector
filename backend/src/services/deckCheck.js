@@ -3,7 +3,7 @@ import { cached } from './cache.js';
 
 const MOXFIELD_UA = 'MTGCollectionManager/1.0 (deck check)';
 
-const BASIC_LANDS = new Set([
+export const BASIC_LANDS = new Set([
   'plains', 'island', 'swamp', 'mountain', 'forest', 'wastes',
   'snow-covered plains', 'snow-covered island', 'snow-covered swamp',
   'snow-covered mountain', 'snow-covered forest',
@@ -11,7 +11,7 @@ const BASIC_LANDS = new Set([
 
 // Clé de comparaison : face avant uniquement, minuscules, trim.
 // (« Fire // Ice » et « Fire » matchent ; toutes versions confondues.)
-function frontKey(name) {
+export function frontKey(name) {
   return String(name).split('//')[0].trim().toLowerCase();
 }
 

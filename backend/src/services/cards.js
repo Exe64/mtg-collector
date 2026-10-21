@@ -10,6 +10,7 @@ const CARD_COLUMNS = [
   'type_line', 'oracle_text', 'mana_cost', 'cmc', 'rarity', 'finishes',
   'prices_eur', 'prices_eur_foil', 'prices_eur_etched',
   'prices_usd', 'prices_usd_foil', 'prices_raw',
+  'legal_commander', 'edhrec_rank', 'game_changer', 'keywords',
 ];
 const JSONB_COLS = new Set(['card_faces', 'prices_raw']);
 
@@ -42,6 +43,10 @@ export function mapScryfallCard(c) {
     prices_usd: num(prices.usd),
     prices_usd_foil: num(prices.usd_foil),
     prices_raw: JSON.stringify(prices),
+    legal_commander: c.legalities?.commander === 'legal',
+    edhrec_rank: c.edhrec_rank ?? null,
+    game_changer: c.game_changer === true,
+    keywords: c.keywords?.length ? c.keywords : null,
   };
 }
 
