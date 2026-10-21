@@ -13,6 +13,7 @@ const SetDetail = lazy(() => import('./pages/SetDetail'));
 const ImportExport = lazy(() => import('./pages/ImportExport'));
 const Wishlist = lazy(() => import('./pages/Wishlist'));
 const DeckCheck = lazy(() => import('./pages/DeckCheck'));
+const Commanders = lazy(() => import('./pages/Commanders'));
 const Movements = lazy(() => import('./pages/Movements'));
 const Journal = lazy(() => import('./pages/Journal'));
 const Alerts = lazy(() => import('./pages/Alerts'));
@@ -57,6 +58,7 @@ export default function App() {
         <Route path="import" element={<ImportExport />} />
         <Route path="wishlist" element={<Wishlist />} />
         <Route path="deck" element={<DeckCheck />} />
+        <Route path="commanders" element={<Commanders />} />
         <Route path="movements" element={<Movements />} />
         <Route path="journal" element={<Journal />} />
         <Route path="alerts" element={<Alerts />} />

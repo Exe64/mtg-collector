@@ -2,7 +2,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Boxes, PlusCircle, Library, Star, Download, Users,
-  ListChecks, History, Bell, TrendingUp, ChevronDown, Menu, ShieldCheck, LogOut,
+  ListChecks, History, Bell, TrendingUp, ChevronDown, Menu, ShieldCheck, LogOut, Crown,
 } from 'lucide-react';
 import { api } from '../../api/client';
 import { useAuth } from '../../stores/auth';
@@ -20,6 +20,8 @@ const primaryNav = [
   { to: '/movements', label: 'Mouvements', short: 'Prix', Icon: TrendingUp, end: false },
   { to: '/wishlist', label: 'Wishlist', short: 'Wishlist', Icon: Star, end: false },
   { to: '/deck', label: 'Vérif deck', short: 'Deck', Icon: ListChecks, end: false },
+  // `sheet` : rangé dans la feuille « Plus » en mobile (barre basse déjà pleine)
+  { to: '/commanders', label: 'Commandants', short: 'Cmdts', Icon: Crown, end: false, sheet: true },
 ];
 // Barre desktop : groupes séparés par un filet (inventaire | valeur et complétion)
 const navGroups = [primaryNav.slice(0, 3), primaryNav.slice(3)];
@@ -48,6 +50,8 @@ export default function Layout() {
 
   const tools = user?.is_admin ? [...toolsNav, adminNav] : toolsNav;
   const inTools = tools.some((t) => t.to === location.pathname);
+  const sheet = [...primaryNav.filter((it) => it.sheet), ...tools];
+  const inSheet = sheet.some((t) => t.to === location.pathname);
 
   useEffect(() => {
     api('/alerts/notifications').then((d) => setUnread(d.unread || 0)).catch(() => {});
@@ -150,7 +154,7 @@ export default function Layout() {
 
       {/* Bottom tab bar (mobile uniquement) : 4 onglets + Plus */}
       <nav aria-label="Navigation principale" className="glass sm:hidden fixed bottom-0 inset-x-0 z-30 border-t border-white/[0.06] flex pb-[env(safe-area-inset-bottom)]">
-        {primaryNav.map((it) => (
+        {primaryNav.filter((it) => !it.sheet).map((it) => (
           <NavLink
             key={it.to}
             to={it.to}
@@ -166,7 +170,7 @@ export default function Layout() {
           type="button"
           onClick={() => setPlusOpen(true)}
           aria-haspopup="dialog"
-          className={`flex-1 flex flex-col items-center gap-0.5 py-2 text-[10px] ${inTools ? 'text-gold-300' : 'text-slate-400'}`}
+          className={`flex-1 flex flex-col items-center gap-0.5 py-2 text-[10px] ${inSheet ? 'text-gold-300' : 'text-slate-400'}`}
         >
           <span className="relative"><Menu size={18} /><Badge /></span>
           Plus
@@ -182,7 +186,7 @@ export default function Layout() {
         >
             <div className="w-10 h-1 rounded-full bg-slate-600 mx-auto mb-3" />
             <div className="grid grid-cols-3 gap-2">
-              {tools.map((it) => (
+              {sheet.map((it) => (
                 <NavLink
                   key={it.to}
                   to={it.to}

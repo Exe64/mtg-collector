@@ -177,6 +177,10 @@ export default function Accounts() {
             className="rounded-md bg-slate-700 hover:bg-slate-600 disabled:opacity-50 px-3 py-2 text-sm">
             💶 {jobRunning('price-job') ? 'MAJ en cours…' : 'MAJ des prix'}
           </button>
+          <button type="button" onClick={() => runAction('commander-cache', 'Cache commandants')} disabled={jobRunning('commander-cache')}
+            className="rounded-md bg-slate-700 hover:bg-slate-600 disabled:opacity-50 px-3 py-2 text-sm">
+            👑 {jobRunning('commander-cache') ? 'Cache en cours…' : 'Cache commandants (EDHREC)'}
+          </button>
           <button type="button" onClick={() => runAction('flush-cache', 'Vider le cache')}
             className="rounded-md bg-slate-700 hover:bg-slate-600 px-3 py-2 text-sm">
             🧹 Vider le cache
@@ -187,6 +191,7 @@ export default function Accounts() {
           <JobLine label="Sync bulk-data" job={status?.jobs?.['sync-bulk']} runningLabel="sync en cours" />
           <JobLine label="Sync noms FR" job={status?.jobs?.['sync-fr']} runningLabel="sync en cours" />
           <JobLine label="MAJ des prix" job={status?.jobs?.['price-job']} runningLabel="MAJ en cours" />
+          <JobLine label="Cache commandants" job={status?.jobs?.['commander-cache']} runningLabel="récupération en cours" />
         </div>
       </section>
 

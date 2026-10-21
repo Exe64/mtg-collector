@@ -9,6 +9,7 @@ de collections Magic: The Gathering. Voir [backend/API.md](backend/API.md) pour 
 - **Ajouter** : recherche autocomplétée, affichage de **toutes les versions/éditions**, ajout/retrait direct via **−/+ normale et foil** (état au choix)
 - **Collection** : recherche par nom + filtres (type, rareté, couleur, coût de mana, état, **finition**), groupement par extension, édition inline (qté, finition, état), pagination, export
 - **Vérif deck** : liste collée (Moxfield/MTGO), `.txt` ou URL Moxfield → **cartes manquantes** vs collection (comparaison par nom, toutes versions ; affiche les versions possédées)
+- **Commandants** : trouver un commandant parmi tous les légaux ou les légendes possédées (filtres couleur / mana / type / appariement / prix / Game Changers, tris EDHREC), **Ma collection** (% du deck moyen EDHREC déjà possédé et coût pour le compléter), thèmes et typal, **Matchmaker** en 5 questions, fiche (combos Commander Spellbook, cartes phares, similaires, « Construire avec » → manquantes en wishlist), présélection ☆ et comparaison
 - **Wishlist** : liste de souhaits avec coût estimé
 - **Mouvements de prix** : page dédiée hausses / baisses / variations (sélecteurs période + seuil) ; Top 10 sur le tableau de bord
 - **Alertes prix** : seuils par carte + notifications in-app (badge), évaluées au job prix
@@ -48,6 +49,11 @@ docker compose exec backend npm run sync:bulk
 # Renseigne les noms français (bulk `all_cards` ~2 Go, à lancer APRÈS sync:bulk)
 docker compose exec backend npm run sync:fr
 ```
+
+> Après la mise à jour « Trouver un commandant » (#4), relancer `sync:bulk` une fois :
+> il remplit les légalités Commander, rangs EDHREC, Game Changers et mots-clés
+> (la page Commandants reste vide avant). Le cache EDHREC se remplit ensuite seul
+> (visite de « Ma collection », job de 05:30 UTC ou bouton Administration).
 
 À lancer une fois après le premier démarrage, puis hebdomadairement (le job hebdo
 enchaîne automatiquement `sync:bulk` puis les noms FR). Entre deux syncs, les
