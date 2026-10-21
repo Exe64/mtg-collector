@@ -18,10 +18,10 @@ export async function cached(key, ttl, producer) {
   return value;
 }
 
-// Vide les entrées de cache applicatives (Scryfall, sets, decks Moxfield).
+// Vide les entrées de cache applicatives (Scryfall, sets, decks Moxfield, catalogue commandants).
 // N'affecte pas les autres données Redis. Retourne le nombre de clés supprimées.
 export async function flushScryfallCache() {
-  const patterns = ['scry:*', 'set:*', 'sets', 'moxfield:*'];
+  const patterns = ['scry:*', 'set:*', 'sets', 'moxfield:*', 'cmd:*'];
   let total = 0;
   for (const pattern of patterns) {
     let cursor = '0';

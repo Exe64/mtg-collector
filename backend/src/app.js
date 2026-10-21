@@ -14,6 +14,7 @@ import importRoutes from './routes/import.js';
 import exportRoutes from './routes/export.js';
 import wishlistRoutes from './routes/wishlist.js';
 import decksRoutes from './routes/decks.js';
+import commandersRoutes from './routes/commanders.js';
 import alertsRoutes from './routes/alerts.js';
 import adminRoutes from './routes/admin.js';
 import { globalLimiter, searchLimiter, importLimiter, exportLimiter } from './middleware/limiters.js';
@@ -61,6 +62,7 @@ app.use('/api/import', importLimiter, importRoutes);
 app.use('/api/export', exportLimiter, exportRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/decks', searchLimiter, decksRoutes);
+app.use('/api/commanders', commandersRoutes);
 app.use('/api/alerts', alertsRoutes);
 app.use('/api/admin', adminRoutes);
 

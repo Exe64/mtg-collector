@@ -7,6 +7,8 @@ import { syncBulk, syncFrenchNames } from './bulkData.js';
 import { runSnapshots } from './snapshots.js';
 import { evaluateAlerts } from './alerts.js';
 import { getSettings } from './settings.js';
+import { startJob } from './jobRunner.js';
+import { refreshCommanderCache } from './edhrec.js';
 
 // Dead-man's-switch : ping un check externe (succès / échec). No-op si HEALTHCHECK_PRICE_URL absent.
 async function pingHealthcheck(suffix = '') {
@@ -66,4 +68,10 @@ export async function scheduleDailyJob() {
       .catch((err) => logger.error({ err: err.message }, 'sync bulk-data hebdo : échec'));
   }, { timezone: 'UTC' });
   logger.info('sync bulk-data hebdomadaire planifié (dimanche 04:00 UTC)');
+
+  // Cache EDHREC / Spellbook : chaque nuit, seules les entrées périmées (> 7 j) sont rafraîchies.
+  cron.schedule('30 5 * * *', () => {
+    startJob('commander-cache', refreshCommanderCache);
+  }, { timezone: 'UTC' });
+  logger.info('cache commandants planifié (chaque jour 05:30 UTC)');
 }

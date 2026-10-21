@@ -76,6 +76,21 @@ Conditions : `MT, NM, EX, GD, LP, PL, PO`. Finitions : `nonfoil, foil, etched`.
 |---|---|---|---|
 | POST | `/api/decks/check` | `{ url }` (Moxfield) **ou** `{ text }` (liste Moxfield/MTGO) | `{ cards[], summary }` (cartes manquantes vs collection, comparaison par nom ; chaque carte porte ses versions possédées) |
 
+## Commandants (« Trouver un commandant »)
+| Méthode | Route | Corps | Réponse |
+|---|---|---|---|
+| GET | `/api/commanders` | — | `{ commanders[], owned[] }` : catalogue légal (1 ligne par `oracle_id`, impression la moins chère en €, `rank`/`num_decks` EDHREC, `pairing`), et `oracle_id` des légendes possédées |
+| GET | `/api/commanders/collection` | — | `{ commanders[{ oracle_id, status: ready\|pending\|unavailable, coverage }], pending, running }` (deck moyen EDHREC lu en cache ; s'il en manque, lance le job de fond) |
+| GET | `/api/commanders/themes` | — | `{ themes[{ slug, name, numDecks }] }` (≈ 410 thèmes EDHREC) |
+| GET | `/api/commanders/themes/:slug` | — | `{ commanders[{ oracle_id, numDecks }] }` (commandants phares du thème) |
+| GET | `/api/commanders/shortlist` | — | `{ shortlist[], max: 4 }` |
+| POST | `/api/commanders/shortlist` | `{ oracle_id }` | `201` / `409` (présélection pleine) |
+| DELETE | `/api/commanders/shortlist/:oracleId` | — | `204` |
+| GET | `/api/commanders/:oracleId` | — | `{ commander, edhrec, coverage, combos[], unavailable[] }` (fiche : thèmes, cartes principales et similaires, couverture du deck moyen, combos Commander Spellbook avec pièces possédées) |
+| POST | `/api/commanders/:oracleId/missing-to-wishlist` | — | `{ added, missing }` (manquantes du deck moyen en wishlist, impression la moins chère) |
+
+Données externes (API non officielles EDHREC, publique Commander Spellbook) mises en cache en base (`external_cache`, 7 jours), appels limités à ~1/s. Job de fond `commander-cache` chaque nuit (05:30 UTC) : classement des commandants, pages et decks moyens des légendes possédées, thèmes. Si un service ne répond pas, la copie périmée est servie, sinon `unavailable` le signale.
+
 ## Import
 | Méthode | Route | Corps | Réponse |
 |---|---|---|---|
@@ -117,6 +132,7 @@ Les alertes sont évaluées par le job quotidien après la MAJ des prix : seuil 
 | POST | `/api/admin/actions/sync-bulk` | — | `202 { started }` / `409 { running }` (fire-and-forget) |
 | POST | `/api/admin/actions/sync-fr` | — | `202 { started }` / `409 { running }` (noms FR, bulk `all_cards`, fire-and-forget) |
 | POST | `/api/admin/actions/price-job` | — | `202 { started }` / `409 { running }` (fire-and-forget) |
+| POST | `/api/admin/actions/commander-cache` | — | `202 { started }` / `409 { running }` (cache EDHREC / Spellbook, entrées périmées seulement) |
 | POST | `/api/admin/actions/flush-cache` | — | `{ cleared }` (clés de cache supprimées) |
 | GET | `/api/admin/settings` | — | `{ price_job_hours, default_threshold, default_days }` |
 | PUT | `/api/admin/settings` | `{ price_job_hours?, default_threshold?, default_days? }` | settings (périodicité du job prix appliquée à chaud) |

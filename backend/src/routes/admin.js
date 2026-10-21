@@ -10,6 +10,7 @@ import { jobState, startJob } from '../services/jobRunner.js';
 import { flushScryfallCache } from '../services/cache.js';
 import { applyPriceSchedule, runDailyJob } from '../services/dailyJob.js';
 import { syncBulk, syncFrenchNames } from '../services/bulkData.js';
+import { refreshCommanderCache } from '../services/edhrec.js';
 
 const router = Router();
 router.use(requireAuth, requireAdmin);
@@ -87,6 +88,12 @@ router.post('/actions/sync-fr', (req, res) => {
 // POST /api/admin/actions/price-job  (fire-and-forget)
 router.post('/actions/price-job', (req, res) => {
   const started = startJob('price-job', () => runDailyJob());
+  res.status(started ? 202 : 409).json({ started, running: !started });
+});
+
+// POST /api/admin/actions/commander-cache  (fire-and-forget : EDHREC + Spellbook périmés)
+router.post('/actions/commander-cache', (req, res) => {
+  const started = startJob('commander-cache', () => refreshCommanderCache());
   res.status(started ? 202 : 409).json({ started, running: !started });
 });
 

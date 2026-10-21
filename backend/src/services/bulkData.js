@@ -9,7 +9,9 @@ import path from 'node:path';
 import * as scryfall from './scryfall.js';
 import { mapScryfallCard, upsertCardsBatch } from './cards.js';
 import { syncSets } from './sets.js';
+import { CATALOG_KEY } from './commanders.js';
 import { query } from '../config/db.js';
+import { redis } from '../config/redis.js';
 import { logger } from '../config/logger.js';
 
 const DIR = path.resolve('bulk-data');
@@ -101,6 +103,9 @@ export async function syncBulk({ onProgress } = {}) {
     if (batch.length >= BATCH) await flush();
   }
   await flush();
+
+  // Légalités, rangs EDHREC et prix ont pu changer : le catalogue commandants est recalculé.
+  await redis.del(CATALOG_KEY);
 
   if (skipped) logger.warn(`sync bulk : ${skipped} carte(s) ignorée(s) (voir logs ci-dessus)`);
   logger.info(`sync bulk terminé : ${count} cartes, ${skipped} ignorée(s)`);
