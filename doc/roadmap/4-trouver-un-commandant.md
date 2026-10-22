@@ -70,6 +70,11 @@ Aider à choisir son prochain commandant, parmi tous les commandants légaux ou 
 - [x] Étape 7 — Modes Ma collection et Thèmes / Typal (M · standard → Sonnet)
 - [x] Étape 8 — Fiche en panneau (`?c=`), barre de présélection ☆, comparaison, Surprenez-moi (L · reasoning → Opus)
 - [x] Étape 9 — Matchmaker : quiz de 5 questions, score par règles avec raisons, réponses modifiables, test qui vérifie le calcul du score (M · standard → Sonnet)
+
+**Lot 3 — Fiche en page dédiée (ajout 2026-10-22)**
+- [x] Étape 10 — Backend : la fiche renvoie la decklist complète du deck moyen (nom, qté, possédée, prix, image, type tiré de `cards`) ; couverture inchangée (S · standard → Sonnet)
+- [x] Étape 11 — Page `/commanders/:id` à la place du panneau `?c=` (tuiles, présélection, comparaison, similaires ; anciens liens `?c=` redirigés ; « Retour » avec filtres conservés pour l'onglet) (M · standard → Sonnet)
+- [x] Étape 12 — Decklist sur la page : groupée par type, possédées cochées, manquantes atténuées avec prix, filtre « Manquantes seulement », « Copier la liste » (texte Moxfield / MTGO), clic → modale carte (M · standard → Sonnet)
 - [x] 🧪 Tests — Rédiger et exécuter la procédure de test
 - [ ] ✅ Validation — Vérifier les résultats des tests et clôturer
 
@@ -84,7 +89,7 @@ Aider à choisir son prochain commandant, parmi tous les commandants légaux ou 
 | Rafraîchissement | Job de fond via `jobRunner`, ~1 requête/s, TTL 7 j. Récupération à la demande si absent ou périmé à l'ouverture d'une fiche | Les % de « Ma collection » sont disponibles sans attendre chaque fiche |
 | Prix | € depuis nos `prices_eur` (impression la moins chère), pas les prix USD d'EDHREC | Cohérent avec le reste de l'app |
 | Présélection | Table dédiée par utilisateur | Suit le compte sur tous les appareils |
-| Fiche | Panneau propre à la page, avec URL `?c=` | La CardModal reste inchangée |
+| Fiche | Panneau propre à la page, avec URL `?c=` → remplacé le 2026-10-22 par une page `/commanders/:id` avec la decklist complète du deck moyen | Demande utilisateur : la decklist servant au % possédé était introuvable (seules les manquantes s'affichaient) |
 | « Construire avec » | Envoie les manquantes en wishlist | Pas encore de deck builder (plan séparé à suivre) |
 | Matchmaker | 5 questions calculables. Mode de victoire, rythme, interaction et complexité retirés | Pas de données playgroup.gg |
 | Ordre | Démarrage une fois #3 mergé (ou depuis `feat/3`) | Hériter des nouveaux tokens visuels |
@@ -140,6 +145,10 @@ Puis, connecté avec le compte de test : appels API (catalogue, Ma collection, t
 | 2026-10-21 | Étapes 6-9 : captures passe 1 (10 écrans × desktop + mobile) | rendu conforme, aucun débordement | débordement 0 partout ; sélecteur « Exactement » coupé à droite du panneau de filtres en mobile | ❌ FAIL |
 | 2026-10-21 | Captures passe 2 après correctif (`flex-wrap` des couleurs) | rendu conforme, aucun débordement | 20 captures, débordement 0 ; sélecteur passé à la ligne en mobile ; seule erreur console : 401 du refresh avant connexion (attendu) | ✅ PASS |
 | 2026-10-21 | Non-régression `POST /api/decks/check` (fonctions exportées) | réponse inchangée | 200, `cards[]` avec versions possédées | ✅ PASS |
+| 2026-10-22 | Étape 10 : `GET /api/commanders/:id` → `deck[]` (Atraxa) | 99 cartes, possession cohérente avec le % | 90 lignes / 99 cartes, 4 lignes de terrains de base ; 67 possédées sur 86 comptées = `coverage` (78 %) | ✅ PASS |
+| 2026-10-22 | Étapes 11-12 : parcours navigateur desktop + mobile (tuile → page, retour, ancien lien `?c=`, decklist) | page dédiée en haut, filtres et défilement retrouvés, redirection, filtre et copie OK | URL `/commanders/<id>`, défilement 0 ; retour : puce « Exactement G » et défilement du clic restaurés ; `?c=` → page ; 90 lignes, 19 manquantes ; presse-papiers 91 lignes (commandant en tête) ; clic → modale ; débordement 0 ; aucune erreur console | ✅ PASS |
+| 2026-10-22 | Étape 12 : groupes de la decklist (passe 1) | chaque carte dans son type | Skithiryx et Tamiyo en « Autres » : `cardsByFront` choisissait la carte « Art Series » (type « Card », 0,13 € au lieu de 7,12 €), aussi utilisée pour les prix et l'envoi en wishlist | ❌ FAIL |
+| 2026-10-22 | Étape 12 : passe 2 (impressions jouables d'abord dans `cardsByFront` et `missing-to-wishlist`) | groupes et prix justes | Skithiryx en Créatures à 7,12 €, Tamiyo en Planeswalkers à 1,24 € ; aucune carte de type « Card » dans le deck ; tests backend 20/20, frontend 7/7 | ✅ PASS |
 
 ## Journal de session
 
@@ -151,3 +160,8 @@ Puis, connecté avec le compte de test : appels API (catalogue, Ma collection, t
 - ✅ Fait : étapes 1 à 9 enchaînées sur `feat/4-trouver-un-commandant` (option ⚡ one-shot) ; tests autonomes consignés ci-dessus
 - ⚠️ Prod (35 000+ cartes) : migrations additives uniquement ; relancer `sync:bulk` une fois après déploiement (sinon catalogue vide)
 - 📋 Prochain : validation utilisateur, commits, PR
+
+### Session 2026-10-22
+- ✅ Fait : retour utilisateur après mise en prod (decklist du % introuvable, fiche en panneau) → étapes 10 à 12 : page `/commanders/:id` avec decklist complète groupée par type, filtre manquantes, copie, retour avec filtres et défilement ; correctif des cartes « Art Series » (prix et wishlist)
+- ⚠️ Prod : un « Construire avec » lancé avant ce correctif a pu ajouter des cartes « Art Series » en wishlist (à vérifier)
+- 📋 Prochain : validation utilisateur puis clôture
