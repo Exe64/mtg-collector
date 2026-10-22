@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate, Navigate } from 'react-router-dom';
 import { X, Columns3 } from 'lucide-react';
 import { api } from '../api/client';
 import { artCrop } from '../constants';
@@ -7,8 +7,8 @@ import Browse from '../components/commanders/Browse';
 import CollectionMode from '../components/commanders/CollectionMode';
 import ThemesMode from '../components/commanders/ThemesMode';
 import Matchmaker from '../components/commanders/Matchmaker';
-import CommanderPanel from '../components/commanders/CommanderPanel';
 import CompareModal from '../components/commanders/CompareModal';
+import { loadSession, saveSession } from '../components/commanders/logic';
 
 const MODES = [
   { value: 'browse', label: 'Parcourir' },
@@ -20,7 +20,8 @@ const MODES = [
 export default function Commanders() {
   const [params, setParams] = useSearchParams();
   const mode = MODES.some((m) => m.value === params.get('mode')) ? params.get('mode') : 'browse';
-  const openId = params.get('c');
+  const legacyId = params.get('c');
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [shortlist, setShortlist] = useState([]);
@@ -45,7 +46,18 @@ export default function Commanders() {
       return next;
     });
   }, [setParams]);
-  const open = useCallback((id) => setParam({ c: id }), [setParam]);
+  const open = useCallback((id) => {
+    saveSession('cmd:scroll', window.scrollY);
+    navigate(`/commanders/${id}`);
+  }, [navigate]);
+
+  // Retour depuis une fiche : position de défilement restaurée une fois la liste rendue.
+  useEffect(() => {
+    if (!data) return;
+    const y = loadSession('cmd:scroll', null);
+    saveSession('cmd:scroll', undefined);
+    if (y) requestAnimationFrame(() => window.scrollTo(0, y));
+  }, [data]);
 
   const toggleStar = useCallback(async (id) => {
     setNotice(null);
@@ -62,6 +74,9 @@ export default function Commanders() {
       api('/commanders/shortlist').then((sl) => setShortlist(sl.shortlist)).catch(() => {});
     }
   }, [starred]);
+
+  // Ancien lien de fiche en panneau (?c=) → page dédiée.
+  if (legacyId) return <Navigate to={`/commanders/${legacyId}`} replace />;
 
   const shared = { catalog, byId, owned, starred, onStar: toggleStar, onOpen: open };
   const picks = shortlist.map((id) => byId.get(id)).filter(Boolean);
@@ -133,15 +148,6 @@ export default function Commanders() {
         </div>
       )}
 
-      {openId && (
-        <CommanderPanel
-          key={openId}
-          id={openId}
-          {...shared}
-          onClose={() => setParam({ c: null })}
-          onTheme={(slug) => setParam({ mode: 'themes', theme: slug, typal: null, c: null })}
-        />
-      )}
       {comparing && <CompareModal picks={picks} owned={owned} onOpen={(id) => { setComparing(false); open(id); }} onClose={() => setComparing(false)} />}
     </div>
   );

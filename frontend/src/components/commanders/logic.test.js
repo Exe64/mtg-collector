@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   creatureTypes, colorMatch, applyFilters, relaxSuggestions, sortCommanders,
-  scoreCommander, matchmake, EMPTY_FILTERS, EMPTY_ANSWERS,
+  scoreCommander, matchmake, deckGroup, deckText, EMPTY_FILTERS, EMPTY_ANSWERS,
 } from './logic.js';
 
 const NOW = Date.parse('2026-10-21');
@@ -94,4 +94,14 @@ test('matchmake : tri par score puis rang, limite', () => {
   const list = [C({ id: 'a', rank: 1000 }), C({ id: 'b', rank: 1 }), C({ id: 'bg', pairing: 'background' })];
   const res = matchmake(list, EMPTY_ANSWERS, ctx, 5);
   assert.deepEqual(res.map((r) => r.commander.oracle_id), ['b', 'a']);
+});
+
+test('deckGroup + deckText', () => {
+  assert.equal(deckGroup('Artifact Creature — Golem'), 'Créatures');
+  assert.equal(deckGroup('Artifact Land'), 'Terrains');
+  assert.equal(deckGroup('Land Creature — Forest Dryad'), 'Créatures');
+  assert.equal(deckGroup('Legendary Enchantment Artifact'), 'Artefacts');
+  assert.equal(deckGroup('Instant // Sorcery'), 'Éphémères');
+  assert.equal(deckGroup(null), 'Autres');
+  assert.equal(deckText('Atraxa', [{ name: 'Sol Ring', qty: 1 }, { name: 'Forest', qty: 8 }]), '1 Atraxa\n1 Sol Ring\n8 Forest');
 });

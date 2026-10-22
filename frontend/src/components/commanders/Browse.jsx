@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { LayoutGrid, List, Shuffle, SlidersHorizontal, X } from 'lucide-react';
 import {
   COLORS, COLOR_MODES, PAIRINGS, SORTS, EMPTY_FILTERS,
-  activeKeys, applyFilters, relaxSuggestions, sortCommanders, creatureTypes,
+  activeKeys, applyFilters, relaxSuggestions, sortCommanders, creatureTypes, loadSession, saveSession,
 } from './logic';
 import { CommanderTile, CommanderRow } from './parts';
 
@@ -26,10 +26,13 @@ function chipLabel(key, f) {
 }
 
 export default function Browse({ catalog, owned, starred, onStar, onOpen }) {
-  const [f, setF] = useState(EMPTY_FILTERS);
-  const [sort, setSort] = useState('popular');
-  const [view, setView] = useState('grid');
-  const [shown, setShown] = useState(PAGE);
+  // Filtres, tri et affichage gardés pour l'onglet : le retour depuis une fiche retrouve la liste.
+  const [saved] = useState(() => loadSession('cmd:browse', {}));
+  const [f, setF] = useState({ ...EMPTY_FILTERS, ...saved.f });
+  const [sort, setSort] = useState(saved.sort || 'popular');
+  const [view, setView] = useState(saved.view || 'grid');
+  const [shown, setShown] = useState(saved.shown || PAGE);
+  useEffect(() => { saveSession('cmd:browse', { f, sort, view, shown }); }, [f, sort, view, shown]);
   const [panelOpen, setPanelOpen] = useState(false);
 
   const set = (patch) => { setF((cur) => ({ ...cur, ...patch })); setShown(PAGE); };

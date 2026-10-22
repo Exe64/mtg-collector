@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/client';
-import { CommanderTile, eur } from './parts';
-import { CoverageBar } from './CommanderPanel';
+import { CommanderTile, CoverageBar, eur } from './parts';
 
 const SORTS = [
   { value: 'pct', label: '% possédé' },

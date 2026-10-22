@@ -185,3 +185,40 @@ export function matchmake(list, a, ctx, limit = 12) {
   }
   return out.sort((x, y) => y.score - x.score || (x.commander.rank ?? Infinity) - (y.commander.rank ?? Infinity)).slice(0, limit);
 }
+
+// --- Mémoire d'onglet (sessionStorage, peut être indisponible) -----------------
+
+export function loadSession(key, fallback) {
+  try {
+    const raw = sessionStorage.getItem(key);
+    return raw === null ? fallback : JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
+export function saveSession(key, value) {
+  try {
+    if (value === undefined) sessionStorage.removeItem(key);
+    else sessionStorage.setItem(key, JSON.stringify(value));
+  } catch { /* stockage indisponible : on oublie */ }
+}
+
+// --- Decklist -----------------------------------------------------------------
+
+// Ordre d'affichage des groupes (comme Moxfield) ; une carte va dans le premier qui correspond.
+export const DECK_GROUPS = [
+  ['Creature', 'Créatures'], ['Land', 'Terrains'], ['Planeswalker', 'Planeswalkers'], ['Battle', 'Batailles'],
+  ['Instant', 'Éphémères'], ['Sorcery', 'Rituels'], ['Artifact', 'Artefacts'], ['Enchantment', 'Enchantements'],
+];
+
+/** Groupe d'une carte d'après la face avant de sa ligne de type (« Autres » si inconnue). */
+export function deckGroup(typeLine) {
+  const front = String(typeLine || '').split(' // ')[0];
+  return DECK_GROUPS.find(([t]) => new RegExp(`\\b${t}\\b`).test(front))?.[1] || 'Autres';
+}
+
+/** Liste texte (Moxfield / MTGO) : commandant puis cartes du deck. */
+export function deckText(commanderName, deck) {
+  return [`1 ${commanderName}`, ...deck.map((c) => `${c.qty} ${c.name}`)].join('\n');
+}

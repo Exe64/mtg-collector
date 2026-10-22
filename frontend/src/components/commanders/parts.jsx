@@ -2,6 +2,15 @@ import { Star, Check, Zap, Users } from 'lucide-react';
 import { artCrop, identityTint, manaSymbols } from '../../constants';
 import { PAIRINGS } from './logic';
 
+/** Barre de couverture : part du deck moyen déjà possédée (bleu jauge). */
+export function CoverageBar({ pct }) {
+  return (
+    <div className="h-2 rounded-full bg-slate-700 overflow-hidden" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+      <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${pct}%` }} />
+    </div>
+  );
+}
+
 export const eur = (v) => (v === null || v === undefined ? '—' : `${Number(v).toFixed(2)} €`);
 
 export function Mana({ cost, className = '' }) {
