@@ -75,6 +75,10 @@ Aider à choisir son prochain commandant, parmi tous les commandants légaux ou 
 - [x] Étape 10 — Backend : la fiche renvoie la decklist complète du deck moyen (nom, qté, possédée, prix, image, type tiré de `cards`) ; couverture inchangée (S · standard → Sonnet)
 - [x] Étape 11 — Page `/commanders/:id` à la place du panneau `?c=` (tuiles, présélection, comparaison, similaires ; anciens liens `?c=` redirigés ; « Retour » avec filtres conservés pour l'onglet) (M · standard → Sonnet)
 - [x] Étape 12 — Decklist sur la page : groupée par type, possédées cochées, manquantes atténuées avec prix, filtre « Manquantes seulement », « Copier la liste » (texte Moxfield / MTGO), clic → modale carte (M · standard → Sonnet)
+
+**Lot 4 — Variantes de deck (ajout 2026-10-22)**
+- [x] Étape 13 — Backend : `GET /api/commanders/:id/deck?theme=&budget=&bracket=` (deck moyen EDHREC par thème, prix Budget / Cher, niveau 1-5), cache 7 j par combinaison, nombre de decks ; « Manquantes en wishlist » suit la variante (S · standard → Sonnet)
+- [x] Étape 14 — Frontend : sélecteurs Prix / Puissance / Thème au-dessus de la decklist, titre de variante, choix dans l'URL, lien vers les autres commandants du thème, combinaison absente signalée (M · standard → Sonnet)
 - [x] 🧪 Tests — Rédiger et exécuter la procédure de test
 - [ ] ✅ Validation — Vérifier les résultats des tests et clôturer
 
@@ -97,6 +101,7 @@ Aider à choisir son prochain commandant, parmi tous les commandants légaux ou 
 | Couverture (précision) | Calcul groupé `coverage()` sur la clé de `checkDeck` (face avant, minuscules, toutes versions), terrains de base exclus, une requête de possession par appel | Ma collection chiffre des centaines de decks en un appel : `checkDeck` ferait une requête par commandant |
 | Volume (prod : 35 000+ cartes) | Migrations purement additives (colonnes nullables ou à défaut constant, nouvelles tables) ; index `lower(split_part(name, ' // ', 1))` ; catalogue en cache Redis 6 h ; gzip nginx (2,6 Mo → 760 Ko) | Aucune réécriture de table en prod, requêtes de possession ≤ 200 ms mesurées sur 35 025 entrées |
 | Possession (précision 2026-10-22) | Toujours par carte (nom, face avant), jamais par édition : la fiche pointe l'exemplaire possédé, la modale affiche le total toutes éditions ; les cartes « Art Series » (type « Card ») ne comptent pas, ici comme dans Vérif deck | Retour utilisateur : posséder Sol Ring dans une édition doit suffire, quelle que soit l'impression montrée |
+| Variantes de deck (ajout 2026-10-22) | Chemin EDHREC `average-decks/<slug>[/<niveau>][/<thème>][/<budget\|expensive>]`, combinable ; « le plus performant » = niveaux de puissance (brackets 1-5), EDHREC ne mesurant pas les victoires ; choix dans l'URL en `replace` | Demande utilisateur (thème appliqué au commandant affiché, deck cher, deck performant) ; « Retour » ramène toujours à la liste |
 | Navigation mobile | « Commandants » rangé dans la feuille « Plus » | Barre basse déjà pleine (7 onglets + Plus) |
 
 ## Tests
@@ -152,6 +157,8 @@ Puis, connecté avec le compte de test : appels API (catalogue, Ma collection, t
 | 2026-10-22 | Étape 12 : passe 2 (impressions jouables d'abord dans `cardsByFront` et `missing-to-wishlist`) | groupes et prix justes | Skithiryx en Créatures à 7,12 €, Tamiyo en Planeswalkers à 1,24 € ; aucune carte de type « Card » dans le deck ; tests backend 20/20, frontend 7/7 | ✅ PASS |
 | 2026-10-22 | Possession par carte : Sol Ring possédé uniquement en Alpha (LEA), compte de test | « possédée » dans la decklist, clic → exemplaire LEA, modale : total toutes éditions | possédée, `scryfall_id` LEA ; modale « Dans ta collection : 1 exemplaire(s), toutes éditions », « Cette édition : 1 » ; carte non possédée → « Pas dans ta collection » | ✅ PASS |
 | 2026-10-22 | Possession : cartes « Art Series » | ne valent pas la carte | passe 1 : Sol Ring pointait « Sol Ring // Sol Ring » (Art Series) ❌ ; après filtre `PLAYABLE` : LEA ; couverture Atraxa 78 % → 76 % (2 cartes n'étaient « possédées » que via Art Series) ; Vérif deck : Sol Ring = LEA seul ; tests 20/20 | ✅ PASS |
+| 2026-10-22 | Étape 13 : `GET /api/commanders/:id/deck` (Atraxa) | variantes combinables, cache, combinaison absente, validation | Infect 3 729 decks (71 %) ; Cher 4 576 ; cEDH 193 ; Optimized + Infect + Cher 40 decks (78 %) ; 2e appel 0,25 s contre 1,1 s ; thème inconnu → `deck: null` ; `bracket=bad`, `theme=BAD!` → 400 ; wishlist variante cEDH : 17 manquantes, 8 ajoutées (9 déjà présentes) | ✅ PASS |
+| 2026-10-22 | Étape 14 : parcours navigateur desktop + mobile | puce de thème → deck du thème, sélecteurs Prix / Puissance / Thème, URL, combinaison absente signalée, retour à la liste | « Deck Infect » (3 729 decks) ; « Deck Infect · Cher · 4 · Optimized », URL `theme=infect&budget=expensive&bracket=optimized`, 98 lignes ; Aggro · Cher · cEDH → « EDHREC n'a pas de deck pour cette combinaison » ; « Commandants » → `/commanders` ; débordement 0 ; aucune erreur console ; tests frontend 8/8, backend 20/20 | ✅ PASS |
 
 ## Journal de session
 
@@ -168,4 +175,5 @@ Puis, connecté avec le compte de test : appels API (catalogue, Ma collection, t
 - ✅ Fait : retour utilisateur après mise en prod (decklist du % introuvable, fiche en panneau) → étapes 10 à 12 : page `/commanders/:id` avec decklist complète groupée par type, filtre manquantes, copie, retour avec filtres et défilement ; correctif des cartes « Art Series » (prix et wishlist)
 - ⚠️ Prod : un « Construire avec » lancé avant ce correctif a pu ajouter des cartes « Art Series » en wishlist (à vérifier)
 - ✅ Fait : possession par carte et non par édition (exemplaire possédé ouvert depuis la decklist, total toutes éditions dans la modale, cartes « Art Series » exclues de la possession, Vérif deck compris)
+- ✅ Fait : étapes 13-14, variantes de deck (thème du commandant affiché, Budget / Cher, niveaux de puissance 1-5)
 - 📋 Prochain : validation utilisateur puis clôture
