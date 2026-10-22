@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   creatureTypes, colorMatch, applyFilters, relaxSuggestions, sortCommanders,
-  scoreCommander, matchmake, deckGroup, deckText, EMPTY_FILTERS, EMPTY_ANSWERS,
+  scoreCommander, matchmake, deckGroup, deckText, variantTitle, EMPTY_FILTERS, EMPTY_ANSWERS,
 } from './logic.js';
 
 const NOW = Date.parse('2026-10-21');
@@ -104,4 +104,11 @@ test('deckGroup + deckText', () => {
   assert.equal(deckGroup('Instant // Sorcery'), 'Éphémères');
   assert.equal(deckGroup(null), 'Autres');
   assert.equal(deckText('Atraxa', [{ name: 'Sol Ring', qty: 1 }, { name: 'Forest', qty: 8 }]), '1 Atraxa\n1 Sol Ring\n8 Forest');
+});
+
+test('variantTitle', () => {
+  assert.equal(variantTitle({}), 'Deck moyen');
+  assert.equal(variantTitle({ theme: 'tokens' }, 'Tokens'), 'Deck Tokens');
+  assert.equal(variantTitle({ theme: 'tokens', budget: 'expensive', bracket: 'optimized' }, 'Tokens'), 'Deck Tokens · Cher · 4 · Optimized');
+  assert.equal(variantTitle({ bracket: 'cedh' }), 'Deck 5 · cEDH');
 });

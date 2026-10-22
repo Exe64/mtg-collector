@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, Check } from 'lucide-react';
 import { api } from '../api/client';
 import { artCrop } from '../constants';
 import { useCardModal } from '../stores/cardModal';
-import Decklist from '../components/commanders/Decklist';
+import Decklist, { DeckVariantBar } from '../components/commanders/Decklist';
+import { variantTitle } from '../components/commanders/logic';
 import { Badges, Mana, StarButton, eur } from '../components/commanders/parts';
 
 const h2 = 'text-sm font-semibold text-slate-300 mb-2';
@@ -37,6 +38,10 @@ function CardGrid({ cards }) {
 export default function CommanderDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const variant = { theme: params.get('theme') || '', bracket: params.get('bracket') || '', budget: params.get('budget') || '' };
+  const variantQuery = new URLSearchParams(Object.entries(variant).filter(([, v]) => v)).toString();
+  const [vd, setVd] = useState(null); // variante chargée : { query, data } | { query, error }
   const [d, setD] = useState(null);
   const [error, setError] = useState(null);
   const [shortlist, setShortlist] = useState([]);
@@ -55,6 +60,27 @@ export default function CommanderDetail() {
       .catch((e) => { if (!cancelled) setError(e.message); });
     return () => { cancelled = true; };
   }, [id]);
+
+  // Variante du deck (thème / niveau / prix) : seule la decklist se recharge.
+  useEffect(() => {
+    if (!variantQuery) return undefined;
+    let cancelled = false;
+    setVd({ query: variantQuery });
+    api(`/commanders/${id}/deck?${variantQuery}`)
+      .then((r) => { if (!cancelled) setVd({ query: variantQuery, data: r }); })
+      .catch((err) => { if (!cancelled) setVd({ query: variantQuery, error: err.message }); });
+    return () => { cancelled = true; };
+  }, [id, variantQuery]);
+
+  // Choix dans l'URL (partage), sans empiler l'historique : « Retour » ramène à la liste.
+  const setVariant = (patch) => {
+    setWish(null);
+    setParams((cur) => {
+      const next = new URLSearchParams(cur);
+      for (const [k, v] of Object.entries(patch)) (v ? next.set(k, v) : next.delete(k));
+      return next;
+    }, { replace: true });
+  };
 
   useEffect(() => {
     api('/commanders/shortlist').then((r) => setShortlist(r.shortlist)).catch(() => {});
@@ -79,7 +105,7 @@ export default function CommanderDetail() {
     setBusy(true);
     setWish(null);
     try {
-      const r = await api(`/commanders/${id}/missing-to-wishlist`, { method: 'POST' });
+      const r = await api(`/commanders/${id}/missing-to-wishlist${variantQuery ? `?${variantQuery}` : ''}`, { method: 'POST' });
       setWish(r.missing === 0
         ? 'Tu possèdes déjà tout le deck moyen.'
         : `${r.added} carte(s) ajoutée(s) à la wishlist${r.added < r.missing ? ` (${r.missing - r.added} y étaient déjà)` : ''}.`);
@@ -163,12 +189,33 @@ export default function CommanderDetail() {
               <div className="mt-4">
                 <h2 className={h2}>Thèmes</h2>
                 <div className="flex flex-wrap gap-1.5">
-                  {e.themes.map((t) => (
-                    <button key={t.slug} type="button" onClick={() => navigate(`/commanders?mode=themes&theme=${t.slug}`)} className="rounded-full bg-slate-700/80 hover:bg-slate-600 px-2.5 py-1 text-xs">
-                      {t.name} <span className="text-slate-400">{t.count}</span>
-                    </button>
-                  ))}
+                  {e.themes.map((t) => {
+                    const on = variant.theme === t.slug;
+                    return (
+                      <button
+                        key={t.slug} type="button" aria-pressed={on}
+                        onClick={() => {
+                          setVariant({ theme: on ? '' : t.slug });
+                          document.getElementById('deck')?.scrollIntoView({ behavior: 'smooth' });
+                        }}
+                        className={`rounded-full px-2.5 py-1 text-xs ${on ? 'bg-gold-500/15 text-gold-200 ring-1 ring-inset ring-gold-500/40' : 'bg-slate-700/80 hover:bg-slate-600'}`}
+                      >
+                        {t.name} <span className={on ? 'text-gold-300' : 'text-slate-400'}>{t.count}</span>
+                      </button>
+                    );
+                  })}
                 </div>
+                <p className="mt-2 text-xs text-slate-400">
+                  Un thème affiche le deck moyen de ce commandant dans ce thème.
+                  {variant.theme && (
+                    <>
+                      {' '}
+                      <Link to={`/commanders?mode=themes&theme=${variant.theme}`} className="text-gold-300 hover:text-gold-200 underline">
+                        Autres commandants du thème « {e.themes.find((t) => t.slug === variant.theme)?.name || variant.theme} »
+                      </Link>
+                    </>
+                  )}
+                </p>
               </div>
             )}
           </div>
@@ -177,14 +224,34 @@ export default function CommanderDetail() {
 
       <div className="grid gap-4 lg:grid-cols-3 items-start">
         <div className="lg:col-span-2 space-y-4 min-w-0">
-          {d.deck && d.coverage ? (
-            <Decklist
-              commanderName={c.name} deck={d.deck} coverage={d.coverage}
-              onBuild={buildWith} building={busy} buildMsg={wish}
-            />
-          ) : c.pairing !== 'background' && (
-            <section className={panel}><p className="text-sm text-slate-400">Pas de deck moyen EDHREC pour ce commandant.</p></section>
-          )}
+          {c.pairing !== 'background' && (() => {
+            const title = variantTitle(variant, e?.themes?.find((t) => t.slug === variant.theme)?.name);
+            const controls = <DeckVariantBar variant={variant} themes={e?.themes || []} onChange={setVariant} />;
+            const shown = !variantQuery
+              ? { deck: d.deck, coverage: d.coverage, numDecks: e?.numDecks }
+              : vd?.query === variantQuery && vd.data;
+            if (shown?.deck && shown.coverage) {
+              return (
+                <Decklist
+                  commanderName={c.name} deck={shown.deck} coverage={shown.coverage} title={title} numDecks={shown.numDecks}
+                  controls={controls} onBuild={buildWith} building={busy} buildMsg={wish}
+                />
+              );
+            }
+            const loading = variantQuery && vd?.query === variantQuery && !vd.data && !vd.error;
+            return (
+              <section id="deck" className={`${panel} scroll-mt-20`}>
+                <h2 className="font-display text-2xl font-semibold text-slate-50 mb-3">{title}</h2>
+                {controls}
+                <p className="text-sm text-slate-400">
+                  {loading ? 'Chargement de la variante… (première demande : environ 1 s, le temps d\'interroger EDHREC)'
+                    : vd?.error && variantQuery ? vd.error
+                      : variantQuery ? 'EDHREC n\'a pas de deck pour cette combinaison. Assouplis un critère.'
+                        : 'Pas de deck moyen EDHREC pour ce commandant.'}
+                </p>
+              </section>
+            );
+          })()}
         </div>
 
         <div className="space-y-4 min-w-0">

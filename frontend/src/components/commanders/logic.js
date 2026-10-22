@@ -204,6 +204,24 @@ export function saveSession(key, value) {
   } catch { /* stockage indisponible : on oublie */ }
 }
 
+// --- Variantes de deck EDHREC (thème × niveau × prix) --------------------------
+
+export const DECK_BUDGETS = [['', 'Moyen'], ['budget', 'Budget'], ['expensive', 'Cher']];
+export const DECK_BRACKETS = [
+  ['', 'Tous niveaux'], ['exhibition', '1 · Exhibition'], ['core', '2 · Core'],
+  ['upgraded', '3 · Upgraded'], ['optimized', '4 · Optimized'], ['cedh', '5 · cEDH'],
+];
+
+/** Titre d'une variante : « Deck moyen », « Deck Tokens · Cher · 4 · Optimized »… */
+export function variantTitle({ theme, bracket, budget }, themeName) {
+  const parts = [
+    theme && (themeName || theme),
+    budget && DECK_BUDGETS.find(([v]) => v === budget)?.[1],
+    bracket && DECK_BRACKETS.find(([v]) => v === bracket)?.[1],
+  ].filter(Boolean);
+  return parts.length ? `Deck ${parts.join(' · ')}` : 'Deck moyen';
+}
+
 // --- Decklist -----------------------------------------------------------------
 
 // Ordre d'affichage des groupes (comme Moxfield) ; une carte va dans le premier qui correspond.

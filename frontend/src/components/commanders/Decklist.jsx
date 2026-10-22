@@ -1,16 +1,45 @@
 import { useMemo, useState } from 'react';
 import { Check, Copy, Hammer } from 'lucide-react';
 import { useCardModal } from '../../stores/cardModal';
-import { DECK_GROUPS, deckGroup, deckText } from './logic';
+import {
+  DECK_GROUPS, DECK_BUDGETS, DECK_BRACKETS, deckGroup, deckText,
+} from './logic';
 import { CoverageBar, eur } from './parts';
 
 const ORDER = [...DECK_GROUPS.map(([, label]) => label), 'Autres'];
+const field = 'rounded-lg bg-slate-800 border border-edge px-3 py-1.5 text-sm';
+
+/** Choix de la variante EDHREC : tranche de prix, niveau de puissance, thème. */
+export function DeckVariantBar({ variant, themes, onChange }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 mb-4">
+      <div className="seg" role="group" aria-label="Prix du deck">
+        {DECK_BUDGETS.map(([v, label]) => (
+          <button
+            key={v || 'avg'} type="button" aria-pressed={variant.budget === v} onClick={() => onChange({ budget: v })}
+            className={`seg-btn ${variant.budget === v ? 'seg-btn-on' : ''}`}
+          >{label}</button>
+        ))}
+      </div>
+      <select aria-label="Niveau de puissance" value={variant.bracket} onChange={(e) => onChange({ bracket: e.target.value })} className={field}>
+        {DECK_BRACKETS.map(([v, label]) => <option key={v || 'all'} value={v}>{label}</option>)}
+      </select>
+      <select aria-label="Thème du deck" value={variant.theme} onChange={(e) => onChange({ theme: e.target.value })} className={`${field} max-w-[14rem]`}>
+        <option value="">Tous les thèmes</option>
+        {themes.map((t) => <option key={t.slug} value={t.slug}>{t.name} ({t.count})</option>)}
+        {variant.theme && !themes.some((t) => t.slug === variant.theme) && <option value={variant.theme}>{variant.theme}</option>}
+      </select>
+    </div>
+  );
+}
 
 /**
  * Deck moyen EDHREC : la liste qui sert au % possédé. Groupée par type,
  * possédées cochées, manquantes atténuées avec leur prix.
  */
-export default function Decklist({ commanderName, deck, coverage, onBuild, building, buildMsg }) {
+export default function Decklist({
+  commanderName, deck, coverage, title, numDecks, controls, onBuild, building, buildMsg,
+}) {
   const openCard = useCardModal((s) => s.open);
   const [missingOnly, setMissingOnly] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -35,15 +64,16 @@ export default function Decklist({ commanderName, deck, coverage, onBuild, build
   }
 
   return (
-    <section className="bg-slate-800/50 border border-white/[0.06] rounded-xl p-4">
+    <section id="deck" className="bg-slate-800/50 border border-white/[0.06] rounded-xl p-4 scroll-mt-20">
       <div className="flex flex-wrap items-baseline justify-between gap-2 mb-1">
-        <h2 className="font-display text-2xl font-semibold text-slate-50">Deck moyen EDHREC</h2>
+        <h2 className="font-display text-2xl font-semibold text-slate-50">{title}</h2>
         <span className="text-sm text-slate-400">{coverage.owned} / {coverage.total} cartes possédées (hors terrains de base)</span>
       </div>
       <p className="text-sm text-slate-400 mb-3">
-        La liste type de 99 cartes calculée par EDHREC sur les decks publiés de ce commandant.
+        La liste type de 99 cartes calculée par EDHREC sur {numDecks ? `${numDecks.toLocaleString('fr-FR')} decks publiés` : 'les decks publiés'} de ce commandant.
         Le pourcentage compare ces cartes à ta collection, par nom, toutes éditions confondues.
       </p>
+      {controls}
       <div className="flex items-baseline gap-3 mb-1.5 text-sm">
         <span><span className="text-xl font-semibold text-slate-50">{coverage.pct} %</span> déjà possédé</span>
         {coverage.missing.length > 0 && (
