@@ -9,6 +9,10 @@ export const BASIC_LANDS = new Set([
   'snow-covered mountain', 'snow-covered forest',
 ]);
 
+// Filtre SQL (alias `c` = cards) : exclut les cartes « Art Series », homonymes de la
+// carte jouable (« Sol Ring // Sol Ring », type « Card // Card ») mais qui n'en sont pas un exemplaire.
+export const PLAYABLE = "COALESCE(c.type_line, '') NOT LIKE 'Card%'";
+
 // Clé de comparaison : face avant uniquement, minuscules, trim.
 // (« Fire // Ice » et « Fire » matchent ; toutes versions confondues.)
 export function frontKey(name) {
@@ -87,7 +91,7 @@ export async function checkDeck(userId, deckCards) {
   const { rows } = await query(
     `SELECT c.name, c.set_code, c.collector_number, e.finish, SUM(e.quantity)::int AS qty
      FROM collection_entries e JOIN cards c ON c.id = e.card_id
-     WHERE e.user_id = $1
+     WHERE e.user_id = $1 AND ${PLAYABLE}
        AND lower(split_part(c.name, ' // ', 1)) = ANY($2::text[])
      GROUP BY c.name, c.set_code, c.collector_number, e.finish
      ORDER BY c.set_code, c.collector_number`,

@@ -161,10 +161,17 @@ router.get('/:oracleId', async (req, res, next) => {
 
     const listed = [...(page?.topCards || []), ...(page?.synergyCards || [])].map((c) => c.name);
     const byFront = await cardsByFront([...(deck || []).map(([n]) => n), ...listed]);
+    // Possession par carte (nom), pas par édition : on pointe l'exemplaire possédé s'il existe,
+    // sinon l'impression la moins chère (prix d'achat affiché).
     const withCard = (c) => {
       const hit = byFront.get(frontKey(c.name));
+      const mine = ownedNames.get(frontKey(c.name));
       return {
-        ...c, owned: has(c.name), scryfall_id: hit?.scryfall_id || null, image: hit?.image_uri_small || null, eur: hit?.eur ?? null,
+        ...c,
+        owned: Boolean(mine),
+        scryfall_id: mine?.scryfall_id || hit?.scryfall_id || null,
+        image: mine?.image_uri_small || hit?.image_uri_small || null,
+        eur: hit?.eur ?? null,
       };
     };
 

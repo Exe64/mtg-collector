@@ -1,6 +1,6 @@
 import { query } from '../config/db.js';
 import { cached } from './cache.js';
-import { BASIC_LANDS, frontKey } from './deckCheck.js';
+import { BASIC_LANDS, PLAYABLE, frontKey } from './deckCheck.js';
 
 export const CATALOG_KEY = 'cmd:catalog';
 export const RANKS_KEY = 'edhrec:commander-ranks';
@@ -88,15 +88,21 @@ export async function ownedLegendOracles(userId) {
   return rows.map((r) => r.oracle_id);
 }
 
-/** Noms (face avant, minuscules) de toutes les cartes possédées par le compte. */
+/**
+ * Cartes possédées par le compte, par nom (face avant, minuscules), toutes éditions
+ * confondues → impression la plus détenue (pour ouvrir la carte sur son propre exemplaire).
+ * Les cartes « Art Series » (même nom, type « Card ») ne valent pas la carte jouable.
+ */
 export async function ownedFrontNames(userId) {
   const { rows } = await query(
-    `SELECT DISTINCT lower(split_part(c.name, ' // ', 1)) AS k
+    `SELECT DISTINCT ON (lower(split_part(c.name, ' // ', 1)))
+            lower(split_part(c.name, ' // ', 1)) AS k, c.scryfall_id, c.image_uri_small
      FROM collection_entries e JOIN cards c ON c.id = e.card_id
-     WHERE e.user_id = $1`,
+     WHERE e.user_id = $1 AND ${PLAYABLE}
+     ORDER BY lower(split_part(c.name, ' // ', 1)), e.quantity DESC`,
     [userId],
   );
-  return new Set(rows.map((r) => r.k));
+  return new Map(rows.map((r) => [r.k, r]));
 }
 
 /**

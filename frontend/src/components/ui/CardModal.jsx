@@ -177,10 +177,17 @@ export default function CardModal() {
               {(() => {
                 const here = printings.find((p) => p.scryfall_id === scryfallId);
                 const others = printings.filter((p) => p.scryfall_id !== scryfallId);
+                const total = printings.reduce((n, p) => n + p.nonfoil + p.foil, 0);
                 return (
                   <div className="mt-3 text-sm">
-                    <div className="text-slate-300">
-                      Possédées : <span className="font-semibold">{here?.nonfoil || 0}</span> normale(s)
+                    {/* Possession de la carte, toutes éditions confondues, puis détail de cette édition */}
+                    <div className="text-slate-200">
+                      {total > 0
+                        ? <>Dans ta collection : <span className="font-semibold text-emerald-400">{total}</span> exemplaire(s), toutes éditions</>
+                        : <span className="text-slate-400">Pas dans ta collection</span>}
+                    </div>
+                    <div className="text-slate-400 text-xs mt-0.5">
+                      Cette édition : <span className="font-semibold text-slate-300">{here?.nonfoil || 0}</span> normale(s)
                       {' · '}<span className="font-semibold text-gold-400">{here?.foil || 0}</span> foil
                     </div>
                     {others.length > 0 && (
