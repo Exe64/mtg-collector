@@ -87,7 +87,8 @@ Conditions : `MT, NM, EX, GD, LP, PL, PO`. Finitions : `nonfoil, foil, etched`.
 | POST | `/api/commanders/shortlist` | `{ oracle_id }` | `201` / `409` (présélection pleine) |
 | DELETE | `/api/commanders/shortlist/:oracleId` | — | `204` |
 | GET | `/api/commanders/:oracleId` | — | `{ commander, edhrec, coverage, deck[], combos[], unavailable[] }` (fiche : thèmes, cartes principales et similaires, couverture et decklist complète du deck moyen `{ name, qty, owned, eur, type_line, basic }`, combos Commander Spellbook avec pièces possédées) |
-| POST | `/api/commanders/:oracleId/missing-to-wishlist` | — | `{ added, missing }` (manquantes du deck moyen en wishlist, impression la moins chère) |
+| GET | `/api/commanders/:oracleId/deck` | `theme?`, `bracket?` (`exhibition\|core\|upgraded\|optimized\|cedh`), `budget?` (`budget\|expensive`) | `{ deck[], coverage, numDecks }` (variante du deck moyen EDHREC ; `deck: null` si la combinaison n'existe pas) |
+| POST | `/api/commanders/:oracleId/missing-to-wishlist` | `theme?`, `bracket?`, `budget?` (query) | `{ added, missing }` (manquantes du deck moyen, ou de la variante, en wishlist ; impression la moins chère) |
 
 Données externes (API non officielles EDHREC, publique Commander Spellbook) mises en cache en base (`external_cache`, 7 jours), appels limités à ~1/s. Job de fond `commander-cache` chaque nuit (05:30 UTC) : classement des commandants, pages et decks moyens des légendes possédées, thèmes. Si un service ne répond pas, la copie périmée est servie, sinon `unavailable` le signale.
 

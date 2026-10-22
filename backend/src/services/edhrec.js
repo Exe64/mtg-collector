@@ -103,6 +103,27 @@ export function averageDeck(name, opts) {
   }, opts);
 }
 
+export const BRACKETS = ['exhibition', 'core', 'upgraded', 'optimized', 'cedh'];
+export const BUDGETS = ['budget', 'expensive'];
+
+/**
+ * Variante du deck moyen : niveau de puissance, thème et tranche de prix,
+ * combinables (chemin EDHREC `average-decks/<slug>[/<niveau>][/<thème>][/<prix>]`).
+ * → { cards: [[nom, qté]], numDecks } ou null si EDHREC n'a pas cette combinaison.
+ */
+export function averageDeckVariant(name, { theme, bracket, budget } = {}, opts) {
+  const slug = edhrecSlug(name);
+  const path = [slug, bracket, theme, budget].filter(Boolean).join('/');
+  return throughCache(`edhrec:average-variant:${path}`, async () => {
+    const d = await edhrecPage(`average-decks/${path}`);
+    if (!d?.deck?.cards) return null;
+    return {
+      cards: Object.values(d.deck.cards).flat().map(([n, q]) => [n, q]),
+      numDecks: d.container?.json_dict?.card?.num_decks ?? null,
+    };
+  }, opts);
+}
+
 /** Les ~410 thèmes EDHREC par popularité : [{ slug, name, numDecks }]. */
 export function themes(opts) {
   return throughCache('edhrec:tags', async () => {

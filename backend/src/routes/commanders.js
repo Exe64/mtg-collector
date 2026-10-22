@@ -10,7 +10,8 @@ import {
   getCatalog, ownedLegendOracles, ownedFrontNames, cardsByFront, coverage,
 } from '../services/commanders.js';
 import {
-  commanderPage, averageDeck, combos, themes, themeCommanders, refreshCommanderCache,
+  commanderPage, averageDeck, averageDeckVariant, combos, themes, themeCommanders, refreshCommanderCache,
+  BRACKETS, BUDGETS,
 } from '../services/edhrec.js';
 
 const router = Router();
@@ -23,6 +24,48 @@ const startCacheJob = () => startJob('commander-cache', refreshCommanderCache);
 async function findCommander(oracleId) {
   if (!uuid.safeParse(oracleId).success) return null;
   return (await getCatalog()).find((c) => c.oracle_id === oracleId) || null;
+}
+
+// Possession par carte (nom), pas par édition : on pointe l'exemplaire possédé s'il existe,
+// sinon l'impression la moins chère (prix d'achat affiché).
+function cardView(c, ownedNames, byFront) {
+  const hit = byFront.get(frontKey(c.name));
+  const mine = ownedNames.get(frontKey(c.name));
+  return {
+    ...c,
+    owned: Boolean(mine),
+    scryfall_id: mine?.scryfall_id || hit?.scryfall_id || null,
+    image: mine?.image_uri_small || hit?.image_uri_small || null,
+    eur: hit?.eur ?? null,
+  };
+}
+
+// Decklist complète ([[nom, qté]]), type pour le regroupement.
+function deckView(deck, ownedNames, byFront) {
+  return deck.map(([name, qty]) => ({
+    ...cardView({ name }, ownedNames, byFront),
+    qty,
+    type_line: byFront.get(frontKey(name))?.type_line || null,
+    basic: BASIC_LANDS.has(frontKey(name)),
+  }));
+}
+
+// Variante de deck demandée en query (?theme=&bracket=&budget=) ; null si invalide.
+function parseVariant(q) {
+  const v = {
+    theme: q.theme || undefined, bracket: q.bracket || undefined, budget: q.budget || undefined,
+  };
+  if (v.theme && !/^[a-z0-9-]{1,80}$/.test(v.theme)) return null;
+  if (v.bracket && !BRACKETS.includes(v.bracket)) return null;
+  if (v.budget && !BUDGETS.includes(v.budget)) return null;
+  return v;
+}
+
+// Deck moyen général (celui de « Ma collection ») ou variante EDHREC → { cards, numDecks } | null.
+async function loadDeck(cmd, v) {
+  if (v.theme || v.bracket || v.budget) return averageDeckVariant(cmd.name, v);
+  const cards = await averageDeck(cmd.name);
+  return cards && { cards, numDecks: null };
 }
 
 // GET /api/commanders  → catalogue légal + oracle_id des légendes possédées
@@ -161,19 +204,7 @@ router.get('/:oracleId', async (req, res, next) => {
 
     const listed = [...(page?.topCards || []), ...(page?.synergyCards || [])].map((c) => c.name);
     const byFront = await cardsByFront([...(deck || []).map(([n]) => n), ...listed]);
-    // Possession par carte (nom), pas par édition : on pointe l'exemplaire possédé s'il existe,
-    // sinon l'impression la moins chère (prix d'achat affiché).
-    const withCard = (c) => {
-      const hit = byFront.get(frontKey(c.name));
-      const mine = ownedNames.get(frontKey(c.name));
-      return {
-        ...c,
-        owned: Boolean(mine),
-        scryfall_id: mine?.scryfall_id || hit?.scryfall_id || null,
-        image: mine?.image_uri_small || hit?.image_uri_small || null,
-        eur: hit?.eur ?? null,
-      };
-    };
+    const withCard = (c) => cardView(c, ownedNames, byFront);
 
     const catalog = await getCatalog();
     const byName = new Map(catalog.map((c) => [c.name.toLowerCase(), c]));
@@ -191,13 +222,8 @@ router.get('/:oracleId', async (req, res, next) => {
           .map((c) => ({ ...c, owned: has(c.name) })),
       },
       coverage: deck ? coverage(deck, ownedNames, byFront) : null,
-      // Decklist complète du deck moyen (base du % possédé), type pour le regroupement.
-      deck: deck && deck.map(([name, qty]) => ({
-        ...withCard({ name }),
-        qty,
-        type_line: byFront.get(frontKey(name))?.type_line || null,
-        basic: BASIC_LANDS.has(frontKey(name)),
-      })),
+      // Decklist complète du deck moyen (base du % possédé)
+      deck: deck && deckView(deck, ownedNames, byFront),
       combos: (comboList || []).map((cb) => ({
         ...cb,
         uses: cb.uses.map((u) => ({ ...u, owned: has(u.name) })),
@@ -210,16 +236,47 @@ router.get('/:oracleId', async (req, res, next) => {
   }
 });
 
-// POST /api/commanders/:oracleId/missing-to-wishlist  → manquantes du deck moyen en wishlist
+// GET /api/commanders/:oracleId/deck?theme=&bracket=&budget=  → variante du deck moyen
+// (thème, niveau de puissance, tranche de prix) : decklist, couverture, nombre de decks.
+router.get('/:oracleId/deck', async (req, res, next) => {
+  try {
+    const cmd = await findCommander(req.params.oracleId);
+    if (!cmd) return res.status(404).json({ error: 'Commandant introuvable' });
+    const v = parseVariant(req.query);
+    if (!v) return res.status(400).json({ error: 'Variante de deck invalide' });
+
+    let found;
+    try {
+      found = cmd.pairing === 'background' ? null : await loadDeck(cmd, v);
+    } catch {
+      return res.status(502).json({ error: 'EDHREC indisponible pour le moment.' });
+    }
+    if (!found) return res.json({ deck: null, coverage: null, numDecks: null });
+    const ownedNames = await ownedFrontNames(req.user.id);
+    const byFront = await cardsByFront(found.cards.map(([n]) => n));
+    return res.json({
+      deck: deckView(found.cards, ownedNames, byFront),
+      coverage: coverage(found.cards, ownedNames, byFront),
+      numDecks: found.numDecks,
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+// POST /api/commanders/:oracleId/missing-to-wishlist?theme=&bracket=&budget=
+// → manquantes du deck moyen (ou de la variante affichée) en wishlist
 // (impression la moins chère ; ignore les noms déjà en wishlist, quelle que soit l'impression).
 router.post('/:oracleId/missing-to-wishlist', async (req, res, next) => {
   try {
     const cmd = await findCommander(req.params.oracleId);
     if (!cmd) return res.status(404).json({ error: 'Commandant introuvable' });
-    const deck = await averageDeck(cmd.name);
-    if (!deck) return res.status(404).json({ error: 'Pas de deck moyen EDHREC pour ce commandant.' });
+    const v = parseVariant(req.query);
+    if (!v) return res.status(400).json({ error: 'Variante de deck invalide' });
+    const found = await loadDeck(cmd, v);
+    if (!found) return res.status(404).json({ error: 'Pas de deck moyen EDHREC pour ce commandant.' });
 
-    const { missing } = coverage(deck, await ownedFrontNames(req.user.id));
+    const { missing } = coverage(found.cards, await ownedFrontNames(req.user.id));
     const keys = missing.map((m) => frontKey(m.name));
     if (!keys.length) return res.json({ added: 0, missing: 0 });
     const { rowCount } = await query(
