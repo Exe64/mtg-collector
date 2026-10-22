@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { query } from '../config/db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
-import { frontKey } from '../services/deckCheck.js';
+import { BASIC_LANDS, frontKey } from '../services/deckCheck.js';
 import { startJob, jobState } from '../services/jobRunner.js';
 import {
   getCatalog, ownedLegendOracles, ownedFrontNames, cardsByFront, coverage,
@@ -184,6 +184,13 @@ router.get('/:oracleId', async (req, res, next) => {
           .map((c) => ({ ...c, owned: has(c.name) })),
       },
       coverage: deck ? coverage(deck, ownedNames, byFront) : null,
+      // Decklist complète du deck moyen (base du % possédé), type pour le regroupement.
+      deck: deck && deck.map(([name, qty]) => ({
+        ...withCard({ name }),
+        qty,
+        type_line: byFront.get(frontKey(name))?.type_line || null,
+        basic: BASIC_LANDS.has(frontKey(name)),
+      })),
       combos: (comboList || []).map((cb) => ({
         ...cb,
         uses: cb.uses.map((u) => ({ ...u, owned: has(u.name) })),
@@ -214,7 +221,7 @@ router.post('/:oracleId/missing-to-wishlist', async (req, res, next) => {
          SELECT DISTINCT ON (lower(split_part(name, ' // ', 1))) id, lower(split_part(name, ' // ', 1)) AS k
          FROM cards
          WHERE lower(split_part(name, ' // ', 1)) = ANY($2::text[])
-         ORDER BY lower(split_part(name, ' // ', 1)), COALESCE(prices_eur, prices_eur_foil) ASC NULLS LAST
+         ORDER BY lower(split_part(name, ' // ', 1)), legal_commander DESC, COALESCE(prices_eur, prices_eur_foil) ASC NULLS LAST
        ) x
        WHERE NOT EXISTS (
          SELECT 1 FROM wishlist w JOIN cards c ON c.id = w.card_id

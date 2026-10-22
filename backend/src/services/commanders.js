@@ -99,17 +99,20 @@ export async function ownedFrontNames(userId) {
   return new Set(rows.map((r) => r.k));
 }
 
-/** Impression la moins chère par nom (face avant) : prix, scryfall_id, petite image. */
+/**
+ * Impression la moins chère par nom (face avant) : prix, scryfall_id, petite image, type.
+ * Impressions jouables d'abord : les cartes « Art Series » (type « Card ») portent le même nom.
+ */
 export async function cardsByFront(names) {
   const keys = [...new Set(names.map(frontKey))];
   if (!keys.length) return new Map();
   const { rows } = await query(
     `SELECT DISTINCT ON (lower(split_part(name, ' // ', 1)))
-            lower(split_part(name, ' // ', 1)) AS k, scryfall_id, image_uri_small,
+            lower(split_part(name, ' // ', 1)) AS k, scryfall_id, image_uri_small, type_line,
             COALESCE(prices_eur, prices_eur_foil) AS eur
      FROM cards
      WHERE lower(split_part(name, ' // ', 1)) = ANY($1::text[])
-     ORDER BY lower(split_part(name, ' // ', 1)), COALESCE(prices_eur, prices_eur_foil) ASC NULLS LAST`,
+     ORDER BY lower(split_part(name, ' // ', 1)), legal_commander DESC, COALESCE(prices_eur, prices_eur_foil) ASC NULLS LAST`,
     [keys],
   );
   return new Map(rows.map((r) => [r.k, { ...r, eur: r.eur === null ? null : Number(r.eur) }]));
