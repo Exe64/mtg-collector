@@ -1,10 +1,10 @@
-FROM node:24-alpine
+FROM node:26-alpine
 
 WORKDIR /app
 
 # Dépendances d'abord (cache de couche)
 COPY package*.json ./
-RUN npm install --omit=dev
+RUN npm ci --omit=dev
 
 COPY . .
 
