@@ -7,6 +7,9 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     groups:
+      # React and its types only work at the same major.
+      react:
+        patterns: [react, react-dom, "@types/react", "@types/react-dom"]
       minor-and-patch:
         update-types: [minor, patch]
   - package-ecosystem: docker
@@ -14,6 +17,10 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # Odd Node majors are never LTS.
+      - dependency-name: node
+        versions: ["25.x", "27.x", "29.x"]
     groups:
       minor-and-patch:
         update-types: [minor, patch]
