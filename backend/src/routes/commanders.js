@@ -18,7 +18,7 @@ const router = Router();
 router.use(requireAuth);
 
 const SHORTLIST_MAX = 4;
-const uuid = z.string().uuid({ message: 'oracle_id invalide' });
+const uuid = z.guid({ message: 'oracle_id invalide' });
 const startCacheJob = () => startJob('commander-cache', refreshCommanderCache);
 
 async function findCommander(oracleId) {

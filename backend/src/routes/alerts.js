@@ -12,7 +12,7 @@ const router = Router();
 router.use(requireAuth);
 
 const alertSchema = z.object({
-  scryfall_id: z.string().uuid({ message: 'scryfall_id invalide' }),
+  scryfall_id: z.guid({ message: 'scryfall_id invalide' }),
   direction: z.enum(['below', 'above']),
   threshold_eur: z.coerce.number().positive('seuil > 0'),
 });

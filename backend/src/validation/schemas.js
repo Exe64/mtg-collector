@@ -4,7 +4,7 @@ const FINISHES = ['nonfoil', 'foil', 'etched'];
 const CONDITIONS = ['MT', 'NM', 'EX', 'GD', 'LP', 'PL', 'PO'];
 
 export const collectionAddSchema = z.object({
-  scryfall_id: z.string().uuid({ message: 'scryfall_id invalide' }),
+  scryfall_id: z.guid({ message: 'scryfall_id invalide' }),
   quantity: z.coerce.number().int().min(1, 'quantité ≥ 1').default(1),
   finish: z.enum(FINISHES).optional(),
   foil: z.boolean().optional(),
@@ -16,7 +16,7 @@ export const collectionAddSchema = z.object({
 });
 
 export const collectionAdjustSchema = z.object({
-  scryfall_id: z.string().uuid({ message: 'scryfall_id invalide' }),
+  scryfall_id: z.guid({ message: 'scryfall_id invalide' }),
   delta: z.coerce.number().int().refine((d) => d !== 0, 'delta invalide'),
   finish: z.enum(FINISHES).default('nonfoil'),
   condition: z.enum(CONDITIONS).default('NM'),

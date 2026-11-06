@@ -11,7 +11,7 @@ const router = Router();
 router.use(requireAuth);
 
 const addSchema = z.object({
-  scryfall_id: z.string().uuid({ message: 'scryfall_id invalide' }),
+  scryfall_id: z.guid({ message: 'scryfall_id invalide' }),
   note: z.string().max(2000).nullish(),
 });
 
