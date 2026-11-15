@@ -80,6 +80,9 @@ Enregistrer ses decks dans l'application et voir, pour chacun, ce qui est possé
 **Lot 3 — Branchements**
 - [x] Étape 9 — « Construire avec » (fiche commandant) crée le deck ; « Vérif deck » : « Enregistrer comme deck », page rattachée à Decks (M · standard → Sonnet)
 - [x] Étape 10 — Modale carte : « Utilisée dans… » avec liens vers les decks (S · standard → Sonnet)
+
+**Lot 4 — Retours (ajout 2026-11-15)**
+- [x] Étape 11 — Image de fond du deck choisie (« Image du deck » dans la modale d'une carte), sinon le commandant, sinon la carte la plus chère ; encart et tuile (S · standard → Sonnet)
 - [x] 🧪 Tests — Rédiger et exécuter la procédure de test
 - [ ] ✅ Validation — Vérifier les résultats des tests et clôturer
 
@@ -95,6 +98,9 @@ Enregistrer ses decks dans l'application et voir, pour chacun, ce qui est possé
 | Ajout par recherche (précision) | `POST /decks/:id/cards { name, scryfall_id }` : impression choisie par nom comme à l'import, `scryfall_id` en repli | La recherche Scryfall renvoie son impression par défaut, pas celle de la collection |
 | Navigation (précision) | « Decks » remplace « Vérif deck » dans la barre ; `/deck` reste accessible depuis Decks et garde l'onglet actif | Barre déjà pleine ; la vérification devient une étape avant l'enregistrement |
 | Vérif deck (précision) | Le « peut-être » (Maybeboard) n'entre plus dans la vérification | Les cartes envisagées ne sont pas des cartes du deck |
+| Noms alternatifs (ajout 2026-11-15) | Nom absent de la base → `cards/named?exact=` Scryfall (30 au plus par import), puis impression choisie comme les autres | Retour prod : « Mechagodzilla, Battle Fortress » (Hangarback Walker) et exports qui séparent les faces par ` / ` |
+| Formats Commander (ajout 2026-11-15) | Règles de construction aussi pour Duel, PreDH et Pauper Commander | Retour prod : deck Duel sans contrôle de taille ni d'identité |
+| Image de fond (ajout 2026-11-15) | `decks.cover_card_id` (FK `cards`, `ON DELETE SET NULL`) ; ordre : choix utilisateur, commandant, carte la plus chère ; même flou que la fiche commandant | Demande utilisateur : en singleton, l'image du commandant ; un deck sans commandant prenait une carte au hasard |
 | Wishlist (précision) | Insertion des manquantes factorisée dans `namesToWishlist` (commandants et decks) | Même règle : impression la moins chère, noms déjà en wishlist ignorés |
 
 ## Tests
@@ -142,6 +148,11 @@ Puis, connecté avec le compte de test : appels API (import par liste avec secti
 | 2026-11-15 | Parcours navigateur passe 1 (desktop + mobile) | création, ajout, édition, construire, modale, Vérif deck | tout fonctionne ; débordement 0 sur la page ; mobile : modale d'impression coupée à droite (`<fieldset>` en `min-width: min-content`), « Commander· Krenko » collés | ❌ FAIL |
 | 2026-11-15 | Passe 2 (`min-w-0` sur le fieldset, libellés séparés) | rendu conforme | 14 captures, débordement 0, liste de la modale sans débordement ; onglet Decks actif sur `/decks` et `/deck` ; liste copiée relisible (sections) ; « Utilisée dans : Atraxa, Krenko UI » → lien vers le deck ; « Enregistrer comme deck » → deck avec Réserve ; seules erreurs console : 401 du refresh avant connexion (attendu) | ✅ PASS |
 
+| 2026-11-15 | Retour prod : import d'un deck Animar (Duel Commander) | toutes les cartes reconnues, règles de construction | « Etali, Primal Conqueror / Etali, Primal Sickness » et « Tamiyo… / … » non reconnues (séparateur ` / `) ; « Mechagodzilla, Battle Fortress » non reconnue (nom Godzilla de Hangarback Walker) ; aucune règle de construction en Duel ; « Légalité inconnue » partout (`sync:bulk` pas encore joué en prod) | ❌ FAIL |
+| 2026-11-15 | Passe 2 (`frontKey` accepte ` / `, noms inconnus résolus par Scryfall `cards/named`, règles Commander pour Duel / PreDH / Pauper Commander) | idem | Etali → MOM, Tamiyo → MH3, Mechagodzilla → Hangarback Walker (exemplaire PLST possédé) ; seule « Zzz Not A Card » reste inconnue ; Duel : Sol Ring bannie, « Aucun commandant désigné », « 5 cartes sur 100 » ; import 1,1 s ; tests backend 24/24, frontend 11/11 | ✅ PASS |
+| 2026-11-15 | Étape 11 : API image de fond | défaut commandant, choix, conservation, retour | défaut = Animar (commandant) ; Sol Ring choisie → fiche et tuile ; PATCH du nom conserve le choix ; `null` → Animar ; UUID invalide → 400 | ✅ PASS |
+| 2026-11-15 | Étape 11 : navigateur desktop + mobile | bouton dans la modale, fond mis à jour | « Image du deck » → fond Sol Ring flouté, « Revenir à l'image par défaut » → Animar ; débordement 0 ; aucune erreur console | ✅ PASS |
+
 Non joué : `RUN_DB_TESTS=1` (les tests d'intégration vident `users` et `cards`, à lancer sur une base jetable ou en CI).
 
 ## Journal de session
@@ -153,4 +164,7 @@ Non joué : `RUN_DB_TESTS=1` (les tests d'intégration vident `users` et `cards`
 ### Session 2026-11-15 (implémentation)
 - ✅ Fait : étapes 1 à 10 enchaînées (option ⚡ one-shot), tests autonomes consignés ci-dessus ; `API.md` à jour
 - ⚠️ Prod : migrations additives ; relancer `sync:bulk` une fois après déploiement (sinon « Légalité inconnue » sur toutes les cartes)
-- 📋 Prochain : validation utilisateur, commits, clôture
+- ✅ Fait : commits `05e134b`, `73de123`, `f110c44` poussés sur `main`
+- ✅ Fait : retour prod (deck Animar) : faces séparées par ` / `, noms alternatifs (Godzilla) résolus par Scryfall, règles Commander étendues à Duel / PreDH / Pauper Commander
+- ✅ Fait : étape 11, image de fond choisie
+- 📋 Prochain : `sync:bulk` en prod, validation utilisateur, clôture
