@@ -84,6 +84,8 @@ Enregistrer ses decks dans l'application et voir, pour chacun, ce qui est possé
 **Lot 4 — Retours (ajout 2026-11-15)**
 - [x] Étape 11 — Image de fond du deck choisie (« Image du deck » dans la modale d'une carte), sinon le commandant, sinon la carte la plus chère ; encart et tuile (S · standard → Sonnet)
 - [x] Étape 12 — Fond de l'encart plus visible (flou léger, voile allégé, illustration entière et nette à droite sur grand écran) ; aperçu de la carte au survol des lignes du deck, souris uniquement (S · standard → Sonnet)
+- [x] Étape 13 — CCM (symboles de mana) sur chaque ligne de la liste, s'il est connu (XS · standard → Sonnet)
+- [x] Étape 14 — Import : édition, numéro et foil indiqués conservés (liste collée et Moxfield) ; `deck_cards.finish` ; prix foil et « Copier la liste » ; sans édition, choix actuel (S · reasoning → Opus)
 - [x] 🧪 Tests — Rédiger et exécuter la procédure de test
 - [ ] ✅ Validation — Vérifier les résultats des tests et clôturer
 
@@ -102,6 +104,8 @@ Enregistrer ses decks dans l'application et voir, pour chacun, ce qui est possé
 | Noms alternatifs (ajout 2026-11-15) | Nom absent de la base → `cards/named?exact=` Scryfall (30 au plus par import), puis impression choisie comme les autres | Retour prod : « Mechagodzilla, Battle Fortress » (Hangarback Walker) et exports qui séparent les faces par ` / ` |
 | Formats Commander (ajout 2026-11-15) | Règles de construction aussi pour Duel, PreDH et Pauper Commander | Retour prod : deck Duel sans contrôle de taille ni d'identité |
 | Image de fond (ajout 2026-11-15) | `decks.cover_card_id` (FK `cards`, `ON DELETE SET NULL`) ; ordre : choix utilisateur, commandant, carte la plus chère ; même flou que la fiche commandant | Demande utilisateur : en singleton, l'image du commandant ; un deck sans commandant prenait une carte au hasard |
+| Édition à l'import (ajout 2026-11-15) | Ligne avec `(SET) numéro` → cette impression exacte, même si une autre édition est possédée ; sans édition ou impression introuvable → exemplaire possédé, sinon la moins chère | Validé le 2026-11-15. La possession reste comptée par nom |
+| Foil (ajout 2026-11-15) | `deck_cards.finish` (`nonfoil`/`foil`/`etched`, comme `collection_entries`) ; `*F*` → foil, `*E*` → etched ; prix foil ; remis dans « Copier la liste » | Validé le 2026-11-15 |
 | Wishlist (précision) | Insertion des manquantes factorisée dans `namesToWishlist` (commandants et decks) | Même règle : impression la moins chère, noms déjà en wishlist ignorés |
 
 ## Tests
@@ -152,6 +156,10 @@ Puis, connecté avec le compte de test : appels API (import par liste avec secti
 | 2026-11-15 | Retour prod : import d'un deck Animar (Duel Commander) | toutes les cartes reconnues, règles de construction | « Etali, Primal Conqueror / Etali, Primal Sickness » et « Tamiyo… / … » non reconnues (séparateur ` / `) ; « Mechagodzilla, Battle Fortress » non reconnue (nom Godzilla de Hangarback Walker) ; aucune règle de construction en Duel ; « Légalité inconnue » partout (`sync:bulk` pas encore joué en prod) | ❌ FAIL |
 | 2026-11-15 | Passe 2 (`frontKey` accepte ` / `, noms inconnus résolus par Scryfall `cards/named`, règles Commander pour Duel / PreDH / Pauper Commander) | idem | Etali → MOM, Tamiyo → MH3, Mechagodzilla → Hangarback Walker (exemplaire PLST possédé) ; seule « Zzz Not A Card » reste inconnue ; Duel : Sol Ring bannie, « Aucun commandant désigné », « 5 cartes sur 100 » ; import 1,1 s ; tests backend 24/24, frontend 11/11 | ✅ PASS |
 | 2026-11-15 | Étape 11 : API image de fond | défaut commandant, choix, conservation, retour | défaut = Animar (commandant) ; Sol Ring choisie → fiche et tuile ; PATCH du nom conserve le choix ; `null` → Animar ; UUID invalide → 400 | ✅ PASS |
+| 2026-11-15 | Étapes 13-14 : lint, `npm test` back et front, build | tous verts | backend 25/25 (parse édition `PLST NPH-42`, `PDSK 176p`, faces ` / `, `*F*`/`*E*`), frontend 12/12 (« Copier la liste » avec `(SET) numéro *F*`) ; lint 0 erreur ; build OK ; migration `deck-finish` jouée | ✅ PASS |
+| 2026-11-15 | Étape 14 : import de la liste Animar complète (100 lignes, éditions) | les 100 impressions demandées, 16 foils | 100/100 impressions exactes (dont PF19 1, PLST NPH-42, PDSK 176p, PSOS 218p, PLG20 2 → Hangarback Walker), 16 lignes `foil` au prix foil, aucune inconnue, 0,2 s | ✅ PASS |
+| 2026-11-15 | Étape 14 : repli | sans édition → possédée ; édition inconnue → choix actuel | « Sol Ring » → LEA (possédée), « Sol Ring (CMR) 472 » → CMR, « Lightning Bolt (ZZZ) 999 » → SLD (possédée) ; Vérif deck inchangée ; deck temporaire supprimé | ✅ PASS |
+| 2026-11-15 | Étapes 13-14 : navigateur desktop + mobile (deck « Animar éditions ») | CCM et foil visibles, pas de débordement | 129 symboles de mana, 16 mentions « foil » ; débordement 0 ; seule erreur console : 401 du refresh avant connexion (attendu) | ✅ PASS |
 | 2026-11-15 | Étape 11 : navigateur desktop + mobile | bouton dans la modale, fond mis à jour | « Image du deck » → fond Sol Ring flouté, « Revenir à l'image par défaut » → Animar ; débordement 0 ; aucune erreur console | ✅ PASS |
 
 Non joué : `RUN_DB_TESTS=1` (les tests d'intégration vident `users` et `cards`, à lancer sur une base jetable ou en CI).
@@ -169,4 +177,7 @@ Non joué : `RUN_DB_TESTS=1` (les tests d'intégration vident `users` et `cards`
 - ✅ Fait : retour prod (deck Animar) : faces séparées par ` / `, noms alternatifs (Godzilla) résolus par Scryfall, règles Commander étendues à Duel / PreDH / Pauper Commander
 - ✅ Fait : étape 11, image de fond choisie
 - ✅ Fait : étape 12, fond plus visible et aperçu au survol
+- 📋 Ajout : étapes 13 (CCM) et 14 (édition/foil à l'import) validées
+- ✅ Fait : étapes 13 (CCM) et 14 (édition, numéro, foil conservés à l'import), tests consignés
+- ⚠️ Prod : migration `deck-finish` (additive) ; les decks déjà importés gardent leurs impressions (réimporter pour récupérer les éditions)
 - 📋 Prochain : `sync:bulk` en prod, validation utilisateur, clôture
