@@ -3,8 +3,9 @@ plan:
   id: '32'
   name: 32-readme-vitrine.md
   link: https://github.com/Exe64/mtg-collector/blob/main/doc/roadmap/32-readme-vitrine.md
-status: active
+status: in-progress
 date: 2026-11-15
+updated_at: 2026-11-16
 description: >
   README vitrine en anglais (+ README.fr.md), exploitation déplacée dans doc/,
   LICENSE AGPL-3.0 et audit léger avant le passage du dépôt en public.
@@ -72,11 +73,11 @@ Optionnel : `banner.png` (1280×320). Sinon : bannière texte.
 
 ## Étapes
 
-- [ ] Étape 1 — Audit avant passage en public : gitleaks historique, `backups/` au `.gitignore`, données perso dans fixtures/tests (S · standard → Sonnet)
-- [ ] Étape 2 — `LICENSE` AGPL-3.0, `SECURITY.md`, `CONTRIBUTING.md` courts (XS · standard → Sonnet)
-- [ ] Étape 3 — Déplacer l'exploitation vers `doc/installation.md`, `doc/operations.md`, `doc/backups.md` (S · standard → Sonnet)
-- [ ] Étape 4 — `README.md` anglais vitrine : bannière, badges, pitch, héros, fonctionnalités + captures, quick start, stack, architecture, liens doc (M · standard → Sonnet)
-- [ ] Étape 5 — `README.fr.md` traduction fidèle + liens croisés (S · standard → Sonnet)
+- [x] Étape 1 — Audit avant passage en public : gitleaks historique, `backups/` au `.gitignore`, données perso dans fixtures/tests (S · standard → Sonnet)
+- [x] Étape 2 — `LICENSE` AGPL-3.0, `SECURITY.md`, `CONTRIBUTING.md` courts (XS · standard → Sonnet)
+- [x] Étape 3 — Déplacer l'exploitation vers `doc/installation.md`, `doc/operations.md`, `doc/backups.md` (S · standard → Sonnet)
+- [x] Étape 4 — `README.md` anglais vitrine : bannière, badges, pitch, héros, fonctionnalités + captures, quick start, stack, architecture, liens doc (M · standard → Sonnet)
+- [x] Étape 5 — `README.fr.md` traduction fidèle + liens croisés (S · standard → Sonnet)
 - [ ] Étape 6 — Intégrer les captures fournies (alt text), vérifier rendu clair/sombre (XS · standard → Sonnet)
 - [ ] 🧪 Tests — Liens relatifs valides, images présentes, rendu GitHub (`gh markdown`), gitleaks propre
 - [ ] ✅ Validation — Vérifier les résultats des tests et clôturer
@@ -102,18 +103,51 @@ cd /srv/dev/mtg-collector
 ### Procédure de test
 
 ```bash
-(à rédiger à l'étape 🧪 Tests)
+python3 - <<'PY'   # liens relatifs : README*, CONTRIBUTING, SECURITY, doc/*.md
+import re,os
+for f in ['README.md','README.fr.md','CONTRIBUTING.md','SECURITY.md','doc/installation.md','doc/operations.md','doc/backups.md']:
+    for m in re.findall(r'\]\(([^)\s]+)\)|src="([^"]+)"',open(f).read()):
+        t=m[0] or m[1]
+        if not t.startswith(('http','#')) and not os.path.exists(os.path.normpath(os.path.join(os.path.dirname(f),t.split('#')[0]))): print(f,t)
+PY
+gh api markdown -f mode=gfm -f context=Exe64/mtg-collector -f text="$(cat README.md)" > /dev/null
+docker run --rm -v "$PWD:/repo:ro" zricethezav/gitleaks:v8.21.2 git /repo --no-banner
+docker run --rm -v "$PWD:/repo:ro" zricethezav/gitleaks:v8.21.2 dir /repo --no-banner --redact -v
 ```
 
-**Résultats attendus :** à définir.
+**Résultats attendus :** aucun lien relatif cassé hors captures, rendu GFM OK
+(titres + bloc mermaid), gitleaks historique sans fuite, gitleaks répertoire :
+fuites uniquement dans des fichiers non suivis et ignorés (`.env`).
 
 ### Résultats joués et vérifiés
 
 | Date | Test | Attendu | Observé | Verdict |
 |------|------|---------|---------|---------|
+| 2026-11-16 | Liens relatifs (7 fichiers) | 0 cassé hors captures | 0 cassé ; 11 captures absentes (attendues, étape 6) | ✅ (captures ⏳) |
+| 2026-11-16 | Rendu GFM `gh api markdown` README.md / README.fr.md | Rendu sans erreur | 12 titres, bloc mermaid rendu, sur les deux | ✅ |
+| 2026-11-16 | gitleaks historique (140 commits) | no leaks | no leaks found | ✅ |
+| 2026-11-16 | gitleaks répertoire de travail | Fuites seulement hors suivi | 3 `generic-api-key` dans `.env` (non suivi, ignoré) | ✅ |
+| 2026-11-16 | `backups/` ignoré | `git check-ignore` positif | `.gitignore:8:backups/` | ✅ |
 
 ## Journal de session
 
 ### Session 2026-11-15
 - ✅ Fait : cadrage (diffusion publique, EN + FR, vitrine + doc/, AGPL-3.0, audit léger), issue #32, plan créé.
 - 📋 Prochain : étape 1.
+
+### Session 2026-11-16
+- ✅ Fait : étapes 1 à 5. Audit : gitleaks propre sur l'historique, `backups/`
+  ajouté au `.gitignore`, aucune donnée perso dans le code (comptes de test en
+  `@test.io` / `example.test`). LICENSE AGPL-3.0 (texte officiel gnu.org),
+  SECURITY.md (signalement privé GitHub), CONTRIBUTING.md. Exploitation déplacée
+  dans `doc/installation.md`, `doc/operations.md`, `doc/backups.md`. README
+  anglais vitrine + README.fr.md, mention Fan Content Policy WotC.
+- ⚠️ Points relevés pour le passage en public (action utilisateur) :
+  activer *Private vulnerability reporting* dans Settings → Security ;
+  l'e-mail d'auteur des commits est visible dans l'historique ;
+  `.github/dependabot.yml` cite le dépôt privé `Exe64/infra-vps` ;
+  `.env.example` mentionne `docker-compose.vps.yml` / `docker-compose.prod.yml`
+  absents du dépôt public ; mot de passe du compte de test local
+  dans les plans #4 et #31 (local seulement).
+- 🧪 Vérification en ligne (inline), sans sous-agent : il n'y a que de la doc.
+- 📋 Prochain : étape 6 (captures à fournir dans `doc/assets/screenshots/`), puis ✅ Validation.
