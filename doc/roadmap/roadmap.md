@@ -16,14 +16,14 @@ Backlog consolidé : plans nommés d'après leur issue GitHub (voir `doc/roadmap
 - **[Issue: #4] `#4` — Trouver un commandant** 🟢 · priorité moyenne · L — Page « Commandants » façon find-commander de Manamancer : commandants légaux ou légendes de la collection, données EDHREC et Commander Spellbook en cache.
   [`4-trouver-un-commandant.md`](4-trouver-un-commandant.md)
 
-- **[Issue: #31] `#31` — Gestion des decks** 🟢 · priorité moyenne · L — Decks enregistrés comparés à la collection, impression piochée dans la collection puis la moins chère, légalité par format ; branche « Construire avec » et « Vérif deck ».
-  [`31-gestion-des-decks.md`](31-gestion-des-decks.md)
-
 ---
 
 ## Fait
 
 ### Plans livrés (2026-11-15)
+
+- **[Issue: #31] `#31` — Gestion des decks** (2026-11-15) 🔵 — Decks comparés à la collection, impression possédée sinon la moins chère (ou l'édition et la finition de la liste importée), légalité par format et règles Commander, statistiques, image de fond, CCM et prix par ligne ; « Construire avec » et « Vérif deck » branchés.
+  [`31-gestion-des-decks.md`](done/31-gestion-des-decks.md)
 
 - **[Issue: #30] `#30` — Corrections de l'audit applicatif** (2026-11-15) 🔵 — +/- rapide, PATCH et édition en masse transactionnels ; déplacements journalisés ; csv-parse 7 et conteneur non-root ; validation des `:id` et dates ; synchro prix et import en lot ; cache nginx ; jobs sérialisés ; tests d'intégration des mutations.
   [`30-corrections-audit-applicatif.md`](done/30-corrections-audit-applicatif.md)

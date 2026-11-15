@@ -2,8 +2,8 @@
 plan:
   id: '31'
   name: 31-gestion-des-decks.md
-  link: https://github.com/Exe64/mtg-collector/blob/main/doc/roadmap/31-gestion-des-decks.md
-status: active
+  link: https://github.com/Exe64/mtg-collector/blob/main/doc/roadmap/done/31-gestion-des-decks.md
+status: done
 date: 2026-11-15
 description: >
   Decks enregistrés : listes virtuelles comparées à la collection, impression
@@ -87,7 +87,7 @@ Enregistrer ses decks dans l'application et voir, pour chacun, ce qui est possé
 - [x] Étape 13 — CCM (symboles de mana) sur chaque ligne de la liste, s'il est connu (XS · standard → Sonnet)
 - [x] Étape 14 — Import : édition, numéro et foil indiqués conservés (liste collée et Moxfield) ; `deck_cards.finish` ; prix foil et « Copier la liste » ; sans édition, choix actuel (S · reasoning → Opus)
 - [x] 🧪 Tests — Rédiger et exécuter la procédure de test
-- [ ] ✅ Validation — Vérifier les résultats des tests et clôturer
+- [x] ✅ Validation — Vérifier les résultats des tests et clôturer
 
 ## Décisions techniques
 
@@ -183,4 +183,7 @@ Non joué : `RUN_DB_TESTS=1` (les tests d'intégration vident `users` et `cards`
 - 📋 Ajout : étapes 13 (CCM) et 14 (édition/foil à l'import) validées
 - ✅ Fait : étapes 13 (CCM) et 14 (édition, numéro, foil conservés à l'import), tests consignés
 - ⚠️ Prod : migration `deck-finish` (additive) ; les decks déjà importés gardent leurs impressions (réimporter pour récupérer les éditions)
-- 📋 Prochain : `sync:bulk` en prod, validation utilisateur, clôture
+- ✅ Fait : CCM aligné, prix des cartes possédées, menu réordonné, statistiques et liste en pleine largeur
+
+### Session 2026-11-15 (clôture)
+- ✅ Validé par l'utilisateur en prod ; plan clôturé, issue #31 fermée
