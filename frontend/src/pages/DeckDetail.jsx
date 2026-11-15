@@ -255,7 +255,7 @@ function CardRow({ c, onEdit }) {
   const lacking = c.missing > 0;
   const others = c.used_in.length > 0 && c.owned > 0;
   return (
-    <li className="flex items-center gap-1 rounded hover:bg-white/5">
+    <li className="break-inside-avoid flex items-center gap-1 rounded hover:bg-white/5">
       <HoverCard image={c.image_uri} className="flex-1 min-w-0">
       <button type="button" onClick={() => openCard(c.scryfall_id)} className="w-full min-w-0 flex items-center gap-2 px-1 py-0.5 text-left text-sm">
         <span className="w-4 shrink-0 flex justify-center">
@@ -294,8 +294,8 @@ function CardRow({ c, onEdit }) {
 
 function Group({ label, cards, onEdit }) {
   return (
-    <div className="break-inside-avoid mb-4">
-      <h3 className="text-[11px] font-medium uppercase tracking-[0.12em] text-slate-400 border-b border-white/[0.06] pb-1 mb-1">
+    <div className="mb-4">{/* les grands groupes (créatures) continuent sur la colonne suivante */}
+      <h3 className="break-after-avoid text-[11px] font-medium uppercase tracking-[0.12em] text-slate-400 border-b border-white/[0.06] pb-1 mb-1">
         {label} <span className="text-slate-500">({cards.reduce((s, c) => s + c.qty, 0)})</span>
       </h3>
       <ul>{cards.map((c) => <CardRow key={c.id} c={c} onEdit={onEdit} />)}</ul>
@@ -307,29 +307,35 @@ function Stats({ cards }) {
   const { curve, colors, types } = useMemo(() => deckStats(cards), [cards]);
   const max = Math.max(1, ...curve);
   return (
-    <section className={panel}>
-      <h2 className={h2}>Courbe de mana <span className="font-normal text-slate-500">(hors terrains)</span></h2>
-      <div className="flex items-end gap-1.5 h-24" role="img" aria-label={`Courbe de mana : ${curve.map((n, i) => `${n} à ${i === 7 ? '7+' : i}`).join(', ')}`}>
-        {curve.map((n, i) => (
-          <div key={i} className="flex-1 flex flex-col items-center justify-end h-full">
-            <span className="text-[10px] text-slate-400">{n || ''}</span>
-            <div className="w-full rounded-t bg-gold-500/70" style={{ height: `${(70 * n) / max}%` }} />
-            <span className="text-[10px] text-slate-500 mt-0.5">{i === 7 ? '7+' : i}</span>
-          </div>
-        ))}
+    <section className={`${panel} mb-4 grid gap-x-8 gap-y-4 md:grid-cols-2 lg:grid-cols-[2fr_1fr_1.4fr]`} aria-label="Statistiques">
+      <div className="md:col-span-2 lg:col-span-1">
+        <h2 className={h2}>Courbe de mana <span className="font-normal text-slate-500">(hors terrains)</span></h2>
+        <div className="flex items-end gap-1.5 h-24" role="img" aria-label={`Courbe de mana : ${curve.map((n, i) => `${n} à ${i === 7 ? '7+' : i}`).join(', ')}`}>
+          {curve.map((n, i) => (
+            <div key={i} className="flex-1 flex flex-col items-center justify-end h-full">
+              <span className="text-[10px] text-slate-400">{n || ''}</span>
+              <div className="w-full rounded-t bg-gold-500/70" style={{ height: `${(70 * n) / max}%` }} />
+              <span className="text-[10px] text-slate-500 mt-0.5">{i === 7 ? '7+' : i}</span>
+            </div>
+          ))}
+        </div>
       </div>
-      <h2 className={`${h2} mt-4`}>Couleurs</h2>
-      <ul className="flex flex-wrap gap-3 text-sm">
-        {Object.entries(colors).filter(([, n]) => n).map(([k, n]) => (
-          <li key={k} className="flex items-center gap-1"><ColorPips identity={[k]} /><span className="sr-only">{COLOR_LABEL[k]}</span> {n}</li>
-        ))}
-      </ul>
-      <h2 className={`${h2} mt-4`}>Types</h2>
-      <ul className="grid grid-cols-2 gap-x-4 text-sm">
-        {types.map(([label, n]) => (
-          <li key={label} className="flex justify-between"><span className="text-slate-400">{label}</span>{n}</li>
-        ))}
-      </ul>
+      <div>
+        <h2 className={h2}>Couleurs</h2>
+        <ul className="flex flex-wrap gap-3 text-sm">
+          {Object.entries(colors).filter(([, n]) => n).map(([k, n]) => (
+            <li key={k} className="flex items-center gap-1"><ColorPips identity={[k]} /><span className="sr-only">{COLOR_LABEL[k]}</span> {n}</li>
+          ))}
+        </ul>
+      </div>
+      <div>
+        <h2 className={h2}>Types</h2>
+        <ul className="grid grid-cols-2 gap-x-4 text-sm">
+          {types.map(([label, n]) => (
+            <li key={label} className="flex justify-between"><span className="text-slate-400">{label}</span>{n}</li>
+          ))}
+        </ul>
+      </div>
     </section>
   );
 }
@@ -469,52 +475,48 @@ export default function DeckDetail() {
         </section>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-3 items-start">
-        <section className={`${panel} lg:col-span-2 min-w-0`}>
-          <AddCard deckId={id} onAdded={load} />
-          <div className="flex flex-wrap items-center gap-2 mt-4 mb-3">
-            <label className="flex items-center gap-2 text-sm text-slate-300 mr-auto">
-              <input type="checkbox" checked={missingOnly} onChange={(e) => setMissingOnly(e.target.checked)} />
-              Manquantes seulement
-            </label>
-            <button type="button" onClick={copy} disabled={!cards.length} className="btn-outline flex items-center gap-1.5 disabled:opacity-50">
-              {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? 'Liste copiée' : 'Copier la liste'}
-            </button>
-            <button type="button" onClick={toWishlist} disabled={!summary.missingDistinct} className="flex items-center gap-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-slate-900 disabled:opacity-50 px-4 py-2 text-sm">
-              <Star size={14} /> Manquantes en wishlist
-            </button>
-          </div>
-          {msg && <p role="status" className="text-xs text-slate-300 mb-3">{msg}</p>}
+      {cards.length > 0 && <Stats cards={cards} />}
 
-          {!cards.length ? (
-            <p className="text-sm text-slate-500 py-6 text-center">Deck vide : cherche une carte pour l'ajouter.</p>
-          ) : zones.every(([, , list]) => !list.length) ? (
-            <p className="text-sm text-slate-500 py-6 text-center">Tu possèdes toutes les cartes du deck.</p>
-          ) : zones.map(([zone, label, list]) => list.length > 0 && (
-            <div key={zone} className="mb-2">
-              {zone === 'main' ? (
-                <>
-                  {zones[0][2].length > 0 && <h2 className={`${h2} mt-2`}>{label}</h2>}
-                  <div className="columns-1 md:columns-2 gap-6">
-                    {groupByType(list).map(([g, gl]) => <Group key={g} label={g} cards={gl} onEdit={setEditing} />)}
-                  </div>
-                </>
-              ) : (
-                <div className="md:w-1/2"><Group label={label} cards={list} onEdit={setEditing} /></div>
-              )}
-            </div>
-          ))}
-        </section>
-
-        <div className="space-y-4 min-w-0">
-          {cards.length > 0 && <Stats cards={cards} />}
-          <p className="text-xs text-slate-500">
-            <Layers size={12} className="inline text-gold-400 mr-1" aria-hidden="true" />
-            Carte possédée déjà utilisée dans un autre deck. Un deck ne réserve aucun exemplaire.{' '}
-            <Link to="/deck" className="underline hover:text-slate-300">Vérifier une autre liste</Link>
-          </p>
+      <section className={`${panel} min-w-0`}>
+        <AddCard deckId={id} onAdded={load} />
+        <div className="flex flex-wrap items-center gap-2 mt-4 mb-3">
+          <label className="flex items-center gap-2 text-sm text-slate-300 mr-auto">
+            <input type="checkbox" checked={missingOnly} onChange={(e) => setMissingOnly(e.target.checked)} />
+            Manquantes seulement
+          </label>
+          <button type="button" onClick={copy} disabled={!cards.length} className="btn-outline flex items-center gap-1.5 disabled:opacity-50">
+            {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? 'Liste copiée' : 'Copier la liste'}
+          </button>
+          <button type="button" onClick={toWishlist} disabled={!summary.missingDistinct} className="flex items-center gap-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-slate-900 disabled:opacity-50 px-4 py-2 text-sm">
+            <Star size={14} /> Manquantes en wishlist
+          </button>
         </div>
-      </div>
+        {msg && <p role="status" className="text-xs text-slate-300 mb-3">{msg}</p>}
+
+        {!cards.length ? (
+          <p className="text-sm text-slate-500 py-6 text-center">Deck vide : cherche une carte pour l'ajouter.</p>
+        ) : zones.every(([, , list]) => !list.length) ? (
+          <p className="text-sm text-slate-500 py-6 text-center">Tu possèdes toutes les cartes du deck.</p>
+        ) : zones.map(([zone, label, list]) => list.length > 0 && (
+          <div key={zone} className="mb-2">
+            {zone === 'main' ? (
+              <>
+                {zones[0][2].length > 0 && <h2 className={`${h2} mt-2`}>{label}</h2>}
+                <div className="columns-1 md:columns-2 xl:columns-3 gap-6">
+                  {groupByType(list).map(([g, gl]) => <Group key={g} label={g} cards={gl} onEdit={setEditing} />)}
+                </div>
+              </>
+            ) : (
+              <div className="md:w-1/2 xl:w-1/3"><Group label={label} cards={list} onEdit={setEditing} /></div>
+            )}
+          </div>
+        ))}
+      </section>
+      <p className="mt-3 text-xs text-slate-500">
+        <Layers size={12} className="inline text-gold-400 mr-1" aria-hidden="true" />
+        Carte possédée déjà utilisée dans un autre deck. Un deck ne réserve aucun exemplaire.{' '}
+        <Link to="/deck" className="underline hover:text-slate-300">Vérifier une autre liste</Link>
+      </p>
 
       {editing && <EditLine deckId={id} line={editing} isCover={deck.cover_scryfall_id === editing.scryfall_id} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); load(); }} />}
       {editDeck && <EditDeck deck={deck} onClose={() => setEditDeck(false)} onSaved={() => { setEditDeck(false); load(); }} />}
