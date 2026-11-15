@@ -9,3 +9,6 @@ certs/
 # Ops VPS gardés hors du repo public (topologie d'infra) — copie dans le repo privé deployment-scripts
 deploy/deploy-vps.sh
 docker-compose.vps.yml
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/
