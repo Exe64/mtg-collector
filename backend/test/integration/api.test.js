@@ -122,4 +122,16 @@ test('intégration API (DB + Redis)', { skip: RUN ? false : 'RUN_DB_TESTS!=1' },
     assert.equal(res.body.health.db, true);
     assert.ok(res.body.settings.price_job_hours);
   });
+
+  await t.test('users : admin → 200 ; compte non admin → 403 (requireAdmin partagé)', async () => {
+    const list = await agent.get('/api/auth/users').set('Authorization', `Bearer ${accessToken}`);
+    assert.equal(list.status, 200);
+    const created = await agent.post('/api/auth/users').set('Authorization', `Bearer ${accessToken}`)
+      .send({ email: 'user@test.io', password: 'Password1', display_name: 'User' });
+    assert.equal(created.status, 201);
+    const login = await request(app).post('/api/auth/login').send({ email: 'user@test.io', password: 'Password1' });
+    const res = await request(app).get('/api/auth/users').set('Authorization', `Bearer ${login.body.accessToken}`);
+    assert.equal(res.status, 403);
+  });
 });
+
