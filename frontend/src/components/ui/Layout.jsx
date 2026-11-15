@@ -2,7 +2,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Boxes, PlusCircle, Library, Star, Download, Users,
-  ListChecks, History, Bell, TrendingUp, ChevronDown, Menu, ShieldCheck, LogOut, Crown,
+  Layers, History, Bell, TrendingUp, ChevronDown, Menu, ShieldCheck, LogOut, Crown,
 } from 'lucide-react';
 import { api } from '../../api/client';
 import { useAuth } from '../../stores/auth';
@@ -19,7 +19,8 @@ const primaryNav = [
   { to: '/sets', label: 'Extensions', short: 'Sets', Icon: Library, end: false },
   { to: '/movements', label: 'Mouvements', short: 'Prix', Icon: TrendingUp, end: false },
   { to: '/wishlist', label: 'Wishlist', short: 'Wishlist', Icon: Star, end: false },
-  { to: '/deck', label: 'Vérif deck', short: 'Deck', Icon: ListChecks, end: false },
+  // `match` : la vérification de liste (/deck) est rattachée à Decks
+  { to: '/decks', label: 'Decks', short: 'Decks', Icon: Layers, end: false, match: '/deck' },
   // `sheet` : rangé dans la feuille « Plus » en mobile (barre basse déjà pleine)
   { to: '/commanders', label: 'Commandants', short: 'Cmdts', Icon: Crown, end: false, sheet: true },
 ];
@@ -84,7 +85,7 @@ export default function Layout() {
             {navGroups.map((group, gi) => (
               <div key={gi} className={`flex items-stretch pr-1 ${gi ? 'relative pl-1 before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-5 before:w-px before:bg-white/10' : ''}`}>
                 {group.map((it) => (
-                  <NavLink key={it.to} to={it.to} end={it.end} className={({ isActive }) => tabClass(isActive)}>
+                  <NavLink key={it.to} to={it.to} end={it.end} className={({ isActive }) => tabClass(isActive || location.pathname === it.match)}>
                     <span className="lg:hidden">{it.short}</span>
                     <span className="hidden lg:inline">{it.label}</span>
                   </NavLink>
@@ -160,7 +161,7 @@ export default function Layout() {
             to={it.to}
             end={it.end}
             className={({ isActive }) =>
-              `flex-1 flex flex-col items-center gap-0.5 py-2 text-[10px] ${isActive ? 'text-gold-300' : 'text-slate-400'}`}
+              `flex-1 flex flex-col items-center gap-0.5 py-2 text-[10px] ${isActive || location.pathname === it.match ? 'text-gold-300' : 'text-slate-400'}`}
           >
             <it.Icon size={18} />
             {it.short}

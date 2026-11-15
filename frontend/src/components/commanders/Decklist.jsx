@@ -1,12 +1,10 @@
 import { useMemo, useState } from 'react';
-import { Check, Copy, Hammer } from 'lucide-react';
+import { Check, Copy, Hammer, Star } from 'lucide-react';
 import { useCardModal } from '../../stores/cardModal';
-import {
-  DECK_GROUPS, DECK_BUDGETS, DECK_BRACKETS, deckGroup, deckText,
-} from './logic';
+import { DECK_BUDGETS, DECK_BRACKETS, deckText } from './logic';
+import { groupByType } from '../decks/logic';
 import { CoverageBar, eur } from './parts';
 
-const ORDER = [...DECK_GROUPS.map(([, label]) => label), 'Autres'];
 const field = 'rounded-lg bg-slate-800 border border-edge px-3 py-1.5 text-sm';
 
 /** Choix de la variante EDHREC : tranche de prix, niveau de puissance, thème. */
@@ -38,22 +36,16 @@ export function DeckVariantBar({ variant, themes, onChange }) {
  * possédées cochées, manquantes atténuées avec leur prix.
  */
 export default function Decklist({
-  commanderName, deck, coverage, title, numDecks, controls, onBuild, building, buildMsg,
+  commanderName, deck, coverage, title, numDecks, controls, onBuild, building, buildMsg, onCreate, creating,
 }) {
   const openCard = useCardModal((s) => s.open);
   const [missingOnly, setMissingOnly] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const groups = useMemo(() => {
-    const map = new Map();
-    for (const c of deck) {
-      if (missingOnly && (c.owned || c.basic)) continue;
-      const g = deckGroup(c.type_line);
-      if (!map.has(g)) map.set(g, []);
-      map.get(g).push(c);
-    }
-    return ORDER.filter((g) => map.has(g)).map((g) => [g, map.get(g).sort((a, b) => a.name.localeCompare(b.name))]);
-  }, [deck, missingOnly]);
+  const groups = useMemo(
+    () => groupByType(missingOnly ? deck.filter((c) => !c.owned && !c.basic) : deck),
+    [deck, missingOnly],
+  );
 
   async function copy() {
     try {
@@ -93,8 +85,13 @@ export default function Decklist({
           {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? 'Liste copiée' : 'Copier la liste'}
         </button>
         {onBuild && (
-          <button type="button" onClick={onBuild} disabled={building} className="flex items-center gap-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-slate-900 disabled:opacity-50 px-4 py-2 text-sm">
-            <Hammer size={14} /> {building ? 'Ajout…' : 'Manquantes en wishlist'}
+          <button type="button" onClick={onBuild} disabled={building} className="btn-outline flex items-center gap-1.5 disabled:opacity-50">
+            <Star size={14} /> {building ? 'Ajout…' : 'Manquantes en wishlist'}
+          </button>
+        )}
+        {onCreate && (
+          <button type="button" onClick={onCreate} disabled={creating} className="flex items-center gap-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-slate-900 disabled:opacity-50 px-4 py-2 text-sm">
+            <Hammer size={14} /> {creating ? 'Création…' : 'Construire avec'}
           </button>
         )}
       </div>

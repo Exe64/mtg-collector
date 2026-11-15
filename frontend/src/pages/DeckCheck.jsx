@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Save } from 'lucide-react';
 import { api } from '../api/client';
 
 export default function DeckCheck() {
@@ -8,6 +10,9 @@ export default function DeckCheck() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [onlyMissing, setOnlyMissing] = useState(true);
+  const [checked, setChecked] = useState(null); // source de la liste vérifiée
+  const [saving, setSaving] = useState(false);
+  const navigate = useNavigate();
 
   async function check() {
     setError(null);
@@ -16,10 +21,24 @@ export default function DeckCheck() {
     try {
       const body = url.trim() ? { url: url.trim() } : { text };
       setResult(await api('/decks/check', { method: 'POST', body }));
+      setChecked(body);
     } catch (e) {
       setError(e.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  // La liste vérifiée devient un deck (impressions : possédées, sinon les moins chères).
+  async function save() {
+    setSaving(true);
+    setError(null);
+    try {
+      const r = await api('/decks', { method: 'POST', body: checked });
+      navigate(`/decks/${r.id}`, { state: { unknown: r.unknown } });
+    } catch (e) {
+      setError(e.message);
+      setSaving(false);
     }
   }
 
@@ -38,6 +57,9 @@ export default function DeckCheck() {
 
   return (
     <div>
+      <Link to="/decks" className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-100 mb-4">
+        <ArrowLeft size={14} /> Decks
+      </Link>
       <h1 className="page-title mb-1">Vérifier un deck</h1>
       <p className="text-sm text-slate-400 mb-4">
         Colle une liste (format Moxfield / MTGO), importe un <code className="text-slate-300">.txt</code>, ou indique l'URL d'un deck
@@ -92,10 +114,15 @@ export default function DeckCheck() {
             )}
           </div>
 
-          <label className="flex items-center gap-2 text-xs text-slate-400 mb-2">
-            <input type="checkbox" checked={onlyMissing} onChange={(e) => setOnlyMissing(e.target.checked)} />
-            Afficher seulement les manquantes
-          </label>
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <label className="flex items-center gap-2 text-xs text-slate-400 mr-auto">
+              <input type="checkbox" checked={onlyMissing} onChange={(e) => setOnlyMissing(e.target.checked)} />
+              Afficher seulement les manquantes
+            </label>
+            <button type="button" onClick={save} disabled={saving} className="btn-outline flex items-center gap-1.5 disabled:opacity-50">
+              <Save size={14} /> {saving ? 'Enregistrement…' : 'Enregistrer comme deck'}
+            </button>
+          </div>
 
           <div className="overflow-x-auto rounded-lg border border-slate-800">
             <table className="w-full text-sm">

@@ -13,6 +13,8 @@ const SetDetail = lazy(() => import('./pages/SetDetail'));
 const ImportExport = lazy(() => import('./pages/ImportExport'));
 const Wishlist = lazy(() => import('./pages/Wishlist'));
 const DeckCheck = lazy(() => import('./pages/DeckCheck'));
+const Decks = lazy(() => import('./pages/Decks'));
+const DeckDetail = lazy(() => import('./pages/DeckDetail'));
 const Commanders = lazy(() => import('./pages/Commanders'));
 const CommanderDetail = lazy(() => import('./pages/CommanderDetail'));
 const Movements = lazy(() => import('./pages/Movements'));
@@ -59,6 +61,8 @@ export default function App() {
         <Route path="import" element={<ImportExport />} />
         <Route path="wishlist" element={<Wishlist />} />
         <Route path="deck" element={<DeckCheck />} />
+        <Route path="decks" element={<Decks />} />
+        <Route path="decks/:id" element={<DeckDetail />} />
         <Route path="commanders" element={<Commanders />} />
         <Route path="commanders/:id" element={<CommanderDetail />} />
         <Route path="movements" element={<Movements />} />

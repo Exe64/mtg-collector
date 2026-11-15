@@ -48,6 +48,7 @@ export default function CommanderDetail() {
   const [notice, setNotice] = useState(null);
   const [wish, setWish] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -113,6 +114,20 @@ export default function CommanderDetail() {
       setWish(e.message);
     } finally {
       setBusy(false);
+    }
+  }
+
+  // « Construire avec » : enregistre le deck moyen (ou la variante affichée) comme deck.
+  async function createDeck(title) {
+    setCreating(true);
+    setWish(null);
+    try {
+      const name = variantQuery ? `${d.commander.name} · ${title.replace(/^Deck /, '')}` : d.commander.name;
+      const r = await api(`/commanders/${id}/build${variantQuery ? `?${variantQuery}` : ''}`, { method: 'POST', body: { name } });
+      navigate(`/decks/${r.id}`, { state: { unknown: r.unknown } });
+    } catch (e) {
+      setWish(e.message);
+      setCreating(false);
     }
   }
 
@@ -235,6 +250,7 @@ export default function CommanderDetail() {
                 <Decklist
                   commanderName={c.name} deck={shown.deck} coverage={shown.coverage} title={title} numDecks={shown.numDecks}
                   controls={controls} onBuild={buildWith} building={busy} buildMsg={wish}
+                  onCreate={() => createDeck(title)} creating={creating}
                 />
               );
             }

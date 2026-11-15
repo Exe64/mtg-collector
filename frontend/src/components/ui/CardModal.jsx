@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { X, Layers } from 'lucide-react';
 import { api } from '../../api/client';
 import { useCardModal } from '../../stores/cardModal';
 import LineChart from '../charts/LineChart';
@@ -21,6 +22,7 @@ export default function CardModal() {
   const [rulings, setRulings] = useState([]);
   const [history, setHistory] = useState([]);
   const [printings, setPrintings] = useState([]);
+  const [decks, setDecks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showBack, setShowBack] = useState(false);
   const [wishMsg, setWishMsg] = useState(null);
@@ -36,6 +38,7 @@ export default function CardModal() {
     setCard(null);
     setRulings([]);
     setHistory([]);
+    setDecks([]);
     setPrintings([]);
     setShowBack(false);
     setWishMsg(null);
@@ -55,8 +58,11 @@ export default function CardModal() {
         setRulings(rul.rulings || []);
         setHistory(hist.history || []);
         // Après le détail : /cards/:id insère la carte en base, requise pour trouver ses sœurs.
-        const pr = await api(`/collection/printings/${scryfallId}`).catch(() => ({ printings: [] }));
-        if (!cancelled) setPrintings(pr.printings || []);
+        const [pr, dk] = await Promise.all([
+          api(`/collection/printings/${scryfallId}`).catch(() => ({ printings: [] })),
+          api(`/decks/by-card/${scryfallId}`).catch(() => ({ decks: [] })),
+        ]);
+        if (!cancelled) { setPrintings(pr.printings || []); setDecks(dk.decks || []); }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -201,6 +207,15 @@ export default function CardModal() {
                           </li>
                         ))}
                       </ul>
+                    )}
+                    {decks.length > 0 && (
+                      <div className="mt-2 text-xs text-slate-300 flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <Layers size={13} className="text-gold-400" aria-hidden="true" />
+                        Utilisée dans :
+                        {decks.map((dk) => (
+                          <Link key={dk.id} to={`/decks/${dk.id}`} onClick={close} className="text-gold-300 hover:text-gold-200 underline">{dk.name}</Link>
+                        ))}
+                      </div>
                     )}
                   </div>
                 );
