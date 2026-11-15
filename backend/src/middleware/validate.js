@@ -14,3 +14,9 @@ export function validateBody(schema) {
     return next();
   };
 }
+
+/** `router.param('id', intParam)` : un :id non entier → 400 (au lieu d'un 500 Postgres). */
+export function intParam(req, res, next, id) {
+  if (!/^\d{1,9}$/.test(id)) return res.status(400).json({ error: 'identifiant invalide' });
+  return next();
+}

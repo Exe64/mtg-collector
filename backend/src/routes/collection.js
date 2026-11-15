@@ -1,17 +1,18 @@
 import { Router } from 'express';
 
-import { query } from '../config/db.js';
+import { query, withTransaction } from '../config/db.js';
 import { requireAuth } from '../middleware/auth.js';
-import { validateBody } from '../middleware/validate.js';
+import { validateBody, intParam } from '../middleware/validate.js';
 import { collectionAddSchema, collectionAdjustSchema, collectionPatchSchema, collectionBulkSchema } from '../validation/schemas.js';
 import { ensureCard } from '../services/cards.js';
 import { getCollection, getCollectionTotals, getStats, getPriceMovers, getCollectionGroups } from '../services/collection.js';
-import { logChanges, getLog, undoLogEntry } from '../services/collectionLog.js';
+import { logChanges, getLog, undoLogEntry, applyDelta, entryChanges, logEntryChanges } from '../services/collectionLog.js';
 import { getSettings } from '../services/settings.js';
 import { getSnapshots, getSetSnapshots } from '../services/snapshots.js';
 import { UNIT_EUR } from '../services/pricing.js';
 
 const router = Router();
+router.param('id', intParam);
 router.use(requireAuth); // toutes les routes /api/collection sont protégées + isolées
 
 const PATCHABLE = ['quantity', 'condition', 'notes', 'finish', 'language', 'location', 'acquired_price', 'acquired_at'];
@@ -259,35 +260,16 @@ router.post('/adjust', validateBody(collectionAdjustSchema), async (req, res, ne
     const card = await ensureCard(scryfall_id);
     if (!card) return res.status(404).json({ error: 'Carte introuvable' });
 
-    const cur = await query(
-      `SELECT id, quantity FROM collection_entries
-       WHERE user_id = $1 AND card_id = $2 AND finish = $3 AND condition = $4 AND language = $5 AND location = $6`,
-      [req.user.id, card.id, finish, condition, language, location],
-    );
-    const row = cur.rows[0];
-
-    if (!row) {
-      if (d <= 0) return res.json({ quantity: 0 });
-      const ins = await query(
-        `INSERT INTO collection_entries (user_id, card_id, quantity, finish, condition, language, location)
-         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING quantity`,
-        [req.user.id, card.id, d, finish, condition, language, location],
-      );
-      await logChanges(req.user.id, [{ cardId: card.id, delta: d, finish, condition, language, location }], 'adjust');
-      return res.json({ quantity: ins.rows[0].quantity });
-    }
-
-    const next = row.quantity + d;
-    if (next <= 0) {
-      await query('DELETE FROM collection_entries WHERE id = $1', [row.id]);
-      await logChanges(req.user.id, [{ cardId: card.id, delta: -row.quantity, finish, condition, language, location }], 'adjust');
-      return res.json({ quantity: 0 });
-    }
-    await query('UPDATE collection_entries SET quantity = $1 WHERE id = $2', [next, row.id]);
-    await logChanges(req.user.id, [{ cardId: card.id, delta: d, finish, condition, language, location }], 'adjust');
-    return res.json({ quantity: next });
+    // Une transaction : la variante est verrouillée (FOR UPDATE) ou upsertée, et
+    // le journal n'est écrit que si le mouvement l'est aussi.
+    const quantity = await withTransaction(async (client) => {
+      const r = await applyDelta(client, req.user.id, card.id, [finish, condition, language, location], d);
+      await logChanges(req.user.id, [{ cardId: card.id, delta: r.applied, finish, condition, language, location }], 'adjust', client);
+      return r.quantity;
+    });
+    return res.json({ quantity });
   } catch (err) {
-    next(err);
+    return next(err);
   }
 });
 
@@ -317,48 +299,62 @@ router.post('/', validateBody(collectionAddSchema), async (req, res, next) => {
 });
 
 // POST /api/collection/bulk  (édition en masse d'une sélection)
+// Transactionnel : lignes verrouillées, conflits de variante isolés par savepoint,
+// changements de variante journalisés ('move').
 router.post('/bulk', validateBody(collectionBulkSchema), async (req, res, next) => {
   try {
     const { ids, patch } = req.body;
     const cols = Object.keys(patch);
     const setSql = cols.map((c, i) => `${c} = $${i + 1}`).join(', ');
     const baseParams = cols.map((c) => patch[c]);
+    const update = (client, idCond, idParam) => client.query(
+      `UPDATE collection_entries SET ${setSql}
+       WHERE ${idCond} AND user_id = $${cols.length + 2} RETURNING *`,
+      [...baseParams, idParam, req.user.id],
+    );
 
-    // Chemin rapide : une seule requête (cas courant, aucun conflit de variante).
-    try {
-      const { rowCount } = await query(
-        `UPDATE collection_entries SET ${setSql}
-         WHERE id = ANY($${cols.length + 1}::int[]) AND user_id = $${cols.length + 2}`,
-        [...baseParams, ids, req.user.id],
+    const result = await withTransaction(async (client) => {
+      const { rows: before } = await client.query(
+        'SELECT * FROM collection_entries WHERE id = ANY($1::int[]) AND user_id = $2 FOR UPDATE',
+        [ids, req.user.id],
       );
-      return res.json({ updated: rowCount, conflicts: 0 });
-    } catch (e) {
-      if (e.code !== '23505') throw e;
-      // Conflit détecté → l'UPDATE global a été annulé (autocommit) ; on reprend
-      // ligne par ligne pour appliquer le maximum et compter les conflits.
-    }
-
-    let updated = 0;
-    let conflicts = 0;
-    for (const id of ids) {
+      let after;
+      let conflicts = 0;
+      // Chemin rapide : une seule requête (cas courant, aucun conflit de variante).
+      await client.query('SAVEPOINT bulk');
       try {
-        // eslint-disable-next-line no-await-in-loop
-        const { rowCount } = await query(
-          `UPDATE collection_entries SET ${setSql} WHERE id = $${cols.length + 1} AND user_id = $${cols.length + 2}`,
-          [...baseParams, id, req.user.id],
-        );
-        updated += rowCount;
+        ({ rows: after } = await update(client, `id = ANY($${cols.length + 1}::int[])`, ids));
+        await client.query('RELEASE SAVEPOINT bulk');
       } catch (e) {
-        if (e.code === '23505') conflicts += 1; else throw e;
+        if (e.code !== '23505') throw e;
+        // Conflit → on annule l'UPDATE global et on reprend ligne par ligne.
+        await client.query('ROLLBACK TO SAVEPOINT bulk');
+        after = [];
+        for (const row of before) {
+          /* eslint-disable no-await-in-loop */
+          await client.query('SAVEPOINT row');
+          try {
+            after.push(...(await update(client, `id = $${cols.length + 1}`, row.id)).rows);
+            await client.query('RELEASE SAVEPOINT row');
+          } catch (err) {
+            if (err.code !== '23505') throw err;
+            await client.query('ROLLBACK TO SAVEPOINT row');
+            conflicts += 1;
+          }
+          /* eslint-enable no-await-in-loop */
+        }
       }
-    }
-    return res.json({ updated, conflicts });
+      const byId = new Map(before.map((r) => [r.id, r]));
+      await logEntryChanges(req.user.id, after.flatMap((r) => entryChanges(byId.get(r.id), r)), client);
+      return { updated: after.length, conflicts };
+    });
+    return res.json(result);
   } catch (err) {
-    next(err);
+    return next(err);
   }
 });
 
-// PATCH /api/collection/:id
+// PATCH /api/collection/:id  (transactionnel : ligne verrouillée, journal quantité + déplacement)
 router.patch('/:id', validateBody(collectionPatchSchema), async (req, res, next) => {
   try {
     const sets = [];
@@ -370,43 +366,30 @@ router.patch('/:id', validateBody(collectionPatchSchema), async (req, res, next)
       }
     }
     if (!sets.length) return res.status(400).json({ error: 'aucun champ à modifier' });
+    params.push(req.params.id, req.user.id);
 
-    // Quantité avant modification (pour journaliser le delta réel)
-    let before = null;
-    if (req.body.quantity !== undefined) {
-      const cur = await query(
-        'SELECT quantity FROM collection_entries WHERE id = $1 AND user_id = $2',
+    const entry = await withTransaction(async (client) => {
+      const { rows: [before] } = await client.query(
+        'SELECT * FROM collection_entries WHERE id = $1 AND user_id = $2 FOR UPDATE',
         [req.params.id, req.user.id],
       );
-      before = cur.rows[0] || null;
-    }
-
-    params.push(req.params.id);
-    const idIdx = params.length;
-    params.push(req.user.id);
-    const userIdx = params.length;
-
-    const { rows } = await query(
-      `UPDATE collection_entries SET ${sets.join(', ')}
-       WHERE id = $${idIdx} AND user_id = $${userIdx}
-       RETURNING *`,
-      params,
-    );
-    if (!rows[0]) return res.status(404).json({ error: 'Entrée introuvable' });
-    if (before && rows[0].quantity !== before.quantity) {
-      const r = rows[0];
-      await logChanges(
-        req.user.id,
-        [{ cardId: r.card_id, delta: r.quantity - before.quantity, finish: r.finish, condition: r.condition, language: r.language, location: r.location }],
-        'edit',
+      if (!before) return null;
+      const { rows: [after] } = await client.query(
+        `UPDATE collection_entries SET ${sets.join(', ')}
+         WHERE id = $${params.length - 1} AND user_id = $${params.length}
+         RETURNING *`,
+        params,
       );
-    }
-    res.json({ entry: rows[0] });
+      await logEntryChanges(req.user.id, entryChanges(before, after), client);
+      return after;
+    });
+    if (!entry) return res.status(404).json({ error: 'Entrée introuvable' });
+    return res.json({ entry });
   } catch (err) {
     if (err.code === '23505') {
-      return res.status(409).json({ error: 'Une entrée identique (finition/état/langue) existe déjà' });
+      return res.status(409).json({ error: 'Une entrée identique (finition/état/langue/emplacement) existe déjà' });
     }
-    next(err);
+    return next(err);
   }
 });
 

@@ -1,4 +1,4 @@
-import { query, pool } from '../config/db.js';
+import { query, withTransaction } from '../config/db.js';
 import { logger } from '../config/logger.js';
 
 // Sources annulables depuis le journal (import : variantes agrégées, et undo :
@@ -9,7 +9,7 @@ const UNDOABLE_SOURCES = ['add', 'adjust', 'edit', 'delete'];
  * Journalise des mouvements de collection.
  * `changes` : [{ cardId, delta, finish, condition?, language?, location? }]
  *             — delta signé (> 0 ajout, < 0 retrait).
- * `source`  : add | adjust | edit | delete | import | undo.
+ * `source`  : add | adjust | edit | delete | import | undo | move.
  * `client`  : client pg optionnel (mouvement inscrit dans la transaction en cours).
  *
  * Hors transaction, un échec d'écriture du journal ne doit jamais faire échouer
@@ -39,10 +39,39 @@ export async function logChanges(userId, changes, source, client = null) {
   }
 }
 
+const VARIANT_KEYS = ['finish', 'condition', 'language', 'location'];
+
+/**
+ * Lignes de journal d'une entrée modifiée (`before` → `after`, lignes de
+ * collection_entries). Changement de variante → paire 'move' (−n ancienne,
+ * +n nouvelle, non annulable) ; changement de quantité → delta 'edit'.
+ * Renvoie [{ source, change }].
+ */
+export function entryChanges(before, after) {
+  const variant = (r) => ({ cardId: r.card_id, finish: r.finish, condition: r.condition, language: r.language, location: r.location });
+  const out = [];
+  if (VARIANT_KEYS.some((k) => before[k] !== after[k])) {
+    out.push({ source: 'move', change: { ...variant(before), delta: -before.quantity } });
+    out.push({ source: 'move', change: { ...variant(after), delta: before.quantity } });
+  }
+  if (after.quantity !== before.quantity) {
+    out.push({ source: 'edit', change: { ...variant(after), delta: after.quantity - before.quantity } });
+  }
+  return out;
+}
+
+/** Journalise des `entryChanges` (groupées par source) dans la transaction de `client`. */
+export async function logEntryChanges(userId, changes, client) {
+  for (const source of ['move', 'edit']) {
+    // eslint-disable-next-line no-await-in-loop
+    await logChanges(userId, changes.filter((c) => c.source === source).map((c) => c.change), source, client);
+  }
+}
+
 /** Mouvements des `days` derniers jours, du plus récent au plus ancien. */
 export async function getLog(userId, days = 30) {
   const { rows } = await query(
-    `SELECT l.id, l.quantity_delta, l.finish, l.source, l.created_at, l.undone_at,
+    `SELECT l.id, l.quantity_delta, l.finish, l.condition, l.language, l.location, l.source, l.created_at, l.undone_at,
             c.scryfall_id, c.name, c.set_code, c.image_uri_small
      FROM collection_log l JOIN cards c ON c.id = l.card_id
      WHERE l.user_id = $1 AND l.created_at >= NOW() - make_interval(days => $2::int)
@@ -60,15 +89,48 @@ function httpError(status, message) {
 }
 
 /**
+ * Applique un delta signé à une variante (finish/condition/langue/emplacement),
+ * dans la transaction de `client`. Un retrait est borné à ce qui existe et
+ * supprime l'entrée quand elle tombe à 0. Renvoie { applied, quantity }.
+ */
+export async function applyDelta(client, userId, cardId, variant, delta) {
+  if (delta > 0) {
+    const { rows } = await client.query(
+      `INSERT INTO collection_entries (user_id, card_id, quantity, finish, condition, language, location)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT (user_id, card_id, finish, condition, language, location)
+       DO UPDATE SET quantity = collection_entries.quantity + EXCLUDED.quantity
+       RETURNING quantity`,
+      [userId, cardId, delta, ...variant],
+    );
+    return { applied: delta, quantity: rows[0].quantity };
+  }
+  const { rows } = await client.query(
+    `SELECT id, quantity FROM collection_entries
+     WHERE user_id = $1 AND card_id = $2 AND finish = $3 AND condition = $4 AND language = $5 AND location = $6
+     FOR UPDATE`,
+    [userId, cardId, ...variant],
+  );
+  const entry = rows[0];
+  if (!entry) return { applied: 0, quantity: 0 };
+  const removed = Math.min(entry.quantity, -delta);
+  const left = entry.quantity - removed;
+  if (left <= 0) {
+    await client.query('DELETE FROM collection_entries WHERE id = $1', [entry.id]);
+  } else {
+    await client.query('UPDATE collection_entries SET quantity = $1 WHERE id = $2', [left, entry.id]);
+  }
+  return { applied: -removed, quantity: left };
+}
+
+/**
  * Annule un mouvement du journal : réapplique le delta inverse sur la même
  * variante (finish/condition/langue/emplacement), marque la ligne `undone_at`
  * et trace l'annulation (source 'undo'). Transactionnel.
  * Un retrait est borné à ce qui existe encore dans la collection.
  */
-export async function undoLogEntry(userId, logId) {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
+export function undoLogEntry(userId, logId) {
+  return withTransaction(async (client) => {
     const { rows } = await client.query(
       'SELECT * FROM collection_log WHERE id = $1 AND user_id = $2 FOR UPDATE',
       [logId, userId],
@@ -80,35 +142,8 @@ export async function undoLogEntry(userId, logId) {
 
     // Lignes antérieures à l'ajout des colonnes de variante : on retombe sur les défauts
     const variant = [log.finish, log.condition || 'NM', log.language || 'en', log.location || ''];
-    const inverse = -log.quantity_delta;
-    let applied;
-
-    if (inverse > 0) {
-      await client.query(
-        `INSERT INTO collection_entries (user_id, card_id, quantity, finish, condition, language, location)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
-         ON CONFLICT (user_id, card_id, finish, condition, language, location)
-         DO UPDATE SET quantity = collection_entries.quantity + EXCLUDED.quantity`,
-        [userId, log.card_id, inverse, ...variant],
-      );
-      applied = inverse;
-    } else {
-      const cur = await client.query(
-        `SELECT id, quantity FROM collection_entries
-         WHERE user_id = $1 AND card_id = $2 AND finish = $3 AND condition = $4 AND language = $5 AND location = $6
-         FOR UPDATE`,
-        [userId, log.card_id, ...variant],
-      );
-      const entry = cur.rows[0];
-      if (!entry) throw httpError(409, 'Cette variante n\'est plus dans la collection, rien à retirer');
-      const removed = Math.min(entry.quantity, -inverse);
-      if (entry.quantity - removed <= 0) {
-        await client.query('DELETE FROM collection_entries WHERE id = $1', [entry.id]);
-      } else {
-        await client.query('UPDATE collection_entries SET quantity = $1 WHERE id = $2', [entry.quantity - removed, entry.id]);
-      }
-      applied = -removed;
-    }
+    const { applied } = await applyDelta(client, userId, log.card_id, variant, -log.quantity_delta);
+    if (!applied) throw httpError(409, 'Cette variante n\'est plus dans la collection, rien à retirer');
 
     await client.query('UPDATE collection_log SET undone_at = NOW() WHERE id = $1', [logId]);
     await logChanges(
@@ -117,12 +152,6 @@ export async function undoLogEntry(userId, logId) {
       'undo',
       client,
     );
-    await client.query('COMMIT');
     return { applied };
-  } catch (err) {
-    await client.query('ROLLBACK');
-    throw err;
-  } finally {
-    client.release();
-  }
+  });
 }

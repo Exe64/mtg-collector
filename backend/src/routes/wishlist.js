@@ -3,11 +3,12 @@ import { z } from 'zod';
 
 import { query } from '../config/db.js';
 import { requireAuth } from '../middleware/auth.js';
-import { validateBody } from '../middleware/validate.js';
+import { validateBody, intParam } from '../middleware/validate.js';
 import { ensureCard } from '../services/cards.js';
 import { HIST_EUR_ANY } from '../services/pricing.js';
 
 const router = Router();
+router.param('id', intParam);
 router.use(requireAuth);
 
 const addSchema = z.object({

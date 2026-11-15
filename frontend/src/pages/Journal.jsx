@@ -9,6 +9,7 @@ const SOURCE_LABEL = {
   delete: 'Suppression',
   import: 'Import',
   undo: 'Annulation',
+  move: 'Déplacement',
 };
 
 const PERIODS = [
@@ -66,6 +67,7 @@ export default function Journal() {
         byDay.push(g);
       }
       g.rows.push(row);
+      if (row.source === 'move') continue; // −n / +n d'un déplacement : la quantité ne change pas
       if (row.quantity_delta > 0) g.added += row.quantity_delta;
       else g.removed -= row.quantity_delta;
     }
@@ -119,6 +121,9 @@ export default function Journal() {
                   <button type="button" onClick={() => openCard(r.scryfall_id)} className="flex-1 text-left truncate hover:text-indigo-300">
                     {r.name} <span className="text-xs text-slate-500 uppercase">{r.set_code}</span>
                     {r.finish !== 'nonfoil' && <span className="text-xs text-gold-300"> ★ {r.finish}</span>}
+                    {r.source === 'move' && (
+                      <span className="text-xs text-slate-500"> · {r.quantity_delta > 0 ? 'vers' : 'depuis'} {[r.location || 'sans emplacement', r.condition, r.language].filter(Boolean).join(' · ')}</span>
+                    )}
                   </button>
                   <span className={`text-xs hidden sm:inline ${r.undone_at ? 'text-slate-500 line-through' : 'text-slate-500'}`}>{SOURCE_LABEL[r.source] || r.source}</span>
                   <span className={`w-12 text-right font-semibold ${r.undone_at ? 'text-slate-500 line-through' : r.quantity_delta > 0 ? 'text-gain-400' : 'text-rose-400'}`}>

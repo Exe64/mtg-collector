@@ -31,7 +31,7 @@ export const collectionPatchSchema = z.object({
   language: z.string().min(2).max(5).optional(),
   location: z.string().max(100).optional(),
   acquired_price: z.coerce.number().nonnegative().nullish(),
-  acquired_at: z.string().nullish(),
+  acquired_at: z.iso.date({ message: 'date d\'acquisition invalide (AAAA-MM-JJ)' }).nullish(),
   notes: z.string().max(2000).nullish(),
 }).refine((o) => Object.values(o).some((v) => v !== undefined), {
   message: 'aucun champ à modifier',
