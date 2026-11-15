@@ -16,6 +16,9 @@ Backlog consolidé : plans nommés d'après leur issue GitHub (voir `doc/roadmap
 - **[Issue: #4] `#4` — Trouver un commandant** 🟢 · priorité moyenne · L — Page « Commandants » façon find-commander de Manamancer : commandants légaux ou légendes de la collection, données EDHREC et Commander Spellbook en cache.
   [`4-trouver-un-commandant.md`](4-trouver-un-commandant.md)
 
+- **[Issue: #31] `#31` — Gestion des decks** 🟢 · priorité moyenne · L — Decks enregistrés comparés à la collection, impression piochée dans la collection puis la moins chère, légalité par format ; branche « Construire avec » et « Vérif deck ».
+  [`31-gestion-des-decks.md`](31-gestion-des-decks.md)
+
 ---
 
 ## Fait

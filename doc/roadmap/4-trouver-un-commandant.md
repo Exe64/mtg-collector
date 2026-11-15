@@ -13,7 +13,7 @@ priority: medium
 complexity: L
 intent: null
 depends_on: ['3']
-blocks: []   # futur plan « Deck builder & mes decks »
+blocks: ['31']
 scope:
   modules:
     - backend/migrations/
