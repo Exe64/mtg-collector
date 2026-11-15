@@ -1,7 +1,7 @@
 # Roadmap Magic Collection Manager
 
 > Backlog actif. L'historique détaillé est archivé dans `_archives/`.
-> Dernière mise à jour : 2026-11-15.
+> Dernière mise à jour : 2026-11-16.
 
 ## Contexte
 
@@ -12,6 +12,12 @@ Backlog consolidé : plans nommés d'après leur issue GitHub (voir `doc/roadmap
 ---
 
 ## À faire
+
+- **[Issue: #32] `#32` — README vitrine et préparation du dépôt public** 🟢 · priorité moyenne · S — README anglais vitrine + README.fr.md, exploitation dans doc/, LICENSE AGPL-3.0, audit léger avant passage en public.
+  [`32-readme-vitrine.md`](32-readme-vitrine.md)
+
+- **[Issue: #33] `#33` — Mise à jour depuis l'application** 🟢 · priorité moyenne · L — Release GitHub sur tag, détection dans l'admin, mise à jour en un clic via agent hôte systemd, sauvegarde et rollback automatique. Dépend de #32.
+  [`33-mise-a-jour-depuis-app.md`](33-mise-a-jour-depuis-app.md)
 
 - **[Issue: #4] `#4` — Trouver un commandant** 🟢 · priorité moyenne · L — Page « Commandants » façon find-commander de Manamancer : commandants légaux ou légendes de la collection, données EDHREC et Commander Spellbook en cache.
   [`4-trouver-un-commandant.md`](4-trouver-un-commandant.md)
