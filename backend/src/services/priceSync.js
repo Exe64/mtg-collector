@@ -1,6 +1,6 @@
 import { query } from '../config/db.js';
 import * as scryfall from './scryfall.js';
-import { mapScryfallCard, upsertCard } from './cards.js';
+import { mapScryfallCard, upsertResilient } from './cards.js';
 
 const BATCH = 75; // limite Scryfall /cards/collection
 
@@ -27,11 +27,8 @@ export async function syncCollectionPrices() {
     const chunk = rows.slice(i, i + BATCH);
     // eslint-disable-next-line no-await-in-loop -- lots séquentiels (rate-limit Scryfall)
     const data = await scryfall.getCardsCollection(chunk.map((r) => ({ id: r.scryfall_id })));
-    for (const raw of data?.data || []) {
-      // eslint-disable-next-line no-await-in-loop -- upserts séquentiels volontaires
-      await upsertCard(mapScryfallCard(raw));
-      updated += 1;
-    }
+    // eslint-disable-next-line no-await-in-loop -- un INSERT multi-lignes par lot (cartes déjà locales → sets présents)
+    updated += await upsertResilient((data?.data || []).map(mapScryfallCard));
   }
 
   await appendCardPriceHistory();

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { rateLimit } from 'express-rate-limit';
 
 import { query } from '../config/db.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { hashPassword, comparePassword, validateCredentials } from '../utils/password.js';
 import {
   signAccessToken,
@@ -36,17 +36,6 @@ function clearRefreshCookie(res) {
 
 function publicUser(u) {
   return { id: u.id, email: u.email, display_name: u.display_name, is_admin: u.is_admin === true };
-}
-
-// Réservé à l'administrateur (vérifie le drapeau en base)
-async function requireAdmin(req, res, next) {
-  try {
-    const { rows } = await query('SELECT is_admin FROM users WHERE id = $1', [req.user.id]);
-    if (!rows[0]?.is_admin) return res.status(403).json({ error: "Réservé à l'administrateur" });
-    return next();
-  } catch (err) {
-    return next(err);
-  }
 }
 
 // Spec §6.5 : 10 tentatives / 15 min par IP (s'appuie sur trust proxy)

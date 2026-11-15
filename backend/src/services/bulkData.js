@@ -7,7 +7,7 @@ import { createInterface } from 'node:readline';
 import path from 'node:path';
 
 import * as scryfall from './scryfall.js';
-import { mapScryfallCard, upsertCardsBatch } from './cards.js';
+import { mapScryfallCard, upsertResilient } from './cards.js';
 import { syncSets } from './sets.js';
 import { CATALOG_KEY } from './commanders.js';
 import { query } from '../config/db.js';
@@ -42,29 +42,6 @@ async function* streamBulk(type, filename) {
     }
   } finally {
     await unlink(file).catch(() => {});
-  }
-}
-
-// Upsert d'un lot tolérant aux pannes : si le lot atomique échoue (≥ 1 carte
-// fautive — overflow numérique, donnée aberrante…), on rejoue carte par carte
-// pour n'ignorer QUE la/les fautive(s). Le sync ne s'arrête plus sur une carte.
-// Retourne le nombre de cartes réellement upsertées.
-async function upsertResilient(batch) {
-  try {
-    await upsertCardsBatch(batch);
-    return batch.length;
-  } catch {
-    let ok = 0;
-    for (const card of batch) {
-      try {
-        // eslint-disable-next-line no-await-in-loop
-        await upsertCardsBatch([card]);
-        ok += 1;
-      } catch (e) {
-        logger.warn({ scryfall_id: card.scryfall_id, name: card.name, err: e.message }, 'sync bulk : carte ignorée');
-      }
-    }
-    return ok;
   }
 }
 

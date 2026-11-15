@@ -1,3 +1,5 @@
+import { logger } from '../config/logger.js';
+
 // Suivi en mémoire des jobs admin lancés à la demande (instance backend unique).
 const jobs = {};
 
@@ -18,6 +20,7 @@ export function startJob(name, fn) {
       jobs[name] = { ...jobs[name], running: false, finishedAt: new Date().toISOString(), ok: true, info: info ?? null };
     })
     .catch((e) => {
+      logger.error({ err: e.message, job: name }, 'job : échec');
       jobs[name] = { ...jobs[name], running: false, finishedAt: new Date().toISOString(), ok: false, error: e.message };
     });
   return true;

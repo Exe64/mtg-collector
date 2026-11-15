@@ -1,5 +1,6 @@
 import { query } from '../config/db.js';
 import * as scryfall from './scryfall.js';
+import { logger } from '../config/logger.js';
 
 const num = (v) => (v === undefined || v === null || v === '' ? null : Number(v));
 
@@ -96,6 +97,29 @@ export async function upsertCardsBatch(cards) {
     params,
   );
   return cards.length;
+}
+
+// Upsert d'un lot tolérant aux pannes : si le lot atomique échoue (≥ 1 carte
+// fautive — overflow numérique, donnée aberrante…), on rejoue carte par carte
+// pour n'ignorer QUE la/les fautive(s). Le sync ne s'arrête plus sur une carte.
+// Retourne le nombre de cartes réellement upsertées.
+export async function upsertResilient(batch) {
+  try {
+    await upsertCardsBatch(batch);
+    return batch.length;
+  } catch {
+    let ok = 0;
+    for (const card of batch) {
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        await upsertCardsBatch([card]);
+        ok += 1;
+      } catch (e) {
+        logger.warn({ scryfall_id: card.scryfall_id, name: card.name, err: e.message }, 'upsert en lot : carte ignorée');
+      }
+    }
+    return ok;
+  }
 }
 
 /**

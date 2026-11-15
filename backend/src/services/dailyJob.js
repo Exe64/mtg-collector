@@ -44,8 +44,9 @@ let priceTask = null;
 /** (Re)planifie le job prix selon la périodicité (heures). Appelable à chaud. */
 export function applyPriceSchedule(hours) {
   if (priceTask) priceTask.stop();
+  // Même nom que le lancement admin : un run manuel en cours bloque le run planifié (et inversement).
   priceTask = cron.schedule(priceExpr(hours), () => {
-    runDailyJob().catch((err) => logger.error({ err: err.message }, 'job prix : échec'));
+    if (!startJob('price-job', runDailyJob)) logger.warn('job prix planifié ignoré : un run est déjà en cours');
   }, { timezone: 'UTC' });
   logger.info(`job prix planifié toutes les ${clampHours(hours)}h (UTC)`);
 }
@@ -57,15 +58,16 @@ export async function scheduleDailyJob() {
   applyPriceSchedule(hours);
 
   cron.schedule('0 4 * * 0', () => {
-    logger.info('sync bulk-data hebdomadaire : démarrage');
-    // Noms FR après le bulk anglais : ils s'appuient sur les lignes canoniques.
-    syncBulk()
-      .then((r) => {
-        logger.info(`sync bulk-data hebdo terminé : ${r.count} cartes`);
-        return syncFrenchNames();
-      })
-      .then((r) => logger.info(`sync noms FR hebdo terminé : ${r.matched} appariées, ${r.propagated} propagées`))
-      .catch((err) => logger.error({ err: err.message }, 'sync bulk-data hebdo : échec'));
+    const started = startJob('sync-bulk', async () => {
+      logger.info('sync bulk-data hebdomadaire : démarrage');
+      const bulk = await syncBulk();
+      logger.info(`sync bulk-data hebdo terminé : ${bulk.count} cartes`);
+      // Noms FR après le bulk anglais : ils s'appuient sur les lignes canoniques.
+      const fr = await syncFrenchNames();
+      logger.info(`sync noms FR hebdo terminé : ${fr.matched} appariées, ${fr.propagated} propagées`);
+      return { count: bulk.count, ...fr };
+    });
+    if (!started) logger.warn('sync bulk-data hebdo ignoré : un run est déjà en cours');
   }, { timezone: 'UTC' });
   logger.info('sync bulk-data hebdomadaire planifié (dimanche 04:00 UTC)');
 

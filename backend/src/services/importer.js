@@ -86,6 +86,41 @@ async function resolveLocal(p) {
   return byName.rows[0] || null;
 }
 
+/**
+ * Résolution locale groupée (une requête par clé) : Scryfall ID, puis set + n°.
+ * `parsed` : lignes normalisées (null = ligne invalide). Renvoie Map(index → { id }) ;
+ * les lignes absentes retombent sur resolveLocal / resolveCard (nom, Scryfall).
+ */
+async function resolveLocalBatch(parsed) {
+  const found = new Map();
+  const ids = [...new Set(parsed.filter((p) => p && UUID_RE.test(p.scryfall_id)).map((p) => p.scryfall_id.toLowerCase()))];
+  if (ids.length) {
+    const { rows } = await query('SELECT id, scryfall_id FROM cards WHERE scryfall_id = ANY($1::uuid[])', [ids]);
+    const byId = new Map(rows.map((r) => [r.scryfall_id, r.id]));
+    parsed.forEach((p, i) => {
+      const id = p?.scryfall_id && byId.get(p.scryfall_id.toLowerCase());
+      if (id) found.set(i, { id });
+    });
+  }
+  const pending = parsed.flatMap((p, i) => (p && !found.has(i) && p.set && p.collector_number ? [[p, i]] : []));
+  if (pending.length) {
+    const { rows } = await query(
+      `SELECT DISTINCT ON (k.s, k.n) c.id, k.s, k.n
+       FROM unnest($1::text[], $2::text[]) AS k(s, n)
+       JOIN cards c ON lower(c.set_code) = k.s AND c.collector_number = k.n`,
+      [pending.map(([p]) => p.set.toLowerCase()), pending.map(([p]) => p.collector_number)],
+    );
+    const byKey = new Map(rows.map((r) => [`${r.s}|${r.n}`, r.id]));
+    for (const [p, i] of pending) {
+      const id = byKey.get(`${p.set.toLowerCase()}|${p.collector_number}`);
+      if (id) found.set(i, { id });
+    }
+  }
+  return found;
+}
+
+const isValid = (p) => p.name && Number.isFinite(p.quantity) && p.quantity >= 1;
+
 /** Résout une carte : DB locale d'abord, Scryfall en secours (upsert). */
 async function resolveCard(p) {
   const local = await resolveLocal(p);
@@ -112,17 +147,22 @@ export async function dryRunImport(rows) {
   let needsScryfall = 0;
   let invalid = 0;
   const samples = { needsScryfall: [], invalid: [] };
+  const parsed = rows.map((r) => {
+    const p = normalizeRow(r);
+    return isValid(p) ? p : null;
+  });
+  const pre = await resolveLocalBatch(parsed);
 
   for (let i = 0; i < rows.length; i += 1) {
     const line = i + 2;
-    const p = normalizeRow(rows[i]);
-    if (!p.name || !Number.isFinite(p.quantity) || p.quantity < 1) {
+    const p = parsed[i] || normalizeRow(rows[i]);
+    if (!parsed[i]) {
       invalid += 1;
       if (samples.invalid.length < 20) samples.invalid.push({ line, name: p.name || '?' });
       continue;
     }
     // eslint-disable-next-line no-await-in-loop
-    const local = await resolveLocal(p);
+    const local = pre.get(i) || await resolveLocal(p);
     if (local) {
       resolvedLocally += 1;
     } else {
@@ -138,16 +178,25 @@ export async function importCsv(userId, rows, mode = 'merge', location = '') {
   // encore à la collection, donc un échec ici la laisse intacte.
   const resolved = [];
   const errors = [];
+  const parsed = rows.map((r) => {
+    try {
+      const p = normalizeRow(r);
+      return isValid(p) ? p : null;
+    } catch {
+      return null;
+    }
+  });
+  const pre = await resolveLocalBatch(parsed);
   for (let i = 0; i < rows.length; i += 1) {
     const line = i + 2; // +1 en-tête, +1 base 1
     try {
-      const p = normalizeRow(rows[i]);
-      if (!p.name || !Number.isFinite(p.quantity) || p.quantity < 1) {
+      const p = parsed[i] || normalizeRow(rows[i]);
+      if (!parsed[i]) {
         errors.push({ line, name: p.name || '?', error: 'nom ou quantité manquant/invalide' });
         continue;
       }
       // eslint-disable-next-line no-await-in-loop
-      const card = await resolveCard(p);
+      const card = pre.get(i) || await resolveCard(p);
       if (!card) {
         errors.push({ line, name: p.name, error: 'carte introuvable' });
         continue;

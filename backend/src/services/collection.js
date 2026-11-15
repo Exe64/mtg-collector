@@ -171,13 +171,18 @@ export async function getStats(userId) {
      FROM collection_entries e JOIN cards c ON c.id = e.card_id
      WHERE e.user_id = $1 AND e.acquired_price IS NOT NULL AND (${UNIT_EUR}) IS NOT NULL`;
 
-  const [totals, topCards, colors, rarities, conditions, types, values, profit, gainers, losers, freshness] = await Promise.all([
+  const [totals, topCards, colors, rarities, conditions, types, values, gainers, losers] = await Promise.all([
+    // Totaux + plus-value (cartes avec prix d'achat) + fraîcheur des prix : un seul passage
     query(
       `SELECT COALESCE(SUM((${UNIT_EUR}) * e.quantity), 0)::numeric(14,2) AS total_value_eur,
               COALESCE(SUM((${UNIT_USD}) * e.quantity), 0)::numeric(14,2) AS total_value_usd,
               COALESCE(SUM(e.quantity), 0)::int                          AS card_count,
               COUNT(*)::int                                              AS unique_card_count,
-              COUNT(DISTINCT c.set_code)::int                            AS set_count
+              COUNT(DISTINCT c.set_code)::int                            AS set_count,
+              COALESCE(SUM(e.acquired_price * e.quantity), 0)::numeric(14,2) AS acquired_total,
+              COALESCE(SUM(((${UNIT_EUR}) * e.quantity)) FILTER (WHERE e.acquired_price IS NOT NULL), 0)::numeric(14,2) AS market_priced,
+              COUNT(*) FILTER (WHERE e.acquired_price IS NOT NULL)::int  AS priced_count,
+              MAX(c.updated_at)                                          AS prices_updated_at
        FROM collection_entries e JOIN cards c ON c.id = e.card_id
        WHERE e.user_id = $1`,
       [userId],
@@ -259,25 +264,12 @@ export async function getStats(userId) {
        GROUP BY bucket`,
       [userId],
     ),
-    // Plus-value : valeur de marché vs prix d'achat (cartes avec un prix d'achat renseigné)
-    query(
-      `SELECT COALESCE(SUM(e.acquired_price * e.quantity), 0)::numeric(14,2) AS acquired_total,
-              COALESCE(SUM(((${UNIT_EUR}) * e.quantity)) FILTER (WHERE e.acquired_price IS NOT NULL), 0)::numeric(14,2) AS market_priced,
-              COUNT(*) FILTER (WHERE e.acquired_price IS NOT NULL)::int AS priced_count
-       FROM collection_entries e JOIN cards c ON c.id = e.card_id
-       WHERE e.user_id = $1`,
-      [userId],
-    ),
     query(`${moversSelect} ORDER BY gain DESC NULLS LAST LIMIT 5`, [userId]),
     query(`${moversSelect} AND (((${UNIT_EUR}) - e.acquired_price)) < 0 ORDER BY gain ASC LIMIT 5`, [userId]),
-    query(
-      `SELECT MAX(c.updated_at) AS prices_updated_at
-       FROM collection_entries e JOIN cards c ON c.id = e.card_id WHERE e.user_id = $1`,
-      [userId],
-    ),
   ]);
 
-  const p = profit.rows[0];
+  const t = totals.rows[0];
+  const p = t;
   const acquired = Number(p.acquired_total);
   const market = Number(p.market_priced);
   const profitability = {
@@ -290,9 +282,8 @@ export async function getStats(userId) {
     topLosers: losers.rows,
   };
 
-  const t = totals.rows[0];
   return {
-    pricesUpdatedAt: freshness.rows[0].prices_updated_at,
+    pricesUpdatedAt: t.prices_updated_at,
     totalValue: { eur: Number(t.total_value_eur), usd: Number(t.total_value_usd) },
     cardCount: t.card_count,
     uniqueCardCount: t.unique_card_count,
