@@ -265,19 +265,24 @@ function CardRow({ c, onEdit }) {
           {c.qty > 1 && <span className="text-slate-500">{c.qty} </span>}{c.name}
           <span className="ml-1.5 text-[10px] uppercase text-slate-500">{c.set_code}{c.finish && c.finish !== 'nonfoil' && <span className="ml-1 text-gold-400">{c.finish === 'foil' ? 'foil' : 'etched'}</span>}</span>
         </span>
-        <Mana cost={c.mana_cost} className="shrink-0 text-xs" />
         {others && (
           <span title={`Aussi dans : ${c.used_in.map((d) => d.name).join(', ')}`} className="shrink-0 text-gold-400">
             <Layers size={13} aria-label={`Aussi dans ${c.used_in.length} autre(s) deck(s)`} />
           </span>
         )}
-        {c.basic ? (
-          <span className="text-[10px] uppercase tracking-[0.12em] text-slate-500 shrink-0">base</span>
-        ) : lacking ? (
-          <span className="text-xs text-emerald-400 shrink-0" title={`Il en manque ${c.missing} (impression la moins chère)`}>
-            {c.owned > 0 && <span className="text-slate-500">{c.missing}× </span>}{eur(c.cheapest_eur)}
-          </span>
-        ) : null}
+        <Mana cost={c.mana_cost} className="shrink-0 text-xs" />
+        {/* Colonne de largeur fixe : le CCM reste aligné, qu'il y ait un prix ou non */}
+        <span className="w-20 shrink-0 text-right">
+          {c.basic ? (
+            <span className="text-[10px] uppercase tracking-[0.12em] text-slate-500">base</span>
+          ) : lacking ? (
+            <span className="text-xs text-emerald-400" title={`Il en manque ${c.missing} (impression la moins chère)`}>
+              {c.owned > 0 && <span className="text-slate-500">{c.missing}× </span>}{eur(c.cheapest_eur)}
+            </span>
+          ) : c.eur !== null && (
+            <span className="text-xs text-slate-500" title="Prix de l'impression choisie (possédée)">{eur(c.eur)}</span>
+          )}
+        </span>
       </button>
       </HoverCard>
       <button type="button" onClick={() => onEdit(c)} aria-label={`Modifier ${c.name}`} className="w-9 h-9 sm:w-7 sm:h-7 shrink-0 flex items-center justify-center rounded text-slate-500 hover:text-slate-100">
