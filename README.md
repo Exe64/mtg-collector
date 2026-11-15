@@ -1,153 +1,143 @@
-# Magic Collection Manager
+<div align="center">
 
-Application web full-stack multi-utilisateur pour l'inventaire et la valorisation
-de collections Magic: The Gathering. Voir [backend/API.md](backend/API.md) pour la référence API.
+# MTG Collector
 
-## Fonctionnalités
+**Self-hosted inventory, valuation and deck building for your Magic: The Gathering collection.**
 
-- **Auth JWT** multi-utilisateur (access token 30 min + refresh token rotaté en cookie httpOnly, **détection de réutilisation → révocation de la lignée**), collections isolées par compte
-- **Ajouter** : recherche autocomplétée, affichage de **toutes les versions/éditions**, ajout/retrait direct via **−/+ normale et foil** (état au choix)
-- **Collection** : recherche par nom + filtres (type, rareté, couleur, coût de mana, état, **finition**), groupement par extension, édition inline (qté, finition, état), pagination, export
-- **Vérif deck** : liste collée (Moxfield/MTGO), `.txt` ou URL Moxfield → **cartes manquantes** vs collection (comparaison par nom, toutes versions ; affiche les versions possédées)
-- **Commandants** : trouver un commandant parmi tous les légaux ou les légendes possédées (filtres couleur / mana / type / appariement / prix / Game Changers, tris EDHREC), **Ma collection** (% du deck moyen EDHREC déjà possédé et coût pour le compléter), thèmes et typal, **Matchmaker** en 5 questions, fiche (combos Commander Spellbook, cartes phares, similaires, « Construire avec » → manquantes en wishlist), présélection ☆ et comparaison
-- **Wishlist** : liste de souhaits avec coût estimé
-- **Mouvements de prix** : page dédiée hausses / baisses / variations (sélecteurs période + seuil) ; Top 10 sur le tableau de bord
-- **Alertes prix** : seuils par carte + notifications in-app (badge), évaluées au job prix
-- **Journal** : historique des ajouts/retraits de la collection, avec annulation
-- **Extensions** : catalogue filtrable (dont promos), **complétion par set** (liste + détail avec filtres possédées / toutes / manquantes), valeur possédée par extension
-- **Détail carte** : modale image HD, texte oracle, prix, et **rulings officiels** (Wizards/Gatherer via Scryfall)
-- **Tableau de bord** : valeur EUR/USD, courbe d'évolution (tooltip au survol), donuts (couleur, rareté, état, type), top 10 (valeur unitaire)
-- **Import/Export** : CSV Moxfield + **ManaBox** (résolution exacte par Scryfall ID) + générique, **tag emplacement par lot**, export CSV Moxfield + PDF
-- **Onboarding masse** : scanner via une app tierce (ex. ManaBox) → export CSV → import ; chaque lot taggé à un emplacement physique
-- **Complétion** : suivi par extension avec % et **numéros manquants** (set de base strict via `printed_size`), emplacement physique des cartes
-- **Prix** : Scryfall (Cardmarket EUR), job **toutes les 12h** (00:00 et 12:00 UTC) → snapshots collection/édition + historique par carte
-- **PWA** : installable, Service Worker (app shell offline), conditions **Cardmarket** (MT→PO)
-- **Administration** (admin) : état système (DB/Redis, dernières synchros, dernière sauvegarde), actions à la demande (sync bulk / MAJ prix / vider le cache), réglages globaux, gestion des comptes + déconnexion forcée
+[![CI](https://github.com/Exe64/mtg-collector/actions/workflows/ci.yml/badge.svg)](https://github.com/Exe64/mtg-collector/actions/workflows/ci.yml)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
+![Docker Compose](https://img.shields.io/badge/deploy-docker%20compose-2496ED?logo=docker&logoColor=white)
 
-> Durcissement : rate-limiting étagé, CSP stricte (`script-src 'self'`), validation des secrets au boot, anti-injection de formule CSV, détection de réutilisation des refresh tokens. Sauvegardes chiffrées hors-machine + surveillance + drill de restauration (§ Sauvegardes). CI GitHub Actions (lint + tests unitaires/intégration + build).
+English · [Français](README.fr.md)
 
-## Démarrage
+![MTG Collector dashboard](doc/assets/screenshots/hero.png)
+
+</div>
+
+MTG Collector tracks every card you own, down to the printing, finish and
+condition, prices it daily from Cardmarket through Scryfall, and turns that
+inventory into answers: what your collection is worth, which commander you can
+build tonight, and what is missing from that decklist. It runs on your own
+server with Docker Compose, for you and the people you invite.
+
+> The interface is in French; English and French card names are both searchable.
+
+## Features
+
+### Collection
+
+Search with autocomplete, see every printing of a card and add or remove
+regular and foil copies with −/+. Filter by type, rarity, colour, mana value,
+condition and finish, group by set, edit inline, export to CSV or PDF.
+
+![Collection with filters and set grouping](doc/assets/screenshots/collection.png)
+![Adding cards: every printing with −/+](doc/assets/screenshots/add.png)
+
+### Card details
+
+High-resolution image, oracle text, prices and official rulings in one modal.
+
+![Card detail modal](doc/assets/screenshots/card-modal.png)
+
+### Commanders
+
+Find a commander among every legal one or the legends you own, filtered by
+colour, mana value, type, partner, price and Game Changers, sorted by EDHREC.
+**My collection** shows how much of the average EDHREC deck you already own and
+what completing it would cost. A five-question matchmaker, Commander Spellbook
+combos, top cards and similar commanders complete each page.
+
+![Commander finder](doc/assets/screenshots/commanders.png)
+![Commander page with combos and top cards](doc/assets/screenshots/commander-detail.png)
+
+### Decks
+
+Import a decklist (Moxfield, MTGO, `.txt` or a Moxfield URL), keep the exact
+printing and finish, and see mana curve, colours, price and what you are
+missing from your collection, next to a three-column decklist.
+
+![Deck page with stats and decklist](doc/assets/screenshots/deck-detail.png)
+
+### Sets and prices
+
+Per-set completion with missing collector numbers, value owned per set, price
+movements (gains, losses, variations over a period) and price alerts with
+in-app notifications.
+
+![Set completion](doc/assets/screenshots/set-detail.png)
+![Price movements](doc/assets/screenshots/movements.png)
+
+### And also
+
+- **Dashboard**: value in EUR and USD, value over time, breakdowns by colour, rarity, condition and type, top 10 cards.
+- **Import / export**: Moxfield, ManaBox (exact match on Scryfall ID) and generic CSV, with a storage-location tag per batch for bulk onboarding.
+- **Wishlist** with estimated cost, and a **journal** of every addition and removal, with undo.
+- **Multi-user**: isolated collections per account, accounts created by the admin, optional TOTP two-factor authentication.
+- **Administration**: system status, last syncs and backup, on-demand jobs, global settings, account management.
+- **PWA**: installable on desktop and mobile, works offline for the app shell.
+
+<p align="center"><img src="doc/assets/screenshots/admin.png" alt="Administration page" width="64%"> <img src="doc/assets/screenshots/mobile.png" alt="Mobile view" width="22%"></p>
+
+## Quick start
 
 ```bash
-cp .env.example .env
-# Renseigner DB_PASSWORD et générer les secrets :
-#   openssl rand -hex 64   # -> JWT_SECRET
-#   openssl rand -hex 64   # -> JWT_REFRESH_SECRET
-docker compose up --build
-```
-
-- Frontend : http://localhost (port 80)
-- API (via proxy) : http://localhost/api/health
-- Sur la VM : http://ip-vm
-
-### Synchronisation des cartes (bulk-data Scryfall)
-
-```bash
-# Charge ~90k cartes + tous les sets en base (source primaire des données cartes)
+git clone https://github.com/Exe64/mtg-collector.git && cd mtg-collector
+cp .env.example .env    # set DB_PASSWORD, JWT_SECRET, JWT_REFRESH_SECRET, SCRYFALL_USER_AGENT
+docker compose up -d --build
 docker compose exec backend npm run sync:bulk
-
-# Renseigne les noms français (bulk `all_cards` ~2 Go, à lancer APRÈS sync:bulk)
-docker compose exec backend npm run sync:fr
 ```
 
-> Après la mise à jour « Trouver un commandant » (#4), relancer `sync:bulk` une fois :
-> il remplit les légalités Commander, rangs EDHREC, Game Changers et mots-clés
-> (la page Commandants reste vide avant). Le cache EDHREC se remplit ensuite seul
-> (visite de « Ma collection », job de 05:30 UTC ou bouton Administration).
+Open `http://<your-host>/` and register: the first account becomes the
+administrator. The full guide, HTTPS included, is in
+[doc/installation.md](doc/installation.md).
 
-À lancer une fois après le premier démarrage, puis hebdomadairement (le job hebdo
-enchaîne automatiquement `sync:bulk` puis les noms FR). Entre deux syncs, les
-nouvelles cartes entrent en base via *lazy upsert* à l'ajout.
+## Tech stack
 
-### Autres opérations
+| Layer | Technology |
+|---|---|
+| Frontend | React 18, Vite, React Router, Zustand, served by nginx |
+| Backend | Node.js, Express 5, node-cron, pino |
+| Data | PostgreSQL 16 (node-pg-migrate), Redis 8 |
+| Card data | [Scryfall](https://scryfall.com) bulk data and prices, [EDHREC](https://edhrec.com), [Commander Spellbook](https://commanderspellbook.com) |
+| Delivery | Docker Compose, GitHub Actions (lint, unit and integration tests, build) |
 
-```bash
-# Job quotidien à la demande : MAJ prix + snapshots + alertes + purge des tokens expirés
-docker compose exec backend npm run job:daily
+Security: short-lived JWT access tokens with rotated httpOnly refresh tokens
+and reuse detection, tiered rate limiting, strict CSP, secrets validated at
+boot, CSV formula injection guard.
 
-# Tests unitaires backend
-docker compose exec backend npm test
+## Architecture
+
+```mermaid
+flowchart LR
+  Browser -->|HTTP| nginx["frontend (nginx)"]
+  nginx -->|/api| backend["backend (Express)"]
+  backend --> postgres[(PostgreSQL)]
+  backend --> redis[(Redis cache)]
+  backend -->|bulk data, prices| scryfall[Scryfall]
+  backend --> edhrec[EDHREC / Commander Spellbook]
 ```
 
-> Le filtre « coût de mana » s'appuie sur la colonne `cmc`, remplie au sync.
-> Après mise à jour, lance `npm run job:daily` une fois pour peupler `cmc` sur
-> les cartes déjà possédées.
+nginx serves the app and proxies `/api` to the backend on the same origin, so
+there is no CORS and the refresh cookie stays httpOnly. The backend runs its
+own scheduled jobs (prices every 12 hours, weekly card sync, nightly
+commander cache).
 
-## Sauvegardes
+## Documentation
 
-La donnée critique (comptes, collection, snapshots, wishlist) vit dans le volume
-`pgdata` — `cards`/`sets` se reconstruisent depuis Scryfall, le reste non.
-[deploy/backup-db.sh](deploy/backup-db.sh) fait un `pg_dump` compressé + rotation
-locale, chiffrement AES256 optionnel (gpg), et **copie hors-machine** via rclone.
+| Guide | Content |
+|---|---|
+| [Installation](doc/installation.md) | Requirements, configuration, first start, HTTPS |
+| [Operations](doc/operations.md) | Scheduled jobs, manual commands, monitoring |
+| [Backups](doc/backups.md) | Encrypted off-site backups, restore and restore drill |
+| [API](backend/API.md) | REST endpoint reference |
+| [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) | How to contribute, how to report a vulnerability |
 
-```bash
-# Manuel
-./deploy/backup-db.sh
+## License
 
-# Cron quotidien (2h) — voir l'en-tête du script
-0 2 * * * /opt/mtg-collector/deploy/backup-db.sh >> /var/log/mtg-backup.log 2>&1
-```
+[GNU AGPL-3.0](LICENSE). If you run a modified version for others, you must
+publish your changes.
 
-Variables (`.env` de l'app ou env du cron) : `MTG_BACKUP_DIR`, `MTG_BACKUP_KEEP`
-(14), `MTG_BACKUP_PASSPHRASE_FILE` (chiffrement), `MTG_RCLONE_REMOTE` (copie
-hors-machine, ex. `gdrive:mtg-backups`). Restauration : voir l'en-tête du script.
-
-**rclone → Google Drive** : installer rclone, puis `rclone authorize "drive"`
-(sur un poste avec navigateur) et coller le token via `rclone config` sur le VPS ;
-enfin renseigner `MTG_RCLONE_REMOTE=gdrive:mtg-backups` dans `.env`.
-
-**Surveillance (dead-man's-switch)** : si `MTG_HEALTHCHECK_URL` (backup) ou
-`HEALTHCHECK_PRICE_URL` (job prix) pointent vers un check [healthchecks.io](https://healthchecks.io),
-chaque exécution pingue start/succès/échec → **alerte si le job cesse de tourner**
-(le pire scénario silencieux). No-op si non configuré.
-
-**Vérifier qu'une sauvegarde se restaure** (à faire de temps en temps) :
-[deploy/verify-backup.sh](deploy/verify-backup.sh) restaure le dernier dump dans
-un PostgreSQL **jetable** et compte les lignes — sans toucher à la prod :
-```bash
-./deploy/verify-backup.sh        # ou : ./deploy/verify-backup.sh <dump>
-```
-
-## Structure
-
-```
-backend/
-  migrations/            schéma + évolutions (node-pg-migrate, auto au boot)
-  test/                  unitaires (node:test) + test/integration (supertest, gated RUN_DB_TESTS)
-  eslint.config.js       config ESLint (flat)
-  src/
-    app.js               app Express configurée (exportable pour les tests)
-    index.js             boot : validation env + listen + planification des jobs
-    config/              pool pg, client redis, logger
-    middleware/          requireAuth / requireAdmin (JWT), limiters (rate-limit), validate
-    routes/              auth, cards, sets, collection, import, export, wishlist,
-                         decks, alerts, admin
-    services/            scryfall, cards, collection, snapshots, priceSync, dailyJob,
-                         importer, bulkData, pricing, cache, tokens, deckCheck,
-                         alerts, collectionLog, settings, jobRunner
-    scripts/             syncBulk, runDailyJob
-  API.md                 référence des endpoints
-frontend/
-  eslint.config.js       config ESLint (React + hooks)
-  src/
-    api/                 client fetch (refresh auto, download authentifié)
-    stores/              auth, cardModal (zustand)
-    pages/               Dashboard, Collection, Add, Sets, SetDetail, Movements,
-                         ImportExport, Wishlist, DeckCheck, Alerts, Journal,
-                         Accounts, Login, Register
-    components/          ui (Layout, CardModal, ScrollToTop, ErrorBoundary), collection, search→Add, charts
-  nginx.conf             reverse-proxy /api (prod)
-deploy/                  backup-db.sh, verify-backup.sh
-                         (provision/déploiement/TLS local → repo privé deployment-scripts)
-.github/workflows/       ci.yml — lint + tests (unitaires/intégration) + build
-```
-
-## État d'avancement
-
-Application complète, en production : socle, cartes, collection, dashboard,
-browse set, import/export, PWA, wishlist, vérif deck, mouvements, alertes,
-journal, administration. Durcissement en place : sécurité (rate-limit, CSP,
-détection de réutilisation de tokens), sauvegardes chiffrées hors-machine +
-**surveillance** + **drill de restauration**
-([deploy/backup-db.sh](deploy/backup-db.sh), [deploy/verify-backup.sh](deploy/verify-backup.sh)),
-**CI GitHub Actions** (lint + tests unitaires/intégration + build), ESLint.
+MTG Collector is unofficial Fan Content permitted under the Wizards of the
+Coast Fan Content Policy. It is not approved or endorsed by Wizards. Portions
+of the materials used are property of Wizards of the Coast. ©Wizards of the
+Coast LLC. Card data and images are provided by Scryfall.
