@@ -6,6 +6,7 @@ import {
 import { api } from '../api/client';
 import { artCrop } from '../constants';
 import { useCardModal } from '../stores/cardModal';
+import HoverCard from '../components/ui/HoverCard';
 import Modal from '../components/ui/Modal';
 import { ColorPips, CoverageBar, eur } from '../components/commanders/parts';
 import {
@@ -255,7 +256,8 @@ function CardRow({ c, onEdit }) {
   const others = c.used_in.length > 0 && c.owned > 0;
   return (
     <li className="flex items-center gap-1 rounded hover:bg-white/5">
-      <button type="button" onClick={() => openCard(c.scryfall_id)} className="flex-1 min-w-0 flex items-center gap-2 px-1 py-0.5 text-left text-sm">
+      <HoverCard image={c.image_uri} className="flex-1 min-w-0">
+      <button type="button" onClick={() => openCard(c.scryfall_id)} className="w-full min-w-0 flex items-center gap-2 px-1 py-0.5 text-left text-sm">
         <span className="w-4 shrink-0 flex justify-center">
           {c.owned > 0 && !lacking && <Check size={14} className="text-emerald-400" aria-label="Possédée" />}
         </span>
@@ -276,6 +278,7 @@ function CardRow({ c, onEdit }) {
           </span>
         ) : null}
       </button>
+      </HoverCard>
       <button type="button" onClick={() => onEdit(c)} aria-label={`Modifier ${c.name}`} className="w-9 h-9 sm:w-7 sm:h-7 shrink-0 flex items-center justify-center rounded text-slate-500 hover:text-slate-100">
         <Pencil size={13} />
       </button>
@@ -385,8 +388,8 @@ export default function DeckDetail() {
       {back}
 
       <section className="relative overflow-hidden rounded-tile border border-white/[0.06] bg-slate-800 mb-4">
-        {deck.cover && <img src={artCrop(deck.cover)} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30 blur-md scale-110" />}
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 via-slate-900/70 to-slate-900/40" />
+        {deck.cover && <img src={artCrop(deck.cover)} alt="" className="absolute inset-0 w-full h-full object-cover opacity-70 blur-sm scale-110" />}
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-900/85 via-slate-900/55 to-slate-900/10" />
         <div className="relative p-4 sm:p-6">
           <div className="flex items-start gap-2">
             <h1 className="page-title flex-1 min-w-0 break-words">{deck.name}</h1>

@@ -83,6 +83,7 @@ Enregistrer ses decks dans l'application et voir, pour chacun, ce qui est possé
 
 **Lot 4 — Retours (ajout 2026-11-15)**
 - [x] Étape 11 — Image de fond du deck choisie (« Image du deck » dans la modale d'une carte), sinon le commandant, sinon la carte la plus chère ; encart et tuile (S · standard → Sonnet)
+- [x] Étape 12 — Fond de l'encart plus visible (flou léger, voile allégé) ; aperçu de la carte au survol des lignes du deck, souris uniquement (S · standard → Sonnet)
 - [x] 🧪 Tests — Rédiger et exécuter la procédure de test
 - [ ] ✅ Validation — Vérifier les résultats des tests et clôturer
 
@@ -167,4 +168,5 @@ Non joué : `RUN_DB_TESTS=1` (les tests d'intégration vident `users` et `cards`
 - ✅ Fait : commits `05e134b`, `73de123`, `f110c44` poussés sur `main`
 - ✅ Fait : retour prod (deck Animar) : faces séparées par ` / `, noms alternatifs (Godzilla) résolus par Scryfall, règles Commander étendues à Duel / PreDH / Pauper Commander
 - ✅ Fait : étape 11, image de fond choisie
+- ✅ Fait : étape 12, fond plus visible et aperçu au survol
 - 📋 Prochain : `sync:bulk` en prod, validation utilisateur, clôture
