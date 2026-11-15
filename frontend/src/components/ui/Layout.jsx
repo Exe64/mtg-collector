@@ -15,17 +15,17 @@ import ErrorBoundary from './ErrorBoundary';
 const primaryNav = [
   { to: '/', label: 'Tableau de bord', short: 'Bord', Icon: LayoutDashboard, end: true },
   { to: '/collection', label: 'Collection', short: 'Collec', Icon: Boxes, end: false },
-  { to: '/add', label: 'Ajouter', short: 'Ajouter', Icon: PlusCircle, end: false },
   { to: '/sets', label: 'Extensions', short: 'Sets', Icon: Library, end: false },
-  { to: '/movements', label: 'Mouvements', short: 'Prix', Icon: TrendingUp, end: false },
-  { to: '/wishlist', label: 'Wishlist', short: 'Wishlist', Icon: Star, end: false },
   // `match` : la vérification de liste (/deck) est rattachée à Decks
   { to: '/decks', label: 'Decks', short: 'Decks', Icon: Layers, end: false, match: '/deck' },
   // `sheet` : rangé dans la feuille « Plus » en mobile (barre basse déjà pleine)
   { to: '/commanders', label: 'Commandants', short: 'Cmdts', Icon: Crown, end: false, sheet: true },
+  { to: '/add', label: 'Ajouter', short: 'Ajouter', Icon: PlusCircle, end: false },
+  { to: '/movements', label: 'Mouvements', short: 'Prix', Icon: TrendingUp, end: false },
+  { to: '/wishlist', label: 'Wishlist', short: 'Wishlist', Icon: Star, end: false },
 ];
-// Barre desktop : groupes séparés par un filet (inventaire | valeur et complétion)
-const navGroups = [primaryNav.slice(0, 3), primaryNav.slice(3)];
+// Barre desktop : groupes séparés par un filet (consulter | saisir et suivre)
+const navGroups = [primaryNav.slice(0, 5), primaryNav.slice(5)];
 
 const tabClass = (active) =>
   `relative flex items-center px-2 lg:px-3 text-sm whitespace-nowrap after:absolute after:inset-x-2 lg:after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full ${

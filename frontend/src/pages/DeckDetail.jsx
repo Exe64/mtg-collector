@@ -272,7 +272,7 @@ function CardRow({ c, onEdit }) {
         )}
         <Mana cost={c.mana_cost} className="shrink-0 text-xs" />
         {/* Colonne de largeur fixe : le CCM reste aligné, qu'il y ait un prix ou non */}
-        <span className="w-20 shrink-0 text-right">
+        <span className="w-16 shrink-0 text-right">
           {c.basic ? (
             <span className="text-[10px] uppercase tracking-[0.12em] text-slate-500">base</span>
           ) : lacking ? (
