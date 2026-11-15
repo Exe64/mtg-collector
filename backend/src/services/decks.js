@@ -242,7 +242,10 @@ export async function listDecks(userId) {
 /** Deck du compte, ou null. */
 export async function getDeck(userId, deckId) {
   const { rows } = await query(
-    'SELECT id, name, format, notes, created_at, updated_at FROM decks WHERE id = $1 AND user_id = $2',
+`SELECT d.id, d.name, d.format, d.notes, d.created_at, d.updated_at,
+            cc.scryfall_id AS cover_scryfall_id, cc.image_uri AS cover_image
+     FROM decks d LEFT JOIN cards cc ON cc.id = d.cover_card_id
+     WHERE d.id = $1 AND d.user_id = $2`,
     [deckId, userId],
   );
   return rows[0] || null;
@@ -294,8 +297,9 @@ export async function deckDetail(userId, deck) {
       used_in: used.get(k) || [],
     };
   });
+  const { cover_image: chosen, ...rest } = deck;
   return {
-    deck,
+    deck: { ...rest, cover: coverOf(lines, chosen) },
     cards,
     summary: {
       count: [...needed.values()].reduce((s, q) => s + q, 0),

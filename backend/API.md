@@ -79,7 +79,7 @@ Conditions : `MT, NM, EX, GD, LP, PL, PO`. Finitions : `nonfoil, foil, etched`.
 | POST | `/api/decks` | `{ name?, format?, notes?, url? \| text? }` | `201 { id, unknown[] }` (deck vide ou importé ; sections Commander / Sideboard / Maybeboard reconnues ; noms non reconnus dans `unknown`) |
 | GET | `/api/decks/by-card/:scryfallId` | — | `{ decks[{ id, name }] }` (decks du compte qui utilisent la carte, par nom) |
 | GET | `/api/decks/:id` | — | `{ deck, cards[], summary, issues[] }` : lignes (`zone`, `qty`, impression, `owned`, `missing`, `cheapest_eur`, `used_in[]`), `summary { count, pct, missingDistinct, missingTotal, missingEur, valueEur }`, contrôles `issues[{ level: error\|warn, message, cards[] }]` |
-| PATCH | `/api/decks/:id` | `{ name?, format?, notes? }` | `{ ok }` |
+| PATCH | `/api/decks/:id` | `{ name?, format?, notes?, cover_scryfall_id? }` | `{ ok }` (`cover_scryfall_id` : image de fond choisie, `null` = commandant, sinon la carte la plus chère ; la fiche renvoie `deck.cover`) |
 | DELETE | `/api/decks/:id` | — | `204` |
 | POST | `/api/decks/:id/cards` | `{ name? \| scryfall_id?, quantity?, zone? }` | `201` (s'additionne à la ligne existante ; par `name`, impression possédée sinon la moins chère) |
 | PATCH | `/api/decks/:id/cards/:lineId` | `{ quantity?, zone?, scryfall_id? }` | `{ ok }` (vers une ligne existante : quantités fusionnées) |

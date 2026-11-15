@@ -68,6 +68,8 @@ export const deckPatchSchema = z.object({
   name: z.string().trim().min(1, 'nom requis').max(200).optional(),
   format: z.enum(DECK_FORMATS, { message: 'format invalide' }).optional(),
   notes: z.string().max(5000).nullish(),
+  // Image de fond : impression choisie, `null` = choix par défaut (commandant, sinon la plus chère)
+  cover_scryfall_id: z.guid({ message: 'scryfall_id invalide' }).nullable().optional(),
 }).refine((o) => Object.values(o).some((v) => v !== undefined), { message: 'aucun champ à modifier' });
 
 // `name` : impression choisie comme à l'import (possédée, sinon la moins chère) ;

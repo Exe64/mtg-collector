@@ -117,19 +117,25 @@ router.post('/:id/missing-to-wishlist', loadDeck, async (req, res, next) => {
   }
 });
 
-// PATCH /api/decks/:id  { name?, format?, notes? }
+// PATCH /api/decks/:id  { name?, format?, notes?, cover_scryfall_id? }
 router.patch('/:id', loadDeck, validateBody(deckPatchSchema), async (req, res, next) => {
   try {
-    const { name, format, notes } = req.body;
+    const { name, format, notes, cover_scryfall_id: coverId } = req.body;
+    let cover = null;
+    if (coverId) {
+      cover = (await ensureCard(coverId))?.id;
+      if (!cover) return res.status(404).json({ error: 'Carte introuvable' });
+    }
     await query(
       `UPDATE decks SET name = COALESCE($2, name), format = COALESCE($3, format),
-              notes = CASE WHEN $5 THEN $4 ELSE notes END, updated_at = now()
+              notes = CASE WHEN $5 THEN $4 ELSE notes END,
+              cover_card_id = CASE WHEN $7 THEN $6 ELSE cover_card_id END, updated_at = now()
        WHERE id = $1`,
-      [req.deck.id, name ?? null, format ?? null, notes ?? null, notes !== undefined],
+      [req.deck.id, name ?? null, format ?? null, notes ?? null, notes !== undefined, cover, coverId !== undefined],
     );
-    res.json({ ok: true });
+    return res.json({ ok: true });
   } catch (err) {
-    next(err);
+    return next(err);
   }
 });
 

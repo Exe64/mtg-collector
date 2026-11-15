@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
-  ArrowLeft, Check, Copy, Layers, Pencil, Search, Star, Trash2, TriangleAlert, X,
+  ArrowLeft, Check, Copy, Image, Layers, Pencil, Search, Star, Trash2, TriangleAlert, X,
 } from 'lucide-react';
 import { api } from '../api/client';
 import { artCrop } from '../constants';
@@ -89,7 +89,9 @@ function EditDeck({ deck, onClose, onSaved }) {
 }
 
 /** Ligne du deck : quantité, zone, impression ; retrait. */
-function EditLine({ deckId, line, onClose, onSaved }) {
+function EditLine({
+  deckId, line, isCover, onClose, onSaved,
+}) {
   const [qty, setQty] = useState(line.qty);
   const [zone, setZone] = useState(line.zone);
   const [printing, setPrinting] = useState(line.scryfall_id);
@@ -106,6 +108,16 @@ function EditLine({ deckId, line, onClose, onSaved }) {
       const body = { quantity: Number(qty), zone };
       if (printing !== line.scryfall_id) body.scryfall_id = printing;
       await api(`/decks/${deckId}/cards/${line.id}`, { method: 'PATCH', body });
+      onSaved();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  // Image de fond du deck : cette impression, ou retour au choix par défaut.
+  async function setCover() {
+    try {
+      await api(`/decks/${deckId}`, { method: 'PATCH', body: { cover_scryfall_id: isCover ? null : line.scryfall_id } });
       onSaved();
     } catch (err) {
       setError(err.message);
@@ -160,6 +172,9 @@ function EditLine({ deckId, line, onClose, onSaved }) {
             </ul>
           )}
         </fieldset>
+        <button type="button" onClick={setCover} className="btn-outline flex items-center gap-1.5">
+          <Image size={14} /> {isCover ? 'Revenir à l\'image par défaut' : 'Image du deck'}
+        </button>
         {error && <p role="alert" className="text-sm text-rose-400">{error}</p>}
         <div className="flex items-center gap-2 pt-1">
           <button type="button" onClick={remove} className="mr-auto flex items-center gap-1.5 rounded-md px-3 py-2 text-sm text-rose-300 hover:bg-rose-500/10">
@@ -343,7 +358,6 @@ export default function DeckDetail() {
 
   const { deck, cards, summary, issues } = d;
   const commanders = cards.filter((c) => c.zone === 'commander');
-  const cover = commanders[0]?.image_uri || [...cards].sort((a, b) => (b.eur || 0) - (a.eur || 0))[0]?.image_uri;
   const identity = [...new Set(commanders.flatMap((c) => c.color_identity))];
   const target = COMMANDER_FORMATS.has(deck.format) ? ' / 100' : '';
 
@@ -371,7 +385,7 @@ export default function DeckDetail() {
       {back}
 
       <section className="relative overflow-hidden rounded-tile border border-white/[0.06] bg-slate-800 mb-4">
-        {cover && <img src={artCrop(cover)} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30 blur-md scale-110" />}
+        {deck.cover && <img src={artCrop(deck.cover)} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30 blur-md scale-110" />}
         <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 via-slate-900/70 to-slate-900/40" />
         <div className="relative p-4 sm:p-6">
           <div className="flex items-start gap-2">
@@ -483,7 +497,7 @@ export default function DeckDetail() {
         </div>
       </div>
 
-      {editing && <EditLine deckId={id} line={editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); load(); }} />}
+      {editing && <EditLine deckId={id} line={editing} isCover={deck.cover_scryfall_id === editing.scryfall_id} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); load(); }} />}
       {editDeck && <EditDeck deck={deck} onClose={() => setEditDeck(false)} onSaved={() => { setEditDeck(false); load(); }} />}
     </div>
   );
