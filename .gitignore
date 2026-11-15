@@ -5,6 +5,7 @@ dist/
 .DS_Store
 backend/bulk-data/
 certs/
+backups/
 
 # Ops VPS gardés hors du repo public (topologie d'infra) — copie dans le repo privé deployment-scripts
 deploy/deploy-vps.sh
