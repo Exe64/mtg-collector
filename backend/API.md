@@ -78,7 +78,7 @@ Conditions : `MT, NM, EX, GD, LP, PL, PO`. Finitions : `nonfoil, foil, etched`.
 | GET | `/api/decks` | — | `{ decks[{ id, name, format, notes, cover, commanders[], color_identity[], count, pct }] }` (`pct` : % possédé en exemplaires hors terrains de base, `null` si vide) |
 | POST | `/api/decks` | `{ name?, format?, notes?, url? \| text? }` | `201 { id, unknown[] }` (deck vide ou importé ; sections Commander / Sideboard / Maybeboard reconnues ; noms non reconnus dans `unknown`) |
 | GET | `/api/decks/by-card/:scryfallId` | — | `{ decks[{ id, name }] }` (decks du compte qui utilisent la carte, par nom) |
-| GET | `/api/decks/:id` | — | `{ deck, cards[], summary, issues[] }` : lignes (`zone`, `qty`, impression, `owned`, `missing`, `cheapest_eur`, `used_in[]`), `summary { count, pct, missingDistinct, missingTotal, missingEur, valueEur }`, contrôles `issues[{ level: error\|warn, message, cards[] }]` |
+| GET | `/api/decks/:id` | — | `{ deck, cards[], summary, issues[] }` : lignes (`zone`, `qty`, impression, `finish`, `owned`, `missing`, `cheapest_eur`, `used_in[]`), `summary { count, pct, missingDistinct, missingTotal, missingEur, valueEur }`, contrôles `issues[{ level: error\|warn, message, cards[] }]` |
 | PATCH | `/api/decks/:id` | `{ name?, format?, notes?, cover_scryfall_id? }` | `{ ok }` (`cover_scryfall_id` : image de fond choisie, `null` = commandant, sinon la carte la plus chère ; la fiche renvoie `deck.cover`) |
 | DELETE | `/api/decks/:id` | — | `204` |
 | POST | `/api/decks/:id/cards` | `{ name? \| scryfall_id?, quantity?, zone? }` | `201` (s'additionne à la ligne existante ; par `name`, impression possédée sinon la moins chère) |
@@ -87,7 +87,7 @@ Conditions : `MT, NM, EX, GD, LP, PL, PO`. Finitions : `nonfoil, foil, etched`.
 | GET | `/api/decks/:id/cards/:lineId/printings` | — | `{ printings[{ scryfall_id, set_code, set_name, collector_number, eur, owned }] }` |
 | POST | `/api/decks/:id/missing-to-wishlist` | — | `{ added, missing }` |
 
-Formats : clés des légalités Scryfall (`commander`, `modern`, `vintage`…) ou `casual` (aucun contrôle). Zones : `commander, main, side, maybe` ; seules `commander` et `main` comptent (taille, possession, coût, valeur). Un deck ne réserve aucun exemplaire et ne touche jamais la collection.
+Formats : clés des légalités Scryfall (`commander`, `modern`, `vintage`…) ou `casual` (aucun contrôle). Zones : `commander, main, side, maybe` ; seules `commander` et `main` comptent (taille, possession, coût, valeur). Un deck ne réserve aucun exemplaire et ne touche jamais la collection. Import : une ligne `1 Nom (SET) numéro *F*` garde cette impression et sa finition (`*F*` foil, `*E*` etched ; Moxfield idem) ; sans édition ou impression inconnue, l'exemplaire possédé, sinon le moins cher. La valeur d'une ligne foil suit le prix foil.
 
 ## Commandants (« Trouver un commandant »)
 | Méthode | Route | Corps | Réponse |

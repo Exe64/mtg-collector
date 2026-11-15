@@ -51,11 +51,17 @@ export function deckStats(cards) {
   return { curve, colors, types };
 }
 
-/** Liste texte par sections (Moxfield / MTGO), relisible par l'import. */
+const FINISH_TAGS = { foil: '*F*', etched: '*E*' };
+
+/** Liste texte par sections (Moxfield / MTGO), relisible par l'import (édition, numéro et finition compris). */
 export function savedDeckText(cards) {
   return ZONES.map(([zone, , header]) => {
     const lines = cards.filter((c) => c.zone === zone).sort((a, b) => a.name.localeCompare(b.name))
-      .map((c) => `${c.qty} ${c.name}`);
+      .map((c) => [
+        `${c.qty} ${c.name}`,
+        c.set_code && c.collector_number && `(${c.set_code.toUpperCase()}) ${c.collector_number}`,
+        FINISH_TAGS[c.finish],
+      ].filter(Boolean).join(' '));
     return lines.length ? [header, ...lines].join('\n') : null;
   }).filter(Boolean).join('\n\n');
 }

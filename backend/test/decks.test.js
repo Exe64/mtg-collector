@@ -16,14 +16,29 @@ test('parseDeckText : sections Commander, Sideboard, Maybeboard, Tokens', () => 
     'Tokens', '1 Treasure',
   ].join('\n'));
   assert.deepEqual(list, [
-    { name: 'Atraxa, Praetors\' Voice', quantity: 1, zone: 'commander' },
+    { name: 'Atraxa, Praetors\' Voice', quantity: 1, zone: 'commander', set: '2x2', number: '190' },
     { name: 'Sol Ring', quantity: 1, zone: 'main' },
-    { name: 'Fire // Ice', quantity: 2, zone: 'main' },
+    { name: 'Fire // Ice', quantity: 2, zone: 'main', finish: 'foil' },
     { name: 'Pyroblast', quantity: 1, zone: 'side' },
     { name: 'Rhystic Study', quantity: 1, zone: 'maybe' },
   ]);
   // Sans en-tête : tout en principal ; commentaires ignorés
   assert.deepEqual(parseDeckText('// mon deck\n4 Lightning Bolt'), [{ name: 'Lightning Bolt', quantity: 4, zone: 'main' }]);
+});
+
+test('parseDeckText : édition, numéro et finition conservés', () => {
+  assert.deepEqual(parseDeckText([
+    '1 Phyrexian Metamorph (PLST) NPH-42', '1 Enduring Vitality (PDSK) 176p',
+    '1 Etali, Primal Conqueror / Etali, Primal Sickness (MOM) 298',
+    '1 Lightning Bolt (PF19) 1 *F*', '1 Sol Ring (CMR) 472 *E*', '1 Island (DSK)',
+  ].join('\n')), [
+    { name: 'Phyrexian Metamorph', quantity: 1, zone: 'main', set: 'plst', number: 'NPH-42' },
+    { name: 'Enduring Vitality', quantity: 1, zone: 'main', set: 'pdsk', number: '176p' },
+    { name: 'Etali, Primal Conqueror / Etali, Primal Sickness', quantity: 1, zone: 'main', set: 'mom', number: '298' },
+    { name: 'Lightning Bolt', quantity: 1, zone: 'main', set: 'pf19', number: '1', finish: 'foil' },
+    { name: 'Sol Ring', quantity: 1, zone: 'main', set: 'cmr', number: '472', finish: 'etched' },
+    { name: 'Island', quantity: 1, zone: 'main' },
+  ]);
 });
 
 test('frontKey : faces séparées par « // » ou « / »', () => {

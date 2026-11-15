@@ -35,6 +35,8 @@ const SECTIONS = [
 
 // Parse une liste texte (Moxfield collé ou MTGO .txt) → [{ name, quantity, zone }]
 // Les cartes suivent la zone du dernier en-tête rencontré (principal par défaut).
+const FINISHES = { F: 'foil', E: 'etched' };
+
 export function parseDeckText(text) {
   const out = [];
   let zone = 'main';
@@ -50,9 +52,15 @@ export function parseDeckText(text) {
     if (!m || zone === null) continue;
     const quantity = parseInt(m[1], 10);
     let name = m[2].trim();
-    name = name.replace(/\s+\([0-9A-Za-z]{2,6}\)(?:\s.*)?$/, '').trim(); // (SET) collector…
+    const finish = FINISHES[name.match(/\s*\*([A-Za-z])\*\s*$/)?.[1]?.toUpperCase()];
     name = name.replace(/\s*\*[A-Za-z]\*\s*$/, '').trim();              // *F* / *E*
-    if (name && Number.isFinite(quantity) && quantity > 0) out.push({ name, quantity, zone });
+    const p = name.match(/\s+\(([0-9A-Za-z]{2,6})\)(?:\s+(\S+))?.*$/); // (SET) collector…
+    if (p) name = name.slice(0, p.index).trim();
+    if (!name || !Number.isFinite(quantity) || quantity <= 0) continue;
+    const entry = { name, quantity, zone };
+    if (p?.[2]) Object.assign(entry, { set: p[1].toLowerCase(), number: p[2] });
+    if (finish) entry.finish = finish;
+    out.push(entry);
   }
   return out;
 }
@@ -88,7 +96,13 @@ export async function fetchMoxfieldDeck(url) {
     for (const entry of Object.values(board || {})) {
       const name = entry?.card?.name || entry?.name;
       const quantity = entry?.quantity;
-      if (name && quantity) cards.push({ name, quantity, zone });
+      if (!name || !quantity) continue;
+      const set = entry.card?.set;
+      const number = entry.card?.cn;
+      const finish = ['foil', 'etched'].includes(entry.finish) ? entry.finish : (entry.isFoil ? 'foil' : null);
+      cards.push({
+        name, quantity, zone, ...(set && number ? { set: set.toLowerCase(), number: String(number) } : {}), ...(finish ? { finish } : {}),
+      });
     }
   }
   return { name: data.name || null, format: data.format || null, cards };

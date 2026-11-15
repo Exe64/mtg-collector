@@ -55,33 +55,55 @@ async function resolveAliases(db, userId, names, ids) {
   }
 }
 
+const printingKey = (e) => (e.set && e.number ? `${e.set}:${e.number}`.toLowerCase() : null);
+
 /**
- * Ajoute des cartes ([{ name, quantity, zone }]) à un deck, impression choisie par
- * `resolvePrintings`. Les doublons (même impression, même zone) s'additionnent.
+ * Impressions exactes indiquées par la liste (« (SET) numéro »), prioritaires sur
+ * le choix par nom. → Map `set:numéro` -> card id ; absentes de la base : ignorées.
+ */
+async function exactPrintings(db, entries) {
+  const keys = [...new Set(entries.map(printingKey).filter(Boolean))];
+  if (!keys.length) return new Map();
+  const { rows } = await db.query(
+    `SELECT DISTINCT ON (k) lower(set_code || ':' || collector_number) AS k, id
+     FROM cards WHERE lower(set_code || ':' || collector_number) = ANY($1::text[])
+     ORDER BY k, id`,
+    [keys],
+  );
+  return new Map(rows.map((r) => [r.k, r.id]));
+}
+
+/**
+ * Ajoute des cartes ([{ name, quantity, zone, set?, number?, finish? }]) à un deck, impression choisie par
+ * l'édition indiquée, sinon `resolvePrintings`. Les doublons (même impression, même zone) s'additionnent.
  * → noms non reconnus.
  */
 export async function addCardsByName(db, userId, deckId, entries) {
-  const ids = await resolvePrintings(userId, entries.map((e) => e.name), db);
-  await resolveAliases(db, userId, entries.map((e) => e.name).filter((n) => !ids.has(frontKey(n))), ids);
-  const merged = new Map(); // `${id}:${zone}` -> quantité
+  const exact = await exactPrintings(db, entries);
+  const rest = entries.filter((e) => !exact.has(printingKey(e))).map((e) => e.name);
+  const ids = await resolvePrintings(userId, rest, db);
+  await resolveAliases(db, userId, rest.filter((n) => !ids.has(frontKey(n))), ids);
+  const merged = new Map(); // `${id}:${zone}` -> { q, finish }
   const unknown = [];
-  for (const { name, quantity, zone } of entries) {
-    const id = ids.get(frontKey(name));
+  for (const { name, quantity, zone, finish, ...e } of entries) {
+    const id = exact.get(printingKey(e)) || ids.get(frontKey(name));
     if (!id) { unknown.push(name); continue; }
     const k = `${id}:${ZONES.includes(zone) ? zone : 'main'}`;
-    merged.set(k, (merged.get(k) || 0) + quantity);
+    const prev = merged.get(k);
+    merged.set(k, { q: (prev?.q || 0) + quantity, finish: prev?.finish || finish || 'nonfoil' });
   }
   if (merged.size) {
-    const [cardIds, zones, qtys] = [[], [], []];
-    for (const [k, q] of merged) {
+    const [cardIds, zones, qtys, finishes] = [[], [], [], []];
+    for (const [k, { q, finish }] of merged) {
       const [id, zone] = k.split(':');
-      cardIds.push(Number(id)); zones.push(zone); qtys.push(q);
+      cardIds.push(Number(id)); zones.push(zone); qtys.push(q); finishes.push(finish);
     }
+    // ponytail: une ligne par impression et zone ; foil et non-foil de la même impression partagent la finition de la première
     await db.query(
-      `INSERT INTO deck_cards (deck_id, card_id, zone, quantity)
-       SELECT $1, * FROM unnest($2::int[], $3::text[], $4::int[])
+      `INSERT INTO deck_cards (deck_id, card_id, zone, quantity, finish)
+       SELECT $1, * FROM unnest($2::int[], $3::text[], $4::int[], $5::text[])
        ON CONFLICT (deck_id, card_id, zone) DO UPDATE SET quantity = deck_cards.quantity + EXCLUDED.quantity`,
-      [deckId, cardIds, zones, qtys],
+      [deckId, cardIds, zones, qtys, finishes],
     );
   }
   return [...new Set(unknown)];
@@ -90,11 +112,12 @@ export async function addCardsByName(db, userId, deckId, entries) {
 /** Lignes d'un ou plusieurs decks, avec la carte pointée. */
 async function deckLines(deckIds) {
   const { rows } = await query(
-    `SELECT dc.id, dc.deck_id, dc.zone, dc.quantity AS qty,
+    `SELECT dc.id, dc.deck_id, dc.zone, dc.quantity AS qty, dc.finish,
             c.scryfall_id, c.oracle_id, c.name, c.name_fr, c.set_code, c.set_name, c.collector_number,
             c.type_line, c.mana_cost, c.cmc, c.colors, c.color_identity, c.oracle_text,
             c.image_uri, c.image_uri_small, c.legalities, c.legal_commander,
-            COALESCE(c.prices_eur, c.prices_eur_foil) AS eur
+            CASE WHEN dc.finish = 'nonfoil' THEN COALESCE(c.prices_eur, c.prices_eur_foil)
+                 ELSE COALESCE(c.prices_eur_foil, c.prices_eur) END AS eur
      FROM deck_cards dc JOIN cards c ON c.id = dc.card_id
      WHERE dc.deck_id = ANY($1::int[])
      ORDER BY c.name`,

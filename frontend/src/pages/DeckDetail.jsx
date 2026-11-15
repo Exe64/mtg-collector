@@ -8,7 +8,7 @@ import { artCrop } from '../constants';
 import { useCardModal } from '../stores/cardModal';
 import HoverCard from '../components/ui/HoverCard';
 import Modal from '../components/ui/Modal';
-import { ColorPips, CoverageBar, eur } from '../components/commanders/parts';
+import { ColorPips, CoverageBar, Mana, eur } from '../components/commanders/parts';
 import {
   COMMANDER_FORMATS, FORMATS, ZONES, deckStats, formatLabel, groupByType, savedDeckText,
 } from '../components/decks/logic';
@@ -263,8 +263,9 @@ function CardRow({ c, onEdit }) {
         </span>
         <span className={`flex-1 min-w-0 truncate ${lacking ? 'text-slate-400' : 'text-slate-100'}`}>
           {c.qty > 1 && <span className="text-slate-500">{c.qty} </span>}{c.name}
-          <span className="ml-1.5 text-[10px] uppercase text-slate-500">{c.set_code}</span>
+          <span className="ml-1.5 text-[10px] uppercase text-slate-500">{c.set_code}{c.finish && c.finish !== 'nonfoil' && <span className="ml-1 text-gold-400">{c.finish === 'foil' ? 'foil' : 'etched'}</span>}</span>
         </span>
+        <Mana cost={c.mana_cost} className="shrink-0 text-xs" />
         {others && (
           <span title={`Aussi dans : ${c.used_in.map((d) => d.name).join(', ')}`} className="shrink-0 text-gold-400">
             <Layers size={13} aria-label={`Aussi dans ${c.used_in.length} autre(s) deck(s)`} />

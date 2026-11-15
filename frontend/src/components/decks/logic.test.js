@@ -24,6 +24,14 @@ test('savedDeckText : sections dans l\'ordre, zones vides omises', () => {
   assert.equal(text, 'Commander\n1 Krenko\n\nDeck\n1 Sol Ring\n\nSideboard\n2 Pyro');
 });
 
+test('savedDeckText : édition, numéro et finition', () => {
+  const text = savedDeckText([
+    card('Lightning Bolt', { set_code: 'pf19', collector_number: '1', finish: 'foil' }),
+    card('Sol Ring', { set_code: 'cmr', collector_number: '472', finish: 'nonfoil' }),
+  ]);
+  assert.equal(text, 'Deck\n1 Lightning Bolt (PF19) 1 *F*\n1 Sol Ring (CMR) 472');
+});
+
 test('groupByType et formatLabel', () => {
   assert.deepEqual(groupByType([card('B'), card('A')]).map(([g, l]) => [g, l.map((c) => c.name)]), [['Éphémères', ['A', 'B']]]);
   assert.equal(formatLabel('paupercommander'), 'Pauper Commander');
