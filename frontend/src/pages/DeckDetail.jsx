@@ -388,7 +388,17 @@ export default function DeckDetail() {
       {back}
 
       <section className="relative overflow-hidden rounded-tile border border-white/[0.06] bg-slate-800 mb-4">
-        {deck.cover && <img src={artCrop(deck.cover)} alt="" className="absolute inset-0 w-full h-full object-cover opacity-70 blur-sm scale-110" />}
+        {deck.cover && (
+          <>
+            <img src={artCrop(deck.cover)} alt="" className="absolute inset-0 w-full h-full object-cover opacity-50 blur-md scale-110" />
+            {/* Whole art, sharp, on the right where there is no text; fades into the blurred backdrop */}
+            <img
+              src={artCrop(deck.cover)} alt=""
+              className="hidden lg:block absolute inset-y-0 right-0 h-full w-auto max-w-[55%] object-cover"
+              style={{ maskImage: 'linear-gradient(to right, transparent, black 35%)', WebkitMaskImage: 'linear-gradient(to right, transparent, black 35%)' }}
+            />
+          </>
+        )}
         <div className="absolute inset-0 bg-gradient-to-r from-slate-900/85 via-slate-900/55 to-slate-900/10" />
         <div className="relative p-4 sm:p-6">
           <div className="flex items-start gap-2">
