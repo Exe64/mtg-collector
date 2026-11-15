@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { redis } from '../src/config/redis.js';
-import { parseDeckText } from '../src/services/deckCheck.js';
+import { parseDeckText, frontKey } from '../src/services/deckCheck.js';
 import { legalityIssues } from '../src/services/decks.js';
 
 test.after(() => redis.disconnect());
@@ -24,6 +24,13 @@ test('parseDeckText : sections Commander, Sideboard, Maybeboard, Tokens', () => 
   ]);
   // Sans en-tête : tout en principal ; commentaires ignorés
   assert.deepEqual(parseDeckText('// mon deck\n4 Lightning Bolt'), [{ name: 'Lightning Bolt', quantity: 4, zone: 'main' }]);
+});
+
+test('frontKey : faces séparées par « // » ou « / »', () => {
+  assert.equal(frontKey('Etali, Primal Conqueror / Etali, Primal Sickness'), 'etali, primal conqueror');
+  assert.equal(frontKey('Fire // Ice'), 'fire');
+  assert.equal(frontKey('Fire//Ice'), 'fire');
+  assert.equal(frontKey(' Sol Ring '), 'sol ring');
 });
 
 const line = (name, o = {}) => ({
@@ -62,6 +69,8 @@ test('legalityIssues : Commander (taille, singleton, identité, commandant)', ()
   const noCmd = legalityIssues('commander', [line('Sol Ring', { zone: 'commander', type_line: 'Artifact' })]);
   assert.ok(noCmd.some((i) => i.message === 'Ne peut pas être commandant'));
   assert.ok(legalityIssues('commander', []).some((i) => i.message === 'Aucun commandant désigné'));
+  // Duel Commander : mêmes règles de construction
+  assert.ok(legalityIssues('duel', [cmd, ...filler]).some((i) => i.message === '96 cartes sur 100'));
 });
 
 test('legalityIssues : autres formats, restreintes, légalité inconnue, casual', () => {

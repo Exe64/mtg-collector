@@ -9,7 +9,7 @@ import { useCardModal } from '../stores/cardModal';
 import Modal from '../components/ui/Modal';
 import { ColorPips, CoverageBar, eur } from '../components/commanders/parts';
 import {
-  FORMATS, ZONES, deckStats, formatLabel, groupByType, savedDeckText,
+  COMMANDER_FORMATS, FORMATS, ZONES, deckStats, formatLabel, groupByType, savedDeckText,
 } from '../components/decks/logic';
 
 const panel = 'bg-slate-800/50 border border-white/[0.06] rounded-xl p-4';
@@ -345,7 +345,7 @@ export default function DeckDetail() {
   const commanders = cards.filter((c) => c.zone === 'commander');
   const cover = commanders[0]?.image_uri || [...cards].sort((a, b) => (b.eur || 0) - (a.eur || 0))[0]?.image_uri;
   const identity = [...new Set(commanders.flatMap((c) => c.color_identity))];
-  const target = deck.format === 'commander' ? ' / 100' : '';
+  const target = COMMANDER_FORMATS.has(deck.format) ? ' / 100' : '';
 
   async function copy() {
     try {

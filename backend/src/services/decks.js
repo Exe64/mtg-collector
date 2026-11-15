@@ -1,5 +1,7 @@
 import { query } from '../config/db.js';
-import { BASIC_LANDS, PLAYABLE, frontKey, checkDeck } from './deckCheck.js';
+import { BASIC_LANDS, PLAYABLE, frontKey, frontName, checkDeck } from './deckCheck.js';
+import { ensureCard } from './cards.js';
+import * as scryfall from './scryfall.js';
 import { cardsByFront } from './commanders.js';
 import { DECK_FORMATS as FORMATS, DECK_ZONES as ZONES } from '../validation/schemas.js';
 // Zones qui comptent dans le deck (taille, possession, coût) ; le « peut-être » n'y entre pas.
@@ -27,6 +29,32 @@ export async function resolvePrintings(userId, names, db = { query }) {
   return new Map(rows.map((r) => [r.k, r.id]));
 }
 
+// ponytail: plafond de recherches Scryfall par import ; au-delà, les noms restent « non reconnus ».
+const MAX_LOOKUPS = 30;
+
+/**
+ * Noms absents de la base (nom alternatif comme « Mechagodzilla, Battle Fortress »,
+ * carte pas encore synchronisée) : résolus par Scryfall, puis impression choisie
+ * comme les autres. Complète `ids` (frontKey du nom saisi -> card id).
+ */
+async function resolveAliases(db, userId, names, ids) {
+  const todo = [...new Set(names.map(frontName))].slice(0, MAX_LOOKUPS);
+  if (!todo.length) return;
+  const found = await Promise.all(todo.map((n) => scryfall.getCardByName(n).catch(() => null)));
+  const real = new Map(); // frontKey saisi -> nom Scryfall
+  for (const [i, raw] of found.entries()) {
+    if (!raw?.id) continue;
+    // eslint-disable-next-line no-await-in-loop
+    await ensureCard(raw.id); // carte absente de la base locale : insérée
+    real.set(frontKey(todo[i]), raw.name);
+  }
+  const more = await resolvePrintings(userId, [...real.values()], db);
+  for (const [k, name] of real) {
+    const id = more.get(frontKey(name));
+    if (id) ids.set(k, id);
+  }
+}
+
 /**
  * Ajoute des cartes ([{ name, quantity, zone }]) à un deck, impression choisie par
  * `resolvePrintings`. Les doublons (même impression, même zone) s'additionnent.
@@ -34,6 +62,7 @@ export async function resolvePrintings(userId, names, db = { query }) {
  */
 export async function addCardsByName(db, userId, deckId, entries) {
   const ids = await resolvePrintings(userId, entries.map((e) => e.name), db);
+  await resolveAliases(db, userId, entries.map((e) => e.name).filter((n) => !ids.has(frontKey(n))), ids);
   const merged = new Map(); // `${id}:${zone}` -> quantité
   const unknown = [];
   for (const { name, quantity, zone } of entries) {
@@ -110,6 +139,9 @@ function ownedPct(needed, owned) {
   return need ? Math.round((100 * have) / need) : null;
 }
 
+// Formats à 100 cartes menés par un commandant : règles de construction de Commander.
+export const COMMANDER_FORMATS = new Set(['commander', 'duel', 'predh', 'paupercommander']);
+
 // Cartes qui autorisent plusieurs exemplaires malgré la règle de l'exemplaire unique.
 const ANY_NUMBER = /deck can have (any number of|up to \w+) cards named/i;
 const isCommanderCard = (l) => {
@@ -119,7 +151,7 @@ const isCommanderCard = (l) => {
 
 /**
  * Contrôles de légalité. Pour tout format : légalité de chaque carte (hors « peut-être »).
- * Commander : 100 cartes, exemplaire unique, identité couleur, 1 ou 2 commandants.
+ * Commander, Duel, PreDH, Pauper Commander : 100 cartes, exemplaire unique, identité couleur, 1 ou 2 commandants.
  * → [{ level: 'error' | 'warn', message, cards: [noms] }]
  */
 export function legalityIssues(format, lines) {
@@ -144,7 +176,7 @@ export function legalityIssues(format, lines) {
   if (byStatus.restricted.length) push('error', 'Cartes restreintes à un exemplaire', byStatus.restricted);
   if (unknown) push('warn', `Légalité inconnue pour ${unknown} carte(s) : relancer la synchro des cartes`);
 
-  if (format === 'commander') {
+  if (COMMANDER_FORMATS.has(format)) {
     const commanders = counted.filter((l) => l.zone === 'commander');
     const size = counted.reduce((s, l) => s + l.qty, 0);
     if (!commanders.length) push('warn', 'Aucun commandant désigné');
@@ -172,8 +204,9 @@ export function legalityIssues(format, lines) {
   return issues;
 }
 
-/** Image de tuile : le commandant, sinon la carte la plus chère du deck. */
-function coverOf(lines) {
+/** Image de fond : celle choisie, sinon le commandant, sinon la carte la plus chère du deck. */
+function coverOf(lines, chosen) {
+  if (chosen) return chosen;
   const cmd = lines.find((l) => l.zone === 'commander' && l.image_uri);
   if (cmd) return cmd.image_uri;
   return [...lines].filter((l) => l.image_uri && COUNTED.has(l.zone))
@@ -183,18 +216,21 @@ function coverOf(lines) {
 /** Decks du compte : tuiles (image, identité, taille, % possédé). */
 export async function listDecks(userId) {
   const { rows: decks } = await query(
-    'SELECT id, name, format, notes, created_at, updated_at FROM decks WHERE user_id = $1 ORDER BY updated_at DESC',
+`SELECT d.id, d.name, d.format, d.notes, d.created_at, d.updated_at,
+            cc.scryfall_id AS cover_scryfall_id, cc.image_uri AS cover_image
+     FROM decks d LEFT JOIN cards cc ON cc.id = d.cover_card_id
+     WHERE d.user_id = $1 ORDER BY d.updated_at DESC`,
     [userId],
   );
   if (!decks.length) return [];
   const lines = await deckLines(decks.map((d) => d.id));
   const owned = await ownedByName(userId, [...new Set(lines.map((l) => l.name))]);
-  return decks.map((d) => {
+  return decks.map(({ cover_image: chosen, ...d }) => {
     const mine = lines.filter((l) => l.deck_id === d.id);
     const commanders = mine.filter((l) => l.zone === 'commander');
     return {
       ...d,
-      cover: coverOf(mine),
+      cover: coverOf(mine, chosen),
       commanders: commanders.map((l) => l.name),
       color_identity: [...new Set(commanders.flatMap((l) => l.color_identity))],
       count: mine.filter((l) => COUNTED.has(l.zone)).reduce((s, l) => s + l.qty, 0),

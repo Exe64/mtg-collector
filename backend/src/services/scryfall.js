@@ -76,6 +76,11 @@ export function getCard(scryfallId) {
   return request(`/cards/${encodeURIComponent(scryfallId)}`);
 }
 
+/** Carte par nom exact, noms alternatifs compris (Godzilla, Universes Within…) ; null si inconnue. */
+export function getCardByName(name) {
+  return request(`/cards/named?exact=${encodeURIComponent(name)}`);
+}
+
 /** Toutes les impressions (éditions) d'une carte par nom exact, triées par date. */
 export function searchPrints(name) {
   const q = encodeURIComponent(`!"${name}"`);

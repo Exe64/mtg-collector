@@ -13,10 +13,15 @@ export const BASIC_LANDS = new Set([
 // carte jouable (« Sol Ring // Sol Ring », type « Card // Card ») mais qui n'en sont pas un exemplaire.
 export const PLAYABLE = "COALESCE(c.type_line, '') NOT LIKE 'Card%'";
 
-// Clé de comparaison : face avant uniquement, minuscules, trim.
-// (« Fire // Ice » et « Fire » matchent ; toutes versions confondues.)
+// Face avant d'un nom : « Fire // Ice » (Scryfall, Moxfield) ou « Fire / Ice » (autres exports).
+export function frontName(name) {
+  return String(name).split(/\s*\/\/\s*|\s+\/\s+/)[0].trim();
+}
+
+// Clé de comparaison : face avant uniquement, minuscules.
+// (« Fire // Ice », « Fire / Ice » et « Fire » matchent ; toutes versions confondues.)
 export function frontKey(name) {
-  return String(name).split('//')[0].trim().toLowerCase();
+  return frontName(name).toLowerCase();
 }
 
 // En-têtes de section (Moxfield, MTGO, Arena) → zone du deck ; `null` = section ignorée.

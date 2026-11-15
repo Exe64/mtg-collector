@@ -8,6 +8,8 @@ export const FORMATS = [
   ['historic', 'Historic'], ['timeless', 'Timeless'], ['premodern', 'Premodern'], ['predh', 'PreDH'],
   ['oldschool', 'Old School'], ['penny', 'Penny Dreadful'], ['duel', 'Duel Commander'], ['casual', 'Libre (aucun contrôle)'],
 ];
+// Formats à 100 cartes menés par un commandant (même liste que le backend).
+export const COMMANDER_FORMATS = new Set(['commander', 'duel', 'predh', 'paupercommander']);
 export const formatLabel = (f) => FORMATS.find(([v]) => v === f)?.[1] || f;
 
 // Zones d'un deck, dans l'ordre d'affichage ; `header` = en-tête de la liste texte.
