@@ -46,3 +46,41 @@ export const collectionBulkSchema = z.object({
     location: z.string().max(100).optional(),
   }).refine((o) => Object.keys(o).length > 0, { message: 'aucun champ à modifier' }),
 });
+
+// --- Decks (plan #31) ------------------------------------------------------
+// Clés des légalités Scryfall ; `casual` : aucun contrôle.
+export const DECK_FORMATS = [
+  'commander', 'standard', 'pioneer', 'modern', 'legacy', 'vintage', 'pauper', 'paupercommander',
+  'oathbreaker', 'brawl', 'standardbrawl', 'historic', 'timeless', 'premodern', 'predh',
+  'oldschool', 'penny', 'duel', 'casual',
+];
+export const DECK_ZONES = ['commander', 'main', 'side', 'maybe'];
+
+export const deckCreateSchema = z.object({
+  name: z.string().trim().max(200).optional(),
+  format: z.enum(DECK_FORMATS, { message: 'format invalide' }).optional(),
+  notes: z.string().max(5000).nullish(),
+  url: z.string().trim().max(500).optional(),
+  text: z.string().max(200000).optional(),
+});
+
+export const deckPatchSchema = z.object({
+  name: z.string().trim().min(1, 'nom requis').max(200).optional(),
+  format: z.enum(DECK_FORMATS, { message: 'format invalide' }).optional(),
+  notes: z.string().max(5000).nullish(),
+}).refine((o) => Object.values(o).some((v) => v !== undefined), { message: 'aucun champ à modifier' });
+
+// `name` : impression choisie comme à l'import (possédée, sinon la moins chère) ;
+// `scryfall_id` : impression imposée, ou repli si le nom est inconnu en base.
+export const deckCardAddSchema = z.object({
+  name: z.string().trim().min(1).max(500).optional(),
+  scryfall_id: z.guid({ message: 'scryfall_id invalide' }).optional(),
+  quantity: z.coerce.number().int().min(1).max(250).default(1),
+  zone: z.enum(DECK_ZONES, { message: 'zone invalide' }).default('main'),
+}).refine((o) => o.name || o.scryfall_id, { message: 'carte requise' });
+
+export const deckCardPatchSchema = z.object({
+  quantity: z.coerce.number().int().min(1).max(250).optional(),
+  zone: z.enum(DECK_ZONES, { message: 'zone invalide' }).optional(),
+  scryfall_id: z.guid({ message: 'scryfall_id invalide' }).optional(),
+}).refine((o) => Object.values(o).some((v) => v !== undefined), { message: 'aucun champ à modifier' });

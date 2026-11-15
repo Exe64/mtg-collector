@@ -11,9 +11,9 @@ const CARD_COLUMNS = [
   'type_line', 'oracle_text', 'mana_cost', 'cmc', 'rarity', 'finishes',
   'prices_eur', 'prices_eur_foil', 'prices_eur_etched',
   'prices_usd', 'prices_usd_foil', 'prices_raw',
-  'legal_commander', 'edhrec_rank', 'game_changer', 'keywords',
+  'legal_commander', 'edhrec_rank', 'game_changer', 'keywords', 'legalities',
 ];
-const JSONB_COLS = new Set(['card_faces', 'prices_raw']);
+const JSONB_COLS = new Set(['card_faces', 'prices_raw', 'legalities']);
 
 /** Normalise une carte Scryfall (brute) vers le schéma `cards`. */
 export function mapScryfallCard(c) {
@@ -48,6 +48,7 @@ export function mapScryfallCard(c) {
     edhrec_rank: c.edhrec_rank ?? null,
     game_changer: c.game_changer === true,
     keywords: c.keywords?.length ? c.keywords : null,
+    legalities: c.legalities ? JSON.stringify(c.legalities) : null,
   };
 }
 

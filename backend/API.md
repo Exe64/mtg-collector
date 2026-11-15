@@ -71,10 +71,23 @@ MFA : TOTP (RFC 6238, ±30 s), opt-in par utilisateur ; un code de secours conso
 Conditions : `MT, NM, EX, GD, LP, PL, PO`. Finitions : `nonfoil, foil, etched`.
 `location` : emplacement physique (fait partie de la clé d'unicité de l'entrée).
 
-## Vérif deck
+## Decks et Vérif deck
 | Méthode | Route | Corps | Réponse |
 |---|---|---|---|
-| POST | `/api/decks/check` | `{ url }` (Moxfield) **ou** `{ text }` (liste Moxfield/MTGO) | `{ cards[], summary }` (cartes manquantes vs collection, comparaison par nom ; chaque carte porte ses versions possédées) |
+| POST | `/api/decks/check` | `{ url }` (Moxfield) **ou** `{ text }` (liste Moxfield/MTGO) | `{ cards[], summary }` (cartes manquantes vs collection, comparaison par nom ; chaque carte porte ses versions possédées ; le « peut-être » est ignoré) |
+| GET | `/api/decks` | — | `{ decks[{ id, name, format, notes, cover, commanders[], color_identity[], count, pct }] }` (`pct` : % possédé en exemplaires hors terrains de base, `null` si vide) |
+| POST | `/api/decks` | `{ name?, format?, notes?, url? \| text? }` | `201 { id, unknown[] }` (deck vide ou importé ; sections Commander / Sideboard / Maybeboard reconnues ; noms non reconnus dans `unknown`) |
+| GET | `/api/decks/by-card/:scryfallId` | — | `{ decks[{ id, name }] }` (decks du compte qui utilisent la carte, par nom) |
+| GET | `/api/decks/:id` | — | `{ deck, cards[], summary, issues[] }` : lignes (`zone`, `qty`, impression, `owned`, `missing`, `cheapest_eur`, `used_in[]`), `summary { count, pct, missingDistinct, missingTotal, missingEur, valueEur }`, contrôles `issues[{ level: error\|warn, message, cards[] }]` |
+| PATCH | `/api/decks/:id` | `{ name?, format?, notes? }` | `{ ok }` |
+| DELETE | `/api/decks/:id` | — | `204` |
+| POST | `/api/decks/:id/cards` | `{ name? \| scryfall_id?, quantity?, zone? }` | `201` (s'additionne à la ligne existante ; par `name`, impression possédée sinon la moins chère) |
+| PATCH | `/api/decks/:id/cards/:lineId` | `{ quantity?, zone?, scryfall_id? }` | `{ ok }` (vers une ligne existante : quantités fusionnées) |
+| DELETE | `/api/decks/:id/cards/:lineId` | — | `204` |
+| GET | `/api/decks/:id/cards/:lineId/printings` | — | `{ printings[{ scryfall_id, set_code, set_name, collector_number, eur, owned }] }` |
+| POST | `/api/decks/:id/missing-to-wishlist` | — | `{ added, missing }` |
+
+Formats : clés des légalités Scryfall (`commander`, `modern`, `vintage`…) ou `casual` (aucun contrôle). Zones : `commander, main, side, maybe` ; seules `commander` et `main` comptent (taille, possession, coût, valeur). Un deck ne réserve aucun exemplaire et ne touche jamais la collection.
 
 ## Commandants (« Trouver un commandant »)
 | Méthode | Route | Corps | Réponse |
@@ -88,6 +101,7 @@ Conditions : `MT, NM, EX, GD, LP, PL, PO`. Finitions : `nonfoil, foil, etched`.
 | DELETE | `/api/commanders/shortlist/:oracleId` | — | `204` |
 | GET | `/api/commanders/:oracleId` | — | `{ commander, edhrec, coverage, deck[], combos[], unavailable[] }` (fiche : thèmes, cartes principales et similaires, couverture et decklist complète du deck moyen `{ name, qty, owned, eur, type_line, basic }`, combos Commander Spellbook avec pièces possédées) |
 | GET | `/api/commanders/:oracleId/deck` | `theme?`, `bracket?` (`exhibition\|core\|upgraded\|optimized\|cedh`), `budget?` (`budget\|expensive`) | `{ deck[], coverage, numDecks }` (variante du deck moyen EDHREC ; `deck: null` si la combinaison n'existe pas) |
+| POST | `/api/commanders/:oracleId/build` | `theme?`, `bracket?`, `budget?` (query) ; `{ name? }` | `201 { id, unknown[] }` (« Construire avec » : deck Commander créé depuis le deck moyen ou la variante) |
 | POST | `/api/commanders/:oracleId/missing-to-wishlist` | `theme?`, `bracket?`, `budget?` (query) | `{ added, missing }` (manquantes du deck moyen, ou de la variante, en wishlist ; impression la moins chère) |
 
 Données externes (API non officielles EDHREC, publique Commander Spellbook) mises en cache en base (`external_cache`, 7 jours), appels limités à ~1/s. Job de fond `commander-cache` chaque nuit (05:30 UTC) : classement des commandants, pages et decks moyens des légendes possédées, thèmes. Si un service ne répond pas, la copie périmée est servie, sinon `unavailable` le signale.

@@ -19,21 +19,35 @@ export function frontKey(name) {
   return String(name).split('//')[0].trim().toLowerCase();
 }
 
-// Parse une liste texte (Moxfield collé ou MTGO .txt) → [{ name, quantity }]
+// En-têtes de section (Moxfield, MTGO, Arena) → zone du deck ; `null` = section ignorée.
+const SECTIONS = [
+  [/^(commanders?)\b/i, 'commander'],
+  [/^(sideboard|companions?)\b/i, 'side'],
+  [/^(maybeboard|considering)\b/i, 'maybe'],
+  [/^(deck|main(board)?)\b/i, 'main'],
+  [/^(tokens?)\b/i, null],
+];
+
+// Parse une liste texte (Moxfield collé ou MTGO .txt) → [{ name, quantity, zone }]
+// Les cartes suivent la zone du dernier en-tête rencontré (principal par défaut).
 export function parseDeckText(text) {
   const out = [];
+  let zone = 'main';
   for (const raw of String(text).split(/\r?\n/)) {
     const line = raw.trim();
-    if (!line || line.startsWith('//') || line.startsWith('#')) continue;
-    // En-têtes de section sans quantité (Sideboard, Commander, Deck…)
-    if (!/^\d/.test(line) && /^(sideboard|commander|companion|deck|maybeboard|tokens?)\b/i.test(line)) continue;
+    if (!line || line.startsWith('#')) continue;
+    // En-tête : « Sideboard », « SIDEBOARD: », « // Commander »…
+    const header = line.replace(/^\/\/\s*/, '');
+    const section = !/^\d/.test(header) && SECTIONS.find(([re]) => re.test(header));
+    if (section) { [, zone] = section; continue; }
+    if (line.startsWith('//')) continue;
     const m = line.match(/^(\d+)\s*[xX]?\s+(.+)$/);
-    if (!m) continue;
+    if (!m || zone === null) continue;
     const quantity = parseInt(m[1], 10);
     let name = m[2].trim();
     name = name.replace(/\s+\([0-9A-Za-z]{2,6}\)(?:\s.*)?$/, '').trim(); // (SET) collector…
     name = name.replace(/\s*\*[A-Za-z]\*\s*$/, '').trim();              // *F* / *E*
-    if (name && Number.isFinite(quantity) && quantity > 0) out.push({ name, quantity });
+    if (name && Number.isFinite(quantity) && quantity > 0) out.push({ name, quantity, zone });
   }
   return out;
 }
@@ -43,7 +57,7 @@ function moxfieldId(url) {
   return m ? m[1] : null;
 }
 
-// Récupère la liste d'un deck Moxfield public → [{ name, quantity }]
+// Récupère un deck Moxfield public → { name, format, cards: [{ name, quantity, zone }] }
 export async function fetchMoxfieldDeck(url) {
   const id = moxfieldId(url);
   if (!id) { const e = new Error('URL Moxfield invalide'); e.status = 400; throw e; }
@@ -59,21 +73,20 @@ export async function fetchMoxfieldDeck(url) {
     return res.json();
   });
 
-  const list = [];
-  const pushBoard = (cardsObj) => {
-    if (!cardsObj) return;
-    for (const entry of Object.values(cardsObj)) {
+  const cards = [];
+  // v3 : data.boards.<board>.cards  ;  v2 : data.<board> directement
+  const boards = {
+    commanders: 'commander', mainboard: 'main', sideboard: 'side', companions: 'side', maybeboard: 'maybe',
+  };
+  for (const [key, zone] of Object.entries(boards)) {
+    const board = data.boards ? data.boards[key]?.cards : data[key];
+    for (const entry of Object.values(board || {})) {
       const name = entry?.card?.name || entry?.name;
       const quantity = entry?.quantity;
-      if (name && quantity) list.push({ name, quantity });
+      if (name && quantity) cards.push({ name, quantity, zone });
     }
-  };
-  // v3 : data.boards.<board>.cards  ;  v2 : data.<board> directement
-  const boards = ['mainboard', 'sideboard', 'commanders', 'companions'];
-  for (const key of boards) {
-    pushBoard(data.boards ? data.boards[key]?.cards : data[key]);
   }
-  return list;
+  return { name: data.name || null, format: data.format || null, cards };
 }
 
 // Compare une liste de deck à la collection (par nom de carte, face avant).

@@ -148,3 +148,28 @@ export function coverage(deck, ownedNames, byFront) {
     missingEur: Number(missingEur.toFixed(2)),
   };
 }
+
+/**
+ * Ajoute en wishlist l'impression la moins chère de chaque nom (face avant), sauf les
+ * noms déjà en wishlist quelle que soit l'impression. → nombre de cartes ajoutées.
+ */
+export async function namesToWishlist(userId, names, note) {
+  const keys = [...new Set(names.map(frontKey))];
+  if (!keys.length) return 0;
+  const { rowCount } = await query(
+    `INSERT INTO wishlist (user_id, card_id, note)
+     SELECT $1, x.id, $3 FROM (
+       SELECT DISTINCT ON (lower(split_part(name, ' // ', 1))) id, lower(split_part(name, ' // ', 1)) AS k
+       FROM cards
+       WHERE lower(split_part(name, ' // ', 1)) = ANY($2::text[])
+       ORDER BY lower(split_part(name, ' // ', 1)), legal_commander DESC, COALESCE(prices_eur, prices_eur_foil) ASC NULLS LAST
+     ) x
+     WHERE NOT EXISTS (
+       SELECT 1 FROM wishlist w JOIN cards c ON c.id = w.card_id
+       WHERE w.user_id = $1 AND lower(split_part(c.name, ' // ', 1)) = x.k
+     )
+     ON CONFLICT (user_id, card_id) DO NOTHING`,
+    [userId, keys, note],
+  );
+  return rowCount;
+}

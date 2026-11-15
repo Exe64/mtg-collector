@@ -61,7 +61,7 @@ app.use('/api/collection', collectionRoutes);
 app.use('/api/import', importLimiter, importRoutes);
 app.use('/api/export', exportLimiter, exportRoutes);
 app.use('/api/wishlist', wishlistRoutes);
-app.use('/api/decks', searchLimiter, decksRoutes);
+app.use('/api/decks', decksRoutes);
 app.use('/api/commanders', commandersRoutes);
 app.use('/api/alerts', alertsRoutes);
 app.use('/api/admin', adminRoutes);

@@ -1,18 +1,19 @@
 import { Router } from 'express';
 import { z } from 'zod';
 
-import { query } from '../config/db.js';
+import { query, withTransaction } from '../config/db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
 import { BASIC_LANDS, frontKey } from '../services/deckCheck.js';
 import { startJob, jobState } from '../services/jobRunner.js';
 import {
-  getCatalog, ownedLegendOracles, ownedFrontNames, cardsByFront, coverage,
+  getCatalog, ownedLegendOracles, ownedFrontNames, cardsByFront, coverage, namesToWishlist,
 } from '../services/commanders.js';
 import {
   commanderPage, averageDeck, averageDeckVariant, combos, themes, themeCommanders, refreshCommanderCache,
   BRACKETS, BUDGETS,
 } from '../services/edhrec.js';
+import { addCardsByName } from '../services/decks.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -279,22 +280,36 @@ router.post('/:oracleId/missing-to-wishlist', async (req, res, next) => {
     const { missing } = coverage(found.cards, await ownedFrontNames(req.user.id));
     const keys = missing.map((m) => frontKey(m.name));
     if (!keys.length) return res.json({ added: 0, missing: 0 });
-    const { rowCount } = await query(
-      `INSERT INTO wishlist (user_id, card_id, note)
-       SELECT $1, x.id, $3 FROM (
-         SELECT DISTINCT ON (lower(split_part(name, ' // ', 1))) id, lower(split_part(name, ' // ', 1)) AS k
-         FROM cards
-         WHERE lower(split_part(name, ' // ', 1)) = ANY($2::text[])
-         ORDER BY lower(split_part(name, ' // ', 1)), legal_commander DESC, COALESCE(prices_eur, prices_eur_foil) ASC NULLS LAST
-       ) x
-       WHERE NOT EXISTS (
-         SELECT 1 FROM wishlist w JOIN cards c ON c.id = w.card_id
-         WHERE w.user_id = $1 AND lower(split_part(c.name, ' // ', 1)) = x.k
-       )
-       ON CONFLICT (user_id, card_id) DO NOTHING`,
-      [req.user.id, keys, `Deck ${cmd.name}`],
-    );
-    return res.json({ added: rowCount, missing: keys.length });
+    const added = await namesToWishlist(req.user.id, keys, `Deck ${cmd.name}`);
+    return res.json({ added, missing: keys.length });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+// POST /api/commanders/:oracleId/build?theme=&bracket=&budget=  { name? }
+// → crée un deck Commander depuis le deck moyen EDHREC (ou la variante affichée).
+router.post('/:oracleId/build', validateBody(z.object({ name: z.string().trim().max(200).optional() })), async (req, res, next) => {
+  try {
+    const cmd = await findCommander(req.params.oracleId);
+    if (!cmd) return res.status(404).json({ error: 'Commandant introuvable' });
+    const v = parseVariant(req.query);
+    if (!v) return res.status(400).json({ error: 'Variante de deck invalide' });
+    const found = cmd.pairing === 'background' ? null : await loadDeck(cmd, v);
+    if (!found) return res.status(404).json({ error: 'Pas de deck moyen EDHREC pour ce commandant.' });
+
+    const entries = [
+      { name: cmd.name, quantity: 1, zone: 'commander' },
+      ...found.cards.map(([name, quantity]) => ({ name, quantity, zone: 'main' })),
+    ];
+    const result = await withTransaction(async (db) => {
+      const { rows } = await db.query(
+        "INSERT INTO decks (user_id, name, format, notes) VALUES ($1, $2, 'commander', $3) RETURNING id",
+        [req.user.id, req.body.name || cmd.name, 'Créé depuis le deck moyen EDHREC'],
+      );
+      return { id: rows[0].id, unknown: await addCardsByName(db, req.user.id, rows[0].id, entries) };
+    });
+    return res.status(201).json(result);
   } catch (err) {
     return next(err);
   }
