@@ -2,8 +2,8 @@
 plan:
   id: '33'
   name: 33-mise-a-jour-depuis-app.md
-  link: https://github.com/Exe64/mtg-collector/blob/main/doc/roadmap/33-mise-a-jour-depuis-app.md
-status: active
+  link: https://github.com/Exe64/mtg-collector/blob/main/doc/roadmap/done/33-mise-a-jour-depuis-app.md
+status: done
 date: 2026-11-15
 description: >
   Détecter une nouvelle release GitHub et mettre l'instance à jour en un clic
@@ -79,7 +79,7 @@ build, healthcheck, rollback automatique en cas d'échec.
 - [x] Étape 7 — `doc/updating.md` (installation agent, sécurité, rollback, mode manuel), `API.md`, lien README (S · standard → Sonnet)
 - [x] Étape 8 — Tests unitaires/intégration (semver, cache, verrou, cycle request/status, routes admin) + dry-run de l'agent avec faux `docker compose` (M · standard → Sonnet)
 - [x] 🧪 Tests — E2E sur instance locale : tag de test, mise à jour réussie, puis échec simulé → rollback
-- [ ] ✅ Validation — Vérifier les résultats des tests et clôturer
+- [x] ✅ Validation — Vérifier les résultats des tests et clôturer
 
 > Note 2026-11-16 : l'agent de l'étape 5 réutilise `deploy/backup-db.sh` pour
 > la sauvegarde avant mise à jour.
@@ -304,4 +304,4 @@ REDIS_URL=redis://127.0.0.1:1 node -e "import('./src/services/updates.js').then(
 - ✅ Étape 7 : `doc/updating.md` + liens README/operations/API/.env.example. Revue d'exactitude doc ↔ code : 15 écarts corrigés (HEAD détachée, cible = plus haut tag du remote, variables de sauvegarde dans `.env`, droits du dossier de sauvegarde, demande orpheline…), dont 3 dans le code (checkout refusé sans rollback, état `skipped`, `available` = `requests/`).
 - ✅ Étape 8 : job CI `updater` (shellcheck + dry-run). Les tests unitaires/intégration prévus existent déjà (étapes 3–5).
 - ✅ 🧪 E2E : 1ᵉʳ run ❌ (SELinux : exec refusé → unité via `/bin/bash`), 2ᵉ run 22/22 ✅, rejoué par le Vérificateur (PASS), script commité `deploy/updater/e2e-updater.sh`.
-- 📋 Prochain : ✅ Validation et clôture (plan → `done/`, roadmap, issue #33).
+- ✅ Validation : toutes les étapes et les tests (unitaires, intégration, dry-run agent, navigateur, E2E systemd) vérifiés au PASS par le Vérificateur ; plan clôturé, issue #33 fermée.

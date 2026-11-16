@@ -13,9 +13,6 @@ Backlog consolidé : plans nommés d'après leur issue GitHub (voir `doc/roadmap
 
 ## À faire
 
-- **[Issue: #33] `#33` — Mise à jour depuis l'application** 🟢 · priorité moyenne · L — Release GitHub sur tag, détection dans l'admin, mise à jour en un clic via agent hôte systemd, sauvegarde et rollback automatique. Dépend de #32.
-  [`33-mise-a-jour-depuis-app.md`](33-mise-a-jour-depuis-app.md)
-
 - **[Issue: #4] `#4` — Trouver un commandant** 🟢 · priorité moyenne · L — Page « Commandants » façon find-commander de Manamancer : commandants légaux ou légendes de la collection, données EDHREC et Commander Spellbook en cache.
   [`4-trouver-un-commandant.md`](4-trouver-un-commandant.md)
 
@@ -24,6 +21,9 @@ Backlog consolidé : plans nommés d'après leur issue GitHub (voir `doc/roadmap
 ## Fait
 
 ### Plans livrés (2026-11-16)
+
+- **[Issue: #33] `#33` — Mise à jour depuis l'application** (2026-11-16) 🔵 — Version unique + `npm run release`, release GitHub sur tag `vX.Y.Z` (v1.0.0 publiée), détection quotidienne dans l'admin, mise à jour en un clic via agent hôte systemd (sauvegarde, checkout du tag, rebuild, rollback automatique code + base), suivi live, doc `updating.md`, E2E systemd/SELinux.
+  [`33-mise-a-jour-depuis-app.md`](done/33-mise-a-jour-depuis-app.md)
 
 - **[Issue: #32] `#32` — README vitrine et préparation du dépôt public** (2026-11-17) 🔵 — README anglais vitrine + README.fr.md avec captures, guides installation / exploitation / sauvegardes dans doc/, LICENSE AGPL-3.0, SECURITY.md, CONTRIBUTING.md, audit gitleaks propre.
   [`32-readme-vitrine.md`](done/32-readme-vitrine.md)
