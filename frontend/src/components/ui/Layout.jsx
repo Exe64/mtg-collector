@@ -10,6 +10,7 @@ import CardModal from './CardModal';
 import Modal from './Modal';
 import ScrollToTop from './ScrollToTop';
 import ErrorBoundary from './ErrorBoundary';
+import Footer from './Footer';
 
 // 1er niveau (toujours visible : barre desktop + bottom bar mobile)
 const primaryNav = [
@@ -155,14 +156,17 @@ export default function Layout() {
         </div>
       </header>
 
-      {/* Contenu (padding bas en mobile pour la bottom bar) */}
-      <main className="flex-1 w-full max-w-[1800px] mx-auto px-4 pt-6 sm:px-6 sm:pt-8 pb-24 sm:pb-10">
+      {/* Contenu */}
+      <main className="flex-1 w-full max-w-[1800px] mx-auto px-4 pt-6 sm:px-6 sm:pt-8 pb-10">
         <ErrorBoundary key={location.pathname}>
           <Suspense fallback={<div className="text-center text-slate-500 py-12">Chargement…</div>}>
             <Outlet />
           </Suspense>
         </ErrorBoundary>
       </main>
+
+      {/* Padding bas en mobile pour la bottom bar */}
+      <Footer className="px-4 pb-24 sm:pb-6" />
 
       {/* Bottom tab bar (mobile uniquement) : 4 onglets + Plus */}
       <nav aria-label="Navigation principale" className="glass sm:hidden fixed bottom-0 inset-x-0 z-30 border-t border-white/[0.06] flex pb-[env(safe-area-inset-bottom)]">

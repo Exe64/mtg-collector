@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { api } from '../api/client';
 import { useAuth } from '../stores/auth';
 import UpdateCard from '../components/admin/UpdateCard';
+import SupportCard from '../components/admin/SupportCard';
 
 const fmtDate = (d) => (d ? new Date(d).toLocaleString('fr-FR') : '—');
 const fmtSize = (b) => (b ? `${(b / 1e6).toFixed(1)} Mo` : '—');
@@ -136,6 +137,7 @@ export default function Accounts() {
       {error && <div className="text-sm text-rose-400 bg-rose-950/40 rounded p-2">{error}</div>}
 
       <UpdateCard />
+      <SupportCard />
 
       {/* État du système */}
       <section className="bg-slate-800/50 border border-white/[0.06] rounded-xl p-4">

@@ -60,3 +60,11 @@ export const CONDITION_COLOR = {
   PL: '#f97316',
   PO: '#ef4444',
 };
+
+// Liens de l'auteur (pied de page, encart dons de l'administration)
+export const AUTHOR_LINKS = {
+  github: 'https://github.com/Exe64',
+  repo: 'https://github.com/Exe64/mtg-collector',
+  kofi: 'https://ko-fi.com/juliendumur',
+  paypal: 'https://www.paypal.com/paypalme/juliendumur',
+};

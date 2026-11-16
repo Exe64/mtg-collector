@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import Wordmark from './Wordmark';
 import Starfield from './Starfield';
+import Footer from './Footer';
 
 // Coquille des pages hors connexion : ciel étoilé et nébuleuses, logotype, carte centrale
 export default function AuthShell({ children }) {
@@ -30,9 +31,7 @@ export default function AuthShell({ children }) {
         </div>
       </main>
 
-      <footer className="relative pb-5 text-center text-[11px] text-slate-500">
-        MTG Collector · projet non officiel, sans lien avec Wizards of the Coast
-      </footer>
+      <Footer className="relative px-4 pb-5" />
     </div>
   );
 }
