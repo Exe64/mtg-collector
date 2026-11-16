@@ -114,5 +114,8 @@ else
   echo "  gunzip -c $file | docker compose exec -T postgres psql -U $DB_USER magic_collection"
 fi
 
+# Ligne machine-lisible (utilisée par deploy/updater/mtg-updater.sh pour le rollback)
+echo "BACKUP_FILE=$file"
+
 SUCCESS=1
 hc_ping   # ping de succès (le trap EXIT pingera /fail si on n'arrive pas ici)

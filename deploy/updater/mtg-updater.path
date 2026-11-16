@@ -1,0 +1,9 @@
+[Unit]
+Description=mtg-collector: watch for update requests from the admin UI
+
+[Path]
+PathExists=@UPDATES_DIR@/requests/request.json
+Unit=mtg-updater.service
+
+[Install]
+WantedBy=multi-user.target

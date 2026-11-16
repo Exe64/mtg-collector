@@ -1,0 +1,11 @@
+[Unit]
+Description=mtg-collector: apply a requested update (backup, checkout, rebuild, rollback on failure)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=@APP_DIR@/deploy/updater/mtg-updater.sh
+TimeoutStartSec=45min
+# Time for the TERM trap to roll back (checkout + restore + rebuild) before SIGKILL
+TimeoutStopSec=20min
