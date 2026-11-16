@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../api/client';
 import { useAuth } from '../stores/auth';
+import UpdateCard from '../components/admin/UpdateCard';
 
 const fmtDate = (d) => (d ? new Date(d).toLocaleString('fr-FR') : '—');
 const fmtSize = (b) => (b ? `${(b / 1e6).toFixed(1)} Mo` : '—');
@@ -134,6 +135,8 @@ export default function Accounts() {
       <h1 className="page-title">Administration</h1>
       {error && <div className="text-sm text-rose-400 bg-rose-950/40 rounded p-2">{error}</div>}
 
+      <UpdateCard />
+
       {/* État du système */}
       <section className="bg-slate-800/50 border border-white/[0.06] rounded-xl p-4">
         <h2 className="text-sm font-semibold text-slate-300 mb-3">État du système</h2>
@@ -141,7 +144,6 @@ export default function Accounts() {
           <p className="text-xs text-slate-500">Chargement…</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
-            <div className="flex justify-between"><span className="text-slate-400">Version</span><span className="font-mono">{status.version ? `v${status.version}` : '—'}</span></div>
             <div className="flex justify-between"><span className="text-slate-400">Base de données</span><span><Dot ok={status.health.db} /></span></div>
             <div className="flex justify-between"><span className="text-slate-400">Redis</span><span><Dot ok={status.health.redis} /></span></div>
             <div className="flex justify-between"><span className="text-slate-400">Cartes en base</span><span>{status.data.cards?.toLocaleString('fr-FR')}</span></div>

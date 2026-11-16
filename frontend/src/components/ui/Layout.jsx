@@ -58,6 +58,16 @@ export default function Layout() {
     api('/alerts/notifications').then((d) => setUnread(d.unread || 0)).catch(() => {});
   }, []);
 
+  // Admins : pastille « mise à jour disponible » (statut mis en cache côté serveur)
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+  useEffect(() => {
+    if (!user?.is_admin) return;
+    api('/admin/updates').then((d) => setUpdateAvailable(Boolean(d.updateAvailable))).catch(() => {});
+  }, [user?.is_admin]);
+  const UpdateDot = () => (updateAvailable ? (
+    <span title="Mise à jour disponible" className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-gold-400"><span className="sr-only">Mise à jour disponible</span></span>
+  ) : null);
+
   // Ferme les menus à chaque navigation + sur Échap
   useEffect(() => { setToolsOpen(false); setPlusOpen(false); }, [location.pathname]);
   useEffect(() => {
@@ -103,6 +113,7 @@ export default function Layout() {
               >
                 Outils
                 {unread > 0 && <span className="ml-1 rounded-full bg-rose-500 text-slate-900 text-[10px] font-semibold leading-4 min-w-4 px-1 text-center">{unread}</span>}
+                {updateAvailable && !unread && <span title="Mise à jour disponible" className="ml-1 w-2 h-2 rounded-full bg-gold-400"><span className="sr-only">Mise à jour disponible</span></span>}
                 <ChevronDown size={14} className={`transition-transform ${toolsOpen ? 'rotate-180' : ''}`} />
               </button>
               {toolsOpen && (
@@ -117,7 +128,7 @@ export default function Layout() {
                         className={({ isActive }) =>
                           `flex items-center gap-2.5 rounded-md px-3 py-2 text-sm ${isActive ? 'text-gold-300 bg-gold-500/10' : 'text-slate-300 hover:text-slate-50 hover:bg-white/5'}`}
                       >
-                        <span className="relative"><it.Icon size={16} />{it.to === '/alerts' && <Badge />}</span>
+                        <span className="relative"><it.Icon size={16} />{it.to === '/alerts' && <Badge />}{it.to === '/accounts' && <UpdateDot />}</span>
                         {it.label}
                       </NavLink>
                     ))}
@@ -173,7 +184,7 @@ export default function Layout() {
           aria-haspopup="dialog"
           className={`flex-1 flex flex-col items-center gap-0.5 py-2 text-[10px] ${inSheet ? 'text-gold-300' : 'text-slate-400'}`}
         >
-          <span className="relative"><Menu size={18} /><Badge /></span>
+          <span className="relative"><Menu size={18} /><Badge />{!unread && <UpdateDot />}</span>
           Plus
         </button>
       </nav>
@@ -195,7 +206,7 @@ export default function Layout() {
                   className={({ isActive }) =>
                     `flex flex-col items-center gap-1 rounded-lg py-3 text-[11px] text-center ${isActive ? 'bg-gold-500/10 text-gold-300 ring-1 ring-inset ring-gold-500/30' : 'text-slate-300 hover:bg-white/5'}`}
                 >
-                  <span className="relative"><it.Icon size={20} />{it.to === '/alerts' && <Badge />}</span>
+                  <span className="relative"><it.Icon size={20} />{it.to === '/alerts' && <Badge />}{it.to === '/accounts' && <UpdateDot />}</span>
                   {it.label}
                 </NavLink>
               ))}

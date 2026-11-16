@@ -71,9 +71,9 @@ build, healthcheck, rollback automatique en cas d'échec.
 - [x] Étape 3 — Service backend `updates` : `releases/latest` (cache Redis, token optionnel), comparaison semver, job quotidien + route admin « Vérifier » (M · standard → Sonnet)
 
 **Lot 2 — mise à jour en un clic**
-- [ ] Étape 4 — Protocole backend ↔ agent : dossier monté `/updates` (`request.json` / `status.json`), verrou, routes admin demander / suivre (M · reasoning → Opus)
-- [ ] Étape 5 — Agent hôte `deploy/updater/` : script + systemd `.path`/`.service`, backup → checkout tag → build → healthcheck → statut, rollback auto (L · reasoning → Opus)
-- [ ] Étape 6 — UI admin : carte Version, notes rendues, bouton + confirmation, statut live, badge admin (M · standard → Sonnet)
+- [x] Étape 4 — Protocole backend ↔ agent : dossier monté `/updates` (`request.json` / `status.json`), verrou, routes admin demander / suivre (M · reasoning → Opus)
+- [x] Étape 5 — Agent hôte `deploy/updater/` : script + systemd `.path`/`.service`, backup → checkout tag → build → healthcheck → statut, rollback auto (L · reasoning → Opus)
+- [x] Étape 6 — UI admin : carte Version, notes rendues, bouton + confirmation, statut live, badge admin (M · standard → Sonnet)
 
 **Lot 3 — doc et tests**
 - [ ] Étape 7 — `doc/updating.md` (installation agent, sécurité, rollback, mode manuel), `API.md`, lien README (S · standard → Sonnet)
@@ -98,7 +98,9 @@ build, healthcheck, rollback automatique en cas d'échec.
 | Première release | `v1.0.0` publiée en fin de Lot 1 ; l'agent mémorise `git rev-parse HEAD` pour le rollback | Aucun tag existant, instances actuellement sur `main` |
 | Cohérence des données | `compose stop backend` avant le backup (coupure ~1–3 min) | Aucune écriture perdue entre dump et rollback |
 | Dump à restaurer | `backup-db.sh` émet `BACKUP_FILE=<chemin>` en dernière ligne | L'agent sait quel dump restaurer, cron inchangé |
-| Entrée de l'agent | `request.json` = `{"action":"update"}` seul ; l'agent résout lui-même le dernier tag et vérifie son existence | Aucune valeur du backend n'atteint le shell root |
+| Entrée de l'agent | `requests/request.json` jamais lu par l'agent (contient `action`, `requestedBy`, `requestedAt` à titre informatif) ; l'agent résout lui-même le plus haut tag `vX.Y.Z` | Aucune valeur du backend n'atteint le shell root |
+| Isolation des fichiers | `updates/` root (755) : `status.json`, `update.log` ; seul `updates/requests/` est inscriptible par le backend (uid 1000) | Pas de symlink planté suivi par l'agent root |
+| Git côté agent | Commandes git via `runuser -u <propriétaire du dépôt>` | Root sur dépôt d'un autre utilisateur = « dubious ownership » + fichiers root |
 | Tests E2E | Dépôt bare local + tags de test + faux `docker compose` | Rien n'est poussé sur GitHub |
 | `/api/health` | Ajout d'un champ `version` uniquement | Healthcheck compose inchangé |
 
@@ -149,6 +151,48 @@ GITHUB_REF_NAME=v9.9.9 bash guard.sh   # code 1 + ::error::
 
 **Résultats attendus (étape 2) :** actionlint muet ; push de tags `v*.*.*` uniquement, `contents: write` ; garde OK / refus ; release créée au push du tag.
 
+**Étape 4 — Protocole backend ↔ agent**
+
+```bash
+cd /srv/dev/mtg-collector/backend
+# T4.1 intégration : demande déposée (requests/request.json, sans cible), verrou 409, statut/log agent,
+#      statut périmé non bloquant, refus sans mise à jour, 503 explicite sans dossier agent
+npx eslint src test && npm test
+# T4.2 montage /updates (rw) dans le service backend
+cd /srv/dev/mtg-collector && docker compose config | grep -B2 -A3 "target: /updates"
+# T4.3 dossier d'échange ignoré par git
+git check-ignore -v updates/x
+```
+
+**Résultats attendus (étape 4) :** 0 échec ; montage rw ; règle `updates/` appliquée.
+
+**Étape 5 — Agent hôte**
+
+```bash
+cd /srv/dev/mtg-collector
+# T5.0 lint shell
+docker run --rm -v "$PWD":/mnt:ro -w /mnt koalaman/shellcheck:v0.10.0 deploy/updater/*.sh deploy/release.sh
+# T5.1–T5.14 dry-run : remote git jetable (v1.0.0/1.1.0/1.2.0), faux docker compose, fausse sauvegarde
+./deploy/updater/test-updater.sh
+```
+
+**Résultats attendus (étape 5) :** shellcheck muet ; `ALL PASS` — succès (plus haut tag stable), rollback (code + DROP/CREATE + dump rejoué), échec du rollback → `failed` + intervention manuelle, échec sauvegarde → rien modifié, déjà à jour → aucune action, modifications locales → refus, symlink planté → refus, contenu de la demande ignoré, script réécrit par le checkout sans casser le run, erreur git ≠ « propre », demande-dossier supprimée, SIGTERM → rollback, root sans `SUDO_UID` sur dépôt d'un autre utilisateur → succès sans fichier root.
+
+**Étape 6 — UI admin**
+
+```bash
+cd /srv/dev/mtg-collector/frontend
+# T6.1 lint + build
+./node_modules/.bin/eslint src vite.config.js && npx vite build
+# T6.2–T6.4 navigateur réel (Playwright dans mcr.microsoft.com/playwright:v1.58.2-noble, --network host)
+#   backend local :3001 sur la base jetable, APP_VERSION=0.9.0 (release réelle v1.0.0 détectée),
+#   UPDATES_DIR=$SCRATCH/upd ; Vite :5173 ; compte admin@test.io
+#   shot.cjs  : pastille menu, carte + notes, confirmation, demande déposée, en cours, rollback, mobile
+#   shot2.cjs : page ouverte backend arrêté → carte minimale + reconnexion auto ; retour en 1.1.0 → carte rafraîchie + « Recharger »
+```
+
+**Résultats attendus (étape 6) :** lint/build OK ; pastille dorée sur « Outils » (et « Plus » en mobile) ; carte Version (installée / dernière / vérifier), notes rendues ; confirmation mentionnant sauvegarde, 1–3 min d'indisponibilité, restauration auto ; `request.json` sans cible ; bandeau d'étape ; résultat `rolled_back` + journal ; mobile sans débordement ; backend arrêté → carte minimale qui se reconnecte, puis versions rafraîchies et invitation à recharger.
+
 **Étape 3 — Service `updates`**
 
 ```bash
@@ -186,7 +230,16 @@ REDIS_URL=redis://127.0.0.1:1 node -e "import('./src/services/updates.js').then(
 | 2026-11-16 | T3.3 variables compose / .env.example | `UPDATES_REPO`, `UPDATES_GITHUB_TOKEN` | présentes | ✅ |
 | 2026-11-16 | T3.1b après revue (erreur cachée 10 min, dernière release conservée, job en échec, limiter) | 0 échec | 59/59 pass | ✅ |
 | 2026-11-16 | T3.4 Redis indisponible | pas d'exception | statut renvoyé | ✅ |
-| — | T2.5 release live | release `v1.0.0` publiée | à jouer en fin de Lot 1 | ⏳ |
+| 2026-11-16 | T4.1 lint + intégration protocole | 0 échec | 61/61 pass (Vérificateur) | ✅ |
+| 2026-11-16 | T4.2 montage `/updates` | rw sur le backend | `${MTG_UPDATES_DIR:-./updates}:/updates`, pas de `read_only` | ✅ |
+| 2026-11-16 | T4.3 `.gitignore` | `updates/` ignoré | `.gitignore:9:updates/` | ✅ |
+| 2026-11-16 | T5.0–T5.10 (1ʳᵉ version) | shellcheck muet, ALL PASS | idem (Vérificateur, 13/13) | ✅ |
+| 2026-11-16 | T5.0–T5.14 après revue (git en tant que propriétaire, SIGTERM, demande-dossier, guard git) | ALL PASS | ALL PASS ; contrôles négatifs : sans `runuser` → T5.14 ❌ (dubious ownership), sans copie privée → inutile (git remplace l'inode) | ✅ |
+| 2026-11-16 | T6.1 lint + build | OK | OK (Vérificateur) | ✅ |
+| 2026-11-16 | T6.2 parcours navigateur | confirmation, demande sans cible, pas de débordement | conformes (Vérificateur) | ✅ |
+| 2026-11-16 | T6.3 captures (menu, carte, en cours, rollback, mobile) | conformes | conformes (Vérificateur) | ✅ |
+| 2026-11-16 | T6.4 après revue : backend arrêté à l'ouverture, retour en 1.1.0 | carte minimale + reconnexion, versions rafraîchies, « Recharger » | conformes | ✅ |
+| 2026-11-16 | T2.5 release live | release `v1.0.0` publiée, détectée | workflow OK, release stable, `releases/latest` = v1.0.0 ; instance 1.0.0 à jour, 0.9.0 → mise à jour proposée | ✅ |
 
 ## Journal de session
 
@@ -200,3 +253,8 @@ REDIS_URL=redis://127.0.0.1:1 node -e "import('./src/services/updates.js').then(
 - ✅ Étape 2 : `release.yml` (tag `v*.*.*` → garde version → `gh release create --generate-notes`). T2.5 live reportée en fin de Lot 1.
 - ⚠️ Dépôt GitHub privé → décision : **dépôt rendu public** (option A), token optionnel conservé.
 - ✅ Étape 3 : service `updates` + cron 06:15 UTC + routes admin `GET /updates`, `POST /updates/check` (limiter 10/h). Revue : cache best-effort, erreur cachée 10 min, job en échec visible. Vérificateur PASS.
+- ✅ Release `v1.0.0` publiée (fin du Lot 1).
+- ✅ Étape 4 : `updateAgent.js`, routes `GET /updates/progress`, `POST /updates/apply`, montage `/updates`. Revue : dossier root + `requests/`, `running` écrit avant consommation, cible retirée de la demande. Vérificateur PASS.
+- ✅ Étape 5 : `deploy/updater/` (agent, unités systemd, `install.sh`, `test-updater.sh`), `BACKUP_FILE=` dans `backup-db.sh`. Revue : git en tant que propriétaire, trap TERM, `rm -rf` de la demande, guard git. Vérificateur PASS.
+- ✅ Étape 6 : `UpdateCard` (version, notes, mise à jour, suivi, journal), pastille admin, `__APP_VERSION__` (Vite). Revue : polling quand backend injoignable, rafraîchissement en fin de run, fin de suivi sur `requestedAt` serveur, rechargement via le service worker, région live permanente. Vérificateur PASS.
+- 📋 Prochain : Lot 3 (doc, tests complémentaires, E2E).
