@@ -19,3 +19,6 @@ export const importLimiter = rateLimit(opts(15 * 60 * 1000, 10));
 
 // Exports (génération PDF surtout) : coûteux en CPU.
 export const exportLimiter = rateLimit(opts(60 * 1000, 20));
+
+// Vérification manuelle des mises à jour : quota GitHub non authentifié = 60 req/h par IP.
+export const updateCheckLimiter = rateLimit(opts(60 * 60 * 1000, 10));

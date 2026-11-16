@@ -9,6 +9,7 @@ import { evaluateAlerts } from './alerts.js';
 import { getSettings } from './settings.js';
 import { startJob } from './jobRunner.js';
 import { refreshCommanderCache } from './edhrec.js';
+import { checkForUpdates } from './updates.js';
 
 // Dead-man's-switch : ping un check externe (succès / échec). No-op si HEALTHCHECK_PRICE_URL absent.
 async function pingHealthcheck(suffix = '') {
@@ -76,4 +77,10 @@ export async function scheduleDailyJob() {
     startJob('commander-cache', refreshCommanderCache);
   }, { timezone: 'UTC' });
   logger.info('cache commandants planifié (chaque jour 05:30 UTC)');
+
+  // Nouvelle version publiée ? (GitHub Releases ; résultat mis en cache pour l'admin)
+  cron.schedule('15 6 * * *', () => {
+    startJob('update-check', checkForUpdates);
+  }, { timezone: 'UTC' });
+  logger.info('vérification des mises à jour planifiée (chaque jour 06:15 UTC)');
 }

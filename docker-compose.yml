@@ -45,6 +45,8 @@ services:
       TRUST_PROXY: ${TRUST_PROXY:-2}
       BACKUP_DIR_RO: /backups
       HEALTHCHECK_PRICE_URL: ${HEALTHCHECK_PRICE_URL:-}
+      UPDATES_REPO: ${UPDATES_REPO:-}
+      UPDATES_GITHUB_TOKEN: ${UPDATES_GITHUB_TOKEN:-}
     volumes:
       # Dossier des sauvegardes monté en lecture seule (statut affiché dans Administration)
       - ${MTG_BACKUP_DIR:-./backups}:/backups:ro

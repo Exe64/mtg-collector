@@ -12,6 +12,8 @@ import { flushScryfallCache } from '../services/cache.js';
 import { applyPriceSchedule, runDailyJob } from '../services/dailyJob.js';
 import { syncBulk, syncFrenchNames } from '../services/bulkData.js';
 import { refreshCommanderCache } from '../services/edhrec.js';
+import { getUpdateStatus } from '../services/updates.js';
+import { updateCheckLimiter } from '../middleware/limiters.js';
 
 const router = Router();
 router.use(requireAuth, requireAdmin);
@@ -73,6 +75,16 @@ router.get('/status', async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+// GET /api/admin/updates → version courante vs dernière release (cache Redis)
+router.get('/updates', async (req, res, next) => {
+  try { res.json(await getUpdateStatus()); } catch (err) { next(err); }
+});
+
+// POST /api/admin/updates/check → force une vérification auprès de GitHub
+router.post('/updates/check', updateCheckLimiter, async (req, res, next) => {
+  try { res.json(await getUpdateStatus({ force: true })); } catch (err) { next(err); }
 });
 
 // POST /api/admin/actions/sync-bulk  (fire-and-forget)

@@ -131,6 +131,73 @@ test('intégration API (DB + Redis)', { skip: RUN ? false : 'RUN_DB_TESTS!=1' },
     assert.match(res.body.version, /^\d+\.\d+\.\d+/);
   });
 
+  await t.test('updates : release plus récente détectée, cache, erreur non mise en cache', async () => {
+    const { APP_VERSION } = await import('../../src/config/version.js');
+    const realFetch = globalThis.fetch;
+    let calls = 0;
+    let reply = () => new Response(JSON.stringify({
+      tag_name: 'v99.0.0', name: 'v99.0.0', body: '## Notes', html_url: 'https://example.test/r', published_at: '2026-11-16T00:00:00Z',
+    }), { status: 200 });
+    globalThis.fetch = async (url, opts) => {
+      if (String(url).startsWith('https://api.github.com/')) { calls += 1; return reply(); }
+      return realFetch(url, opts);
+    };
+    const auth = (req) => req.set('Authorization', `Bearer ${accessToken}`);
+    try {
+      await redis.del('updates:latest');
+      const checked = await auth(agent.post('/api/admin/updates/check'));
+      assert.equal(checked.status, 200);
+      assert.equal(checked.body.current, APP_VERSION);
+      assert.equal(checked.body.latest.version, '99.0.0');
+      assert.equal(checked.body.latest.notes, '## Notes');
+      assert.equal(checked.body.updateAvailable, true);
+      assert.ok(checked.body.checkedAt);
+
+      const cachedRes = await auth(agent.get('/api/admin/updates'));
+      assert.equal(cachedRes.body.latest.version, '99.0.0');
+      assert.equal(calls, 1, 'GET servi depuis Redis');
+
+      // même version que l'instance → pas de mise à jour
+      reply = () => new Response(JSON.stringify({ tag_name: `v${APP_VERSION}`, html_url: 'x' }), { status: 200 });
+      assert.equal((await auth(agent.post('/api/admin/updates/check'))).body.updateAvailable, false);
+
+      // aucune release publiée → latest null
+      reply = () => new Response('{}', { status: 404 });
+      const none = await auth(agent.post('/api/admin/updates/check'));
+      assert.equal(none.body.latest, null);
+      assert.equal(none.body.updateAvailable, false);
+
+      // GitHub en erreur → erreur remontée, dernière release connue conservée,
+      // erreur mise en cache (le GET suivant n'appelle pas GitHub)
+      reply = () => new Response(JSON.stringify({ tag_name: 'v99.0.0', html_url: 'x' }), { status: 200 });
+      await auth(agent.post('/api/admin/updates/check'));
+      reply = () => new Response('{}', { status: 503 });
+      const failed = await auth(agent.post('/api/admin/updates/check'));
+      assert.equal(failed.status, 200);
+      assert.match(failed.body.error, /GitHub API 503/);
+      assert.equal(failed.body.latest.version, '99.0.0');
+      assert.equal(failed.body.updateAvailable, true);
+      const before = calls;
+      const afterFail = await auth(agent.get('/api/admin/updates'));
+      assert.match(afterFail.body.error, /GitHub API 503/);
+      assert.equal(calls, before, 'erreur servie depuis le cache');
+
+      // job quotidien : un échec fait échouer le job ; un succès renvoie un résumé compact
+      const { checkForUpdates } = await import('../../src/services/updates.js');
+      await assert.rejects(checkForUpdates(), /GitHub API 503/);
+      reply = () => new Response(JSON.stringify({ tag_name: 'v99.0.0', body: 'long notes', html_url: 'x' }), { status: 200 });
+      assert.deepEqual(await checkForUpdates(), { current: APP_VERSION, latest: '99.0.0', updateAvailable: true });
+    } finally {
+      globalThis.fetch = realFetch;
+      await redis.del('updates:latest');
+    }
+  });
+
+  await t.test('updates : non authentifié → 401', async () => {
+    const res = await request(app).get('/api/admin/updates');
+    assert.equal(res.status, 401);
+  });
+
   await t.test('users : admin → 200 ; compte non admin → 403 (requireAdmin partagé)', async () => {
     const list = await agent.get('/api/auth/users').set('Authorization', `Bearer ${accessToken}`);
     assert.equal(list.status, 200);

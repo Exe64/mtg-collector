@@ -67,8 +67,8 @@ build, healthcheck, rollback automatique en cas d'échec.
 
 **Lot 1 — détection seule**
 - [x] Étape 1 — Versioning : version unique, `npm run release`, `APP_VERSION` build arg exposé par `/api/health` et l'admin (S · standard → Sonnet)
-- [ ] Étape 2 — Workflow `release.yml` : tag `v*` → GitHub Release, notes générées (S · standard → Sonnet)
-- [ ] Étape 3 — Service backend `updates` : `releases/latest` (cache Redis, token optionnel), comparaison semver, job quotidien + route admin « Vérifier » (M · standard → Sonnet)
+- [x] Étape 2 — Workflow `release.yml` : tag `v*` → GitHub Release, notes générées (S · standard → Sonnet)
+- [x] Étape 3 — Service backend `updates` : `releases/latest` (cache Redis, token optionnel), comparaison semver, job quotidien + route admin « Vérifier » (M · standard → Sonnet)
 
 **Lot 2 — mise à jour en un clic**
 - [ ] Étape 4 — Protocole backend ↔ agent : dossier monté `/updates` (`request.json` / `status.json`), verrou, routes admin demander / suivre (M · reasoning → Opus)
@@ -133,7 +133,37 @@ echo x >> README.md && npm run release -- patch   # refusé (arbre sale)
 # + branche ≠ main, main ≠ origin/main, tag déjà existant → refusés
 ```
 
-**Résultats attendus :**
+**Étape 2 — Workflow `release.yml`**
+
+```bash
+# T2.1 lint du workflow
+docker run --rm -v /srv/dev/mtg-collector:/repo:ro -w /repo --entrypoint /usr/local/bin/actionlint rhysd/actionlint:1.7.7 .github/workflows/release.yml
+# T2.2 déclencheur + permissions
+python3 -c "import yaml;d=yaml.safe_load(open('.github/workflows/release.yml'));print(d[True], d['permissions'])"
+# T2.3 garde tag ↔ package.json : extraire le `run` de l'étape « Tag must match… » et l'exécuter
+GITHUB_REF_NAME=v1.0.0 bash guard.sh   # code 0
+GITHUB_REF_NAME=v9.9.9 bash guard.sh   # code 1 + ::error::
+# T2.4 `gh release create --verify-tag --generate-notes` avec GH_TOKEN=github.token
+# T2.5 (live, fin du Lot 1) : push du tag v1.0.0 → release publiée
+```
+
+**Résultats attendus (étape 2) :** actionlint muet ; push de tags `v*.*.*` uniquement, `contents: write` ; garde OK / refus ; release créée au push du tag.
+
+**Étape 3 — Service `updates`**
+
+```bash
+cd /srv/dev/mtg-collector/backend
+# T3.1 lint + tests (semver ; intégration : release détectée, cache, égalité, 404, erreur cachée 10 min + dernière release conservée, job en échec, 401)
+npm run lint && npm test
+# T3.2 appel réel GitHub sans token (dépôt public)
+REDIS_URL=redis://127.0.0.1:56379 node -e "import('./src/services/updates.js').then(async m=>{console.log(JSON.stringify(await m.getUpdateStatus({force:true})));process.exit(0)})"
+# T3.4 Redis indisponible → pas d'erreur 500, cache ignoré
+REDIS_URL=redis://127.0.0.1:1 node -e "import('./src/services/updates.js').then(async m=>{console.log(JSON.stringify(await m.getUpdateStatus()));process.exit(0)})"
+```
+
+**Résultats attendus (étape 3) :** 0 échec ; T3.2 → `current: "1.0.0"`, `latest: null` tant qu'aucune release n'existe, sans `error`.
+
+**Résultats attendus (étape 1) :**
 - T1.1 : lint propre, 0 échec ; `/api/health` et `/api/admin/status` renvoient `version` au format semver.
 - T1.2 : lint propre, build OK.
 - T1.3 : commit `chore(release): v1.1.0` + tag `v1.1.0`, versions back/front et lockfiles à `1.1.0` ; argument invalide → usage ; arbre sale → `working tree not clean`.
@@ -147,6 +177,16 @@ echo x >> README.md && npm run release -- patch   # refusé (arbre sale)
 | 2026-11-16 | T1.3 release script | tag + versions à jour ; refus usage / arbre sale / hors main | `v1.0.1` créé, 4 fichiers à 1.0.1 ; 3 refus code 1 | ✅ |
 | 2026-11-16 | T1.3b release script (après revue) | refus si tag existe ou main ≠ origin | refusés, arbre restauré ; OK une fois synchronisé | ✅ |
 | 2026-11-16 | T1.4 override `APP_VERSION` | `1.0.0` puis `9.9.9-test` | idem | ✅ |
+| 2026-11-16 | T2.1 actionlint | aucune erreur | exit 0, muet (auto-check : le Vérificateur n'a pas pu lancer docker, permission refusée) | ✅ |
+| 2026-11-16 | T2.2 déclencheur / permissions | tags `v*.*.*`, `contents: write` | idem | ✅ |
+| 2026-11-16 | T2.3 garde de version | v1.0.0 → 0 ; v9.9.9 → 1 + `::error::` | idem | ✅ |
+| 2026-11-16 | T2.4 création de la release | `--verify-tag --generate-notes`, `github.token` | présent | ✅ |
+| 2026-11-16 | T3.1 lint + tests | 0 échec, tests semver/updates `ok` | 59/59 pass | ✅ |
+| 2026-11-16 | T3.2 GitHub réel sans token | `latest: null`, pas d'`error` | idem (dépôt public, aucune release) | ✅ |
+| 2026-11-16 | T3.3 variables compose / .env.example | `UPDATES_REPO`, `UPDATES_GITHUB_TOKEN` | présentes | ✅ |
+| 2026-11-16 | T3.1b après revue (erreur cachée 10 min, dernière release conservée, job en échec, limiter) | 0 échec | 59/59 pass | ✅ |
+| 2026-11-16 | T3.4 Redis indisponible | pas d'exception | statut renvoyé | ✅ |
+| — | T2.5 release live | release `v1.0.0` publiée | à jouer en fin de Lot 1 | ⏳ |
 
 ## Journal de session
 
@@ -157,3 +197,6 @@ echo x >> README.md && npm run release -- patch   # refusé (arbre sale)
 ### Session 2026-11-16
 - ✅ Phase 6 validée (grilling : 6 décisions ajoutées). Implémentation démarrée.
 - ✅ Étape 1 : version lue depuis `backend/package.json` (override `APP_VERSION` env — pas de build arg, YAGNI), `npm run release`, `version` dans health/admin. Vérificateur PASS.
+- ✅ Étape 2 : `release.yml` (tag `v*.*.*` → garde version → `gh release create --generate-notes`). T2.5 live reportée en fin de Lot 1.
+- ⚠️ Dépôt GitHub privé → décision : **dépôt rendu public** (option A), token optionnel conservé.
+- ✅ Étape 3 : service `updates` + cron 06:15 UTC + routes admin `GET /updates`, `POST /updates/check` (limiter 10/h). Revue : cache best-effort, erreur cachée 10 min, job en échec visible. Vérificateur PASS.
