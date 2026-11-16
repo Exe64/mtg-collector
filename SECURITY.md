@@ -15,6 +15,5 @@ advisory is published and credits the reporter unless asked otherwise.
 
 ## Scope
 
-In scope: the backend API, the frontend, the Docker images and the scripts in
-`deploy/`. Out of scope: vulnerabilities in your own reverse proxy, host or
+In scope: the backend API, the frontend and the Docker images. Out of scope: vulnerabilities in your own reverse proxy, host or
 third-party services (Scryfall, EDHREC, Commander Spellbook).

@@ -132,7 +132,7 @@ des cartes, cache commandants chaque nuit).
 |---|---|
 | [Installation](doc/installation.md) | Prérequis, configuration, premier démarrage, HTTPS |
 | [Exploitation](doc/operations.md) | Jobs planifiés, commandes manuelles, surveillance |
-| [Sauvegardes](doc/backups.md) | Sauvegardes chiffrées hors machine, restauration, test de restauration |
+| [Sauvegardes](doc/backups.md) | Sauvegarde, restauration, état dans l'administration |
 | [API](backend/API.md) | Référence des endpoints REST |
 | [Contribuer](CONTRIBUTING.md) · [Sécurité](SECURITY.md) | Comment contribuer, comment signaler une vulnérabilité |
 
