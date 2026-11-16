@@ -4,6 +4,7 @@ import { join } from 'node:path';
 
 import { query, pool } from '../config/db.js';
 import { redis } from '../config/redis.js';
+import { APP_VERSION } from '../config/version.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { getSettings, updateSettings } from '../services/settings.js';
 import { jobState, startJob } from '../services/jobRunner.js';
@@ -57,6 +58,7 @@ router.get('/status', async (req, res, next) => {
     ]);
 
     res.json({
+      version: APP_VERSION,
       health: { db, redis: redisUp },
       data: {
         cards: counts.rows[0].cards,

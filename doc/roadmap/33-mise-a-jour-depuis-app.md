@@ -66,7 +66,7 @@ build, healthcheck, rollback automatique en cas d'échec.
 ## Étapes
 
 **Lot 1 — détection seule**
-- [ ] Étape 1 — Versioning : version unique, `npm run release`, `APP_VERSION` build arg exposé par `/api/health` et l'admin (S · standard → Sonnet)
+- [x] Étape 1 — Versioning : version unique, `npm run release`, `APP_VERSION` build arg exposé par `/api/health` et l'admin (S · standard → Sonnet)
 - [ ] Étape 2 — Workflow `release.yml` : tag `v*` → GitHub Release, notes générées (S · standard → Sonnet)
 - [ ] Étape 3 — Service backend `updates` : `releases/latest` (cache Redis, token optionnel), comparaison semver, job quotidien + route admin « Vérifier » (M · standard → Sonnet)
 
@@ -95,6 +95,12 @@ build, healthcheck, rollback automatique en cas d'échec.
 | Sécurité | Backup avant + rollback auto (tag précédent + restauration du dump) | Les migrations ne se défont pas seules |
 | Fréquence | Job quotidien + bouton « Vérifier » | Suffisant, peu d'appels API |
 | Notification | Admins uniquement | Seuls eux peuvent agir |
+| Première release | `v1.0.0` publiée en fin de Lot 1 ; l'agent mémorise `git rev-parse HEAD` pour le rollback | Aucun tag existant, instances actuellement sur `main` |
+| Cohérence des données | `compose stop backend` avant le backup (coupure ~1–3 min) | Aucune écriture perdue entre dump et rollback |
+| Dump à restaurer | `backup-db.sh` émet `BACKUP_FILE=<chemin>` en dernière ligne | L'agent sait quel dump restaurer, cron inchangé |
+| Entrée de l'agent | `request.json` = `{"action":"update"}` seul ; l'agent résout lui-même le dernier tag et vérifie son existence | Aucune valeur du backend n'atteint le shell root |
+| Tests E2E | Dépôt bare local + tags de test + faux `docker compose` | Rien n'est poussé sur GitHub |
+| `/api/health` | Ajout d'un champ `version` uniquement | Healthcheck compose inchangé |
 
 ## Tests
 
@@ -102,23 +108,52 @@ build, healthcheck, rollback automatique en cas d'échec.
 
 ```bash
 cd /srv/dev/mtg-collector
+# Postgres + Redis jetables pour les tests d'intégration
+docker run -d --rm --name mtg33-pg -e POSTGRES_DB=magic_collection -e POSTGRES_USER=test -e POSTGRES_PASSWORD=test -p 127.0.0.1:55432:5432 postgres:16-alpine
+docker run -d --rm --name mtg33-redis -p 127.0.0.1:56379:6379 redis:8-alpine
+export DATABASE_URL=postgres://test:test@127.0.0.1:55432/magic_collection REDIS_URL=redis://127.0.0.1:56379 RUN_DB_TESTS=1 NODE_ENV=test JWT_SECRET=ci-secret-ci-secret-ci-secret-ci-secret JWT_REFRESH_SECRET=ci-refresh-ci-refresh-ci-refresh-ci-refresh
+SCRATCH=/tmp/claude-1000/-srv-dev-mtg-collector/4310bd5d-c88a-4f67-8810-6e483bb48910/scratchpad
 ```
 
 ### Procédure de test
 
+**Étape 1 — Versioning**
+
 ```bash
-(à rédiger à l'étape 🧪 Tests)
+# T1.1 lint + tests backend (unitaires + intégration health/admin version)
+cd /srv/dev/mtg-collector/backend && npm run migrate && npm run lint && npm test
+# T1.2 build frontend (ligne Version dans Administration)
+cd /srv/dev/mtg-collector/frontend && npx eslint src/pages/Accounts.jsx && npx vite build
+# T1.3 script de release sur un clone jetable
+rm -rf $SCRATCH/rel && git clone -q /srv/dev/mtg-collector $SCRATCH/rel
+cp /srv/dev/mtg-collector/{package.json,deploy/release.sh} ... # (copie des fichiers non commités)
+cd $SCRATCH/rel && npm run release -- minor && git tag && grep '"version"' backend/package.json frontend/package.json
+npm run release -- bogus      # refusé
+echo x >> README.md && npm run release -- patch   # refusé (arbre sale)
+# + branche ≠ main, main ≠ origin/main, tag déjà existant → refusés
 ```
 
-**Résultats attendus :** à définir.
+**Résultats attendus :**
+- T1.1 : lint propre, 0 échec ; `/api/health` et `/api/admin/status` renvoient `version` au format semver.
+- T1.2 : lint propre, build OK.
+- T1.3 : commit `chore(release): v1.1.0` + tag `v1.1.0`, versions back/front et lockfiles à `1.1.0` ; argument invalide → usage ; arbre sale → `working tree not clean`.
 
 ### Résultats joués et vérifiés
 
 | Date | Test | Attendu | Observé | Verdict |
 |------|------|---------|---------|---------|
+| 2026-11-16 | T1.1 lint + tests backend | 0 échec, health/admin exposent `version` | 55/55 pass, sous-tests health/admin `ok` | ✅ |
+| 2026-11-16 | T1.2 build frontend | lint + build OK | OK | ✅ |
+| 2026-11-16 | T1.3 release script | tag + versions à jour ; refus usage / arbre sale / hors main | `v1.0.1` créé, 4 fichiers à 1.0.1 ; 3 refus code 1 | ✅ |
+| 2026-11-16 | T1.3b release script (après revue) | refus si tag existe ou main ≠ origin | refusés, arbre restauré ; OK une fois synchronisé | ✅ |
+| 2026-11-16 | T1.4 override `APP_VERSION` | `1.0.0` puis `9.9.9-test` | idem | ✅ |
 
 ## Journal de session
 
 ### Session 2026-11-15
 - ✅ Fait : cadrage (agent hôte, release sur tag, rollback auto), issue #33, plan créé.
 - 📋 Prochain : Phase 6 (validation avant implémentation, plan L), puis étape 1.
+
+### Session 2026-11-16
+- ✅ Phase 6 validée (grilling : 6 décisions ajoutées). Implémentation démarrée.
+- ✅ Étape 1 : version lue depuis `backend/package.json` (override `APP_VERSION` env — pas de build arg, YAGNI), `npm run release`, `version` dans health/admin. Vérificateur PASS.

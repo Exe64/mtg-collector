@@ -1,0 +1,8 @@
+{
+  "name": "mtg-collector",
+  "private": true,
+  "description": "Repo root — release tooling only (backend/ and frontend/ have their own packages)",
+  "scripts": {
+    "release": "bash deploy/release.sh"
+  }
+}

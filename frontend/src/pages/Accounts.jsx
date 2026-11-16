@@ -141,6 +141,7 @@ export default function Accounts() {
           <p className="text-xs text-slate-500">Chargement…</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+            <div className="flex justify-between"><span className="text-slate-400">Version</span><span className="font-mono">{status.version ? `v${status.version}` : '—'}</span></div>
             <div className="flex justify-between"><span className="text-slate-400">Base de données</span><span><Dot ok={status.health.db} /></span></div>
             <div className="flex justify-between"><span className="text-slate-400">Redis</span><span><Dot ok={status.health.redis} /></span></div>
             <div className="flex justify-between"><span className="text-slate-400">Cartes en base</span><span>{status.data.cards?.toLocaleString('fr-FR')}</span></div>

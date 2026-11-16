@@ -121,6 +121,14 @@ test('intégration API (DB + Redis)', { skip: RUN ? false : 'RUN_DB_TESTS!=1' },
     assert.equal(res.status, 200);
     assert.equal(res.body.health.db, true);
     assert.ok(res.body.settings.price_job_hours);
+    assert.match(res.body.version, /^\d+\.\d+\.\d+/);
+  });
+
+  await t.test('health → expose la version applicative', async () => {
+    const res = await request(app).get('/api/health');
+    assert.equal(res.status, 200);
+    assert.equal(res.body.status, 'ok');
+    assert.match(res.body.version, /^\d+\.\d+\.\d+/);
   });
 
   await t.test('users : admin → 200 ; compte non admin → 403 (requireAdmin partagé)', async () => {

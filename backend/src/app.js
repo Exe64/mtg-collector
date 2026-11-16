@@ -6,6 +6,7 @@ import pinoHttp from 'pino-http';
 import { pool } from './config/db.js';
 import { redis } from './config/redis.js';
 import { logger } from './config/logger.js';
+import { APP_VERSION } from './config/version.js';
 import authRoutes from './routes/auth.js';
 import cardsRoutes from './routes/cards.js';
 import setsRoutes from './routes/sets.js';
@@ -42,9 +43,9 @@ app.get('/api/health', async (req, res) => {
   try {
     await pool.query('SELECT 1');
     const pong = await redis.ping();
-    res.json({ status: 'ok', db: 'up', redis: pong === 'PONG' ? 'up' : 'down' });
+    res.json({ status: 'ok', db: 'up', redis: pong === 'PONG' ? 'up' : 'down', version: APP_VERSION });
   } catch (err) {
-    res.status(503).json({ status: 'degraded', error: err.message });
+    res.status(503).json({ status: 'degraded', error: err.message, version: APP_VERSION });
   }
 });
 
