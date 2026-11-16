@@ -13,15 +13,15 @@ Backlog consolidé : plans nommés d'après leur issue GitHub (voir `doc/roadmap
 
 ## À faire
 
-- **[Issue: #39] `#39` — Decks : filtrer et grouper par format** 🟢 · priorité moyenne · S — Page Decks : une section par format (ordre alphabétique) et un filtre par format mémorisé dans l'URL (`?format=`).
-  [`39-decks-filtre-format.md`](39-decks-filtre-format.md)
-
 - **[Issue: #4] `#4` — Trouver un commandant** 🟢 · priorité moyenne · L — Page « Commandants » façon find-commander de Manamancer : commandants légaux ou légendes de la collection, données EDHREC et Commander Spellbook en cache.
   [`4-trouver-un-commandant.md`](4-trouver-un-commandant.md)
 
 ---
 
 ## Fait
+
+- **[Issue: #39] `#39` — Decks : filtrer et grouper par format** (2026-11-16) 🔵 — Page Decks : une section par format (ordre alphabétique) et un filtre par format mémorisé dans l'URL (`?format=`) (v1.2.0).
+  [`39-decks-filtre-format.md`](done/39-decks-filtre-format.md)
 
 - **[Issue: #37] `#37` — Pied de page copyright et encart dons** (2026-11-16) 🔵 — Footer © Julien DUMUR / GitHub / Ko-fi / version / licence sur toutes les pages, encart « Soutenir le projet » avec boutons Ko-fi et PayPal à logos dans l'administration (v1.1.0 → v1.1.3).
   [`37-footer-copyright-dons.md`](done/37-footer-copyright-dons.md)

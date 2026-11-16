@@ -2,8 +2,8 @@
 plan:
   id: '39'
   name: 39-decks-filtre-format.md
-  link: https://github.com/Exe64/mtg-collector/blob/main/doc/roadmap/39-decks-filtre-format.md
-status: active
+  link: https://github.com/Exe64/mtg-collector/blob/main/doc/roadmap/done/39-decks-filtre-format.md
+status: done
 date: 2026-11-16
 updated_at: 2026-11-16
 description: >
@@ -41,8 +41,8 @@ Sur la page Decks, regrouper les decks par format et pouvoir n'afficher qu'un fo
 
 - [x] Étape 1 — `groupByFormat(decks)` → `[[format, decks]]` trié alphabétiquement par `formatLabel`, ordre intra-groupe conservé ; test unitaire (XS · standard → Sonnet)
 - [x] Étape 2 — `Decks.jsx` : `?format=` (useSearchParams), sélecteur visible si ≥ 2 formats (formats présents uniquement), sections « Format (n) » avec titre masqué s'il ne reste qu'une section, valeur d'URL inconnue → « tous » (S · standard → Sonnet)
-- [ ] 🧪 Tests — Rédiger et exécuter la procédure de test (avant-dernière étape, obligatoire)
-- [ ] ✅ Validation — Vérifier les résultats des tests et clôturer (dernière étape, obligatoire)
+- [x] 🧪 Tests — Rédiger et exécuter la procédure de test (avant-dernière étape, obligatoire)
+- [x] ✅ Validation — Vérifier les résultats des tests et clôturer (dernière étape, obligatoire)
 
 ## Décisions techniques
 
@@ -90,11 +90,12 @@ T4 — contrôle visuel (après rebuild du frontend, `docker compose up -d --bui
 | 2026-11-16 | T1 `npm test` (vérificateur sous-agent) | 13 tests, 0 fail, groupByFormat ok | 13/13, `ok 13 - groupByFormat…` | ✅ PASS |
 | 2026-11-16 | T2 `npm run build` (vérificateur) | sortie 0, « built in » | sortie 0, `built in 1.97s`, 0 « error » | ✅ PASS |
 | 2026-11-16 | T3 eslint (vérificateur) | sortie 0, aucune erreur | sortie 0, aucune sortie | ✅ PASS |
-| 2026-11-16 | T4 contrôle visuel | points 1 à 5 | non joué : conteneur frontend non reconstruit, à jouer par l'opérateur | ⏳ En attente |
+| 2026-11-16 | T4 contrôle visuel | points 1 à 5 | non joué (conteneur non reconstruit) | ⏳ En attente |
+| 2026-11-16 | T4 contrôle visuel (opérateur, v1.2.0) | points 1 à 5 | 1 à 5 confirmés conformes | ✅ PASS |
 
 ## Journal de session
 
 ### Session 2026-11-16
 - ✅ Fait : cadrage (filtrer + grouper, URL, alphabétique, titre masqué si section unique), issue #39, plan créé.
 - ✅ Fait : étapes 1 et 2 (groupByFormat + test, Decks.jsx sélecteur/sections/URL), T1–T3 PASS.
-- 📋 Prochain : T4 contrôle visuel, puis ✅ Validation et clôture.
+- ✅ Fait : release v1.2.0, T4 validé par l'opérateur (points 1 à 5). Plan clôturé.
