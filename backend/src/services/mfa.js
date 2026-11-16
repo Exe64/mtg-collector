@@ -14,8 +14,10 @@ export const otpauthUri = (email, secret) =>
 
 /** Vérifie un code TOTP (±1 pas de 30 s pour la dérive d'horloge). */
 export async function verifyTotp(secret, token) {
-  if (!secret || !token) return false;
-  const { valid } = await otpVerify({ token: String(token).replace(/\s/g, ''), secret, window: 1 });
+  const t = String(token ?? '').replace(/\s/g, '');
+  // otplib throws on anything but 6 digits (e.g. a backup code) → treat as "not a TOTP".
+  if (!secret || !/^\d{6}$/.test(t)) return false;
+  const { valid } = await otpVerify({ token: t, secret, window: 1 });
   return valid === true;
 }
 

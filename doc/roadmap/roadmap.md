@@ -13,6 +13,9 @@ Backlog consolidé : plans nommés d'après leur issue GitHub (voir `doc/roadmap
 
 ## À faire
 
+- **[Issue: #36] `#36` — Codes de secours MFA** 🟡 · priorité haute · S — Codes de secours refusés (désactivation, connexion) : `verifyTotp` levait sur un code non numérique ; téléchargement .txt des codes après activation.
+  [`36-mfa-codes-secours.md`](36-mfa-codes-secours.md)
+
 - **[Issue: #35] `#35` — Suggestions qui restent ouvertes après la recherche** 🟡 · priorité moyenne · XS — La liste d'autocomplétion de « Ajouter des cartes » ne s'ouvre plus que sur saisie.
   [`35-suggestions-restent-ouvertes.md`](35-suggestions-restent-ouvertes.md)
 

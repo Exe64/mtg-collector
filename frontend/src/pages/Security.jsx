@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ShieldCheck, ShieldOff } from 'lucide-react';
+import { ShieldCheck, ShieldOff, Download } from 'lucide-react';
 import { api } from '../api/client';
 
 // États : 'idle' (chargé), 'setup' (QR affiché), 'codes' (codes de secours à noter)
@@ -64,10 +64,17 @@ export default function Security() {
           <ul className="grid grid-cols-2 gap-1 font-mono text-sm">
             {codes.map((c) => <li key={c} className="bg-slate-900 rounded px-2 py-1 text-center">{c}</li>)}
           </ul>
-          <button type="button" onClick={() => setCodes(null)}
-            className="mt-3 text-xs rounded-md bg-slate-700 hover:bg-slate-600 px-3 py-1.5">
-            J’ai noté mes codes
-          </button>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <a download="mtg-collector-codes-secours.txt"
+              href={`data:text/plain;charset=utf-8,${encodeURIComponent(`MTG Collector — codes de secours MFA (usage unique)\n\n${codes.join('\n')}\n`)}`}
+              className="inline-flex items-center gap-1.5 text-xs rounded-md bg-gold-700 hover:bg-gold-600 text-slate-900 px-3 py-1.5">
+              <Download size={14} /> Télécharger (.txt)
+            </a>
+            <button type="button" onClick={() => setCodes(null)}
+              className="text-xs rounded-md bg-slate-700 hover:bg-slate-600 px-3 py-1.5">
+              J’ai noté mes codes
+            </button>
+          </div>
         </div>
       )}
 

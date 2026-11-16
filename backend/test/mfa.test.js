@@ -11,6 +11,8 @@ test('TOTP : code généré vérifié, mauvais code rejeté', async () => {
   assert.equal(await verifyTotp(secret, token), true);
   assert.equal(await verifyTotp(secret, '000000'), false);
   assert.equal(await verifyTotp(secret, ''), false);
+  // a backup code must not throw (would skip the backup-code fallback)
+  assert.equal(await verifyTotp(secret, 'a1b2-c3d4'), false);
 });
 
 test('codes de secours : usage unique, insensible à la casse', () => {
