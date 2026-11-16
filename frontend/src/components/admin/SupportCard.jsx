@@ -18,7 +18,7 @@ export default function SupportCard() {
           par un don : il finance le temps passé à corriger, améliorer et publier de nouvelles versions.
         </p>
       </div>
-      <div className="flex flex-wrap gap-3 shrink-0">
+      <div className="flex flex-nowrap gap-3 shrink-0">
         <a href={AUTHOR_LINKS.kofi} {...ext} className={`${btn} border-gold-500/40 text-gold-200 hover:bg-gold-500/10`}>
           <img src="/brands/kofi.png" alt="" width="40" height="40" className="rounded-lg" />
           Ko-fi
