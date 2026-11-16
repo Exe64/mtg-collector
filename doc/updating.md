@@ -45,9 +45,12 @@ Requirements on the host:
   `DB_USER`, `MTG_BACKUP_DIR` and `MTG_BACKUP_PASSPHRASE_FILE` there, not only in
   a crontab. Create the backup folder beforehand with the owner and mode you
   want (otherwise root creates it, mode 755), and prefer encrypted dumps;
-- if you start the stack with extra compose files, declare them in `.env`
-  (`COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml`) so the agent
-  uses the same set.
+- extra compose files (a reverse-proxy override, say) are picked up from the
+  running containers: the agent reads the files the stack was started with
+  (`com.docker.compose.project.config_files` label) and uses exactly those. You
+  can also declare them in `.env`
+  (`COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml`); the agent then
+  checks that they match the running stack and refuses to start otherwise.
 
 Install (as root, from the app folder):
 
@@ -88,6 +91,7 @@ Read from the environment or `.env`:
 | `MTG_UPDATE_TIMEOUT` | `600` | Seconds `docker compose up --wait` waits for healthy containers |
 | `MTG_UPDATE_LOCK` | `/run/lock/mtg-updater.lock` | Lock preventing two runs at once |
 | `MTG_COMPOSE` | `docker compose` | Compose command used by the agent (`backup-db.sh` always runs `docker compose`) |
+| `COMPOSE_FILE` | files of the running stack | Compose files for every compose call, backup included. When set, must match the running stack |
 | `MTG_BACKUP_SCRIPT` | `deploy/backup-db.sh` | Backup script; must print `BACKUP_FILE=<path>` |
 | `DB_USER`, `MTG_BACKUP_PASSPHRASE_FILE` | as in [backups](backups.md) | Also read by the agent to restore the dump on rollback |
 
@@ -101,6 +105,9 @@ When an admin confirms **Mettre à jour**, the backend drops
    the git remote**. That is normally the GitHub Release shown in the card; on a
    fork, point both `UPDATES_REPO` and the remote at the fork. If that tag is not
    newer than the running version, the run ends as *skipped* ("Déjà à jour").
+   It then reads the compose files of the running containers and refuses if they
+   differ between containers, if one of them no longer exists, or if
+   `COMPOSE_FILE` names other files.
 2. **Stops the backend**, so no data is written after the backup. The app is
    unavailable from here, usually 1 to 3 minutes.
 3. **Backs up** the database with `deploy/backup-db.sh`.
@@ -179,6 +186,8 @@ To go back: `git checkout <previous tag>`, restore the dump
 | Stuck on "en attente de l'agent" | `systemctl status mtg-updater.path`; `journalctl -u mtg-updater.service`. If the watcher shows `unit-start-limit-hit` (the service failed repeatedly), fix the cause then `systemctl reset-failed mtg-updater.path mtg-updater.service && systemctl start mtg-updater.path`. A request the agent never picked up blocks new ones (409): remove `updates/requests/request.json`, it would fire as soon as the watcher restarts |
 | "Déjà à jour" although a release is shown | The git remote has no newer tag: `git fetch --tags` and check `MTG_UPDATE_REMOTE` |
 | Failed at preflight with "modifications locales" | `git status` in the app folder; commit, stash or discard local changes |
+| "fichiers compose différents" / "COMPOSE_FILE … diffère" / "introuvable" at preflight | The running stack was not started with the files the agent would use (often after a manual `docker compose up` without the override). Restart it once by hand with the right files (`docker compose -f docker-compose.yml -f <override>.yml up -d`) and, ideally, set `COMPOSE_FILE` in `.env` |
+| "port is already allocated" in the status | A container publishes a port already taken on the host (a reverse proxy on 80/443): the compose files used do not match how the instance is exposed. See the row above |
 | Details of the last run | `updates/update.log`, `updates/status.json`, or the log in the admin page |
 
 ## Publishing a release (maintainers)

@@ -16,7 +16,9 @@
 #
 # Variables (env or .env): MTG_APP_DIR, MTG_UPDATES_DIR (default <app>/updates),
 #   MTG_UPDATE_REMOTE (default origin), MTG_UPDATE_TIMEOUT (seconds, default 600),
-#   MTG_COMPOSE (default "docker compose"), MTG_BACKUP_SCRIPT, + backup-db.sh variables.
+#   MTG_COMPOSE (default "docker compose"), MTG_DOCKER (default "docker"),
+#   MTG_BACKUP_SCRIPT, + backup-db.sh variables. COMPOSE_FILE (env or .env) or, when
+#   unset, the compose files the running containers were started with.
 #
 set -Eeuo pipefail
 
@@ -41,6 +43,7 @@ case "$UPDATES_DIR" in /*) ;; *) UPDATES_DIR="$APP_DIR/${UPDATES_DIR#./}" ;; esa
 REMOTE="$(conf MTG_UPDATE_REMOTE origin)"
 TIMEOUT="$(conf MTG_UPDATE_TIMEOUT 600)"
 read -r -a COMPOSE <<< "$(conf MTG_COMPOSE 'docker compose')"
+read -r -a DOCKER <<< "$(conf MTG_DOCKER docker)"
 BACKUP_SCRIPT="$(conf MTG_BACKUP_SCRIPT "$APP_DIR/deploy/backup-db.sh")"
 DB_USER="$(conf DB_USER magic_user)"
 PASS_FILE="$(conf MTG_BACKUP_PASSPHRASE_FILE '')"
@@ -93,7 +96,38 @@ g() {
 app_version() { sed -n 's/^ *"version": *"\([^"]*\)".*/\1/p' backend/package.json | head -n1; }
 newer() { [ "$1" != "$2" ] && [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | tail -n1)" = "$1" ]; }
 
-compose_up() { "${COMPOSE[@]}" up -d --build --wait --wait-timeout "$TIMEOUT"; }
+COMPOSE_OUT="$(mktemp)"
+trap 'rm -f "$COMPOSE_OUT"' EXIT
+# Output also kept aside so the status can quote the actual error (port clash, build…).
+compose_up() { "${COMPOSE[@]}" up -d --build --wait --wait-timeout "$TIMEOUT" 2>&1 | tee "$COMPOSE_OUT"; }
+compose_error() { { grep -iE 'error|failed|unhealthy|denied' "$COMPOSE_OUT" || true; } | tail -n1 | cut -c1-300; }
+up_or_fail() {
+  compose_up && return 0
+  local e; e="$(compose_error)"
+  fail "« docker compose up » en échec${e:+ : $e}"
+}
+
+# "a:b" (COMPOSE_FILE, relative to the app) or "a,b" (compose label) → "/abs/a,/abs/b"
+abs_files() {
+  local f abs=() list
+  IFS="$2" read -r -a list <<< "$1"
+  for f in "${list[@]}"; do
+    [ -n "$f" ] || continue
+    case "$f" in /*) ;; *) f="$APP_DIR/$f" ;; esac
+    abs+=("$(realpath -m -- "$f")")
+  done
+  local IFS=,; printf '%s' "${abs[*]}"
+}
+# Compose files of the running stack (label set by compose on every container), one
+# line per distinct set. Running `up` with other files once dropped a site's Traefik
+# override: the frontend then clashed with Traefik on port 80, and so did the rollback.
+running_compose_files() {
+  local ids
+  ids="$("${COMPOSE[@]}" ps -aq)"
+  [ -n "$ids" ] || return 0
+  # shellcheck disable=SC2086  # one argument per container id
+  "${DOCKER[@]}" inspect --format '{{index .Config.Labels "com.docker.compose.project.config_files"}}' $ids | sort -u
+}
 health_version() {
   "${COMPOSE[@]}" exec -T backend wget -qO- http://localhost:3001/api/health \
     | sed -n 's/.*"version":"\([^"]*\)".*/\1/p'
@@ -118,11 +152,15 @@ rollback() {
   STEP="rollback"
   set_status running rollback "Échec ($why) — retour à la version $FROM"
   "${COMPOSE[@]}" stop backend
-  if g checkout -q --force "$PREV_REF" && restore_db "$BACKUP_FILE" && compose_up; then
-    set_status rolled_back rollback "Échec ($why) : version $FROM et données restaurées"
-  else
-    set_status failed rollback "Échec ($why) puis échec du rollback — intervention manuelle requise (sauvegarde : $BACKUP_FILE)"
+  local e=""
+  if g checkout -q --force "$PREV_REF" && restore_db "$BACKUP_FILE"; then
+    if compose_up; then
+      set_status rolled_back rollback "Échec ($why) : version $FROM et données restaurées"
+      exit 0
+    fi
+    e="$(compose_error)"
   fi
+  set_status failed rollback "Échec ($why) puis échec du rollback${e:+ ($e)} — intervention manuelle requise (sauvegarde : $BACKUP_FILE)"
   exit 0
 }
 
@@ -162,6 +200,27 @@ if ! newer "$TO" "$FROM"; then
   set_status skipped preflight "Déjà à jour ($FROM ≥ $TO) — rien à faire"
   exit 0
 fi
+
+# Same compose files as the running stack, for every compose call below and for
+# backup-db.sh. Checked before anything is stopped.
+running="$(running_compose_files)"
+[ "$(wc -l <<< "$running")" -le 1 ] \
+  || fail "conteneurs démarrés avec des fichiers compose différents ($(tr '\n' ' ' <<< "$running")) : relancez la stack à la main avec les bons fichiers"
+explicit="$(conf COMPOSE_FILE '')"
+if [ -n "$running" ]; then
+  IFS=, read -r -a files <<< "$running"
+  for f in "${files[@]}"; do [ -f "$f" ] || fail "fichier compose de la stack en cours introuvable : $f"; done
+  if [ -n "$explicit" ]; then
+    # realpath only for the comparison: the project name derives from the first
+    # file's folder, so a resolved symlink would point compose at another project.
+    [ "$(abs_files "$explicit" "$(conf COMPOSE_PATH_SEPARATOR :)")" = "$(abs_files "$running" ,)" ] \
+      || fail "COMPOSE_FILE ($explicit) diffère des fichiers de la stack en cours ($running)"
+  else
+    export COMPOSE_PATH_SEPARATOR=,
+    export COMPOSE_FILE="$running"   # labels are absolute: exported as recorded
+  fi
+fi
+echo "[updater] compose files: ${COMPOSE_FILE:-${explicit:-default}}"
 PREV_REF="$(g symbolic-ref -q --short HEAD || g rev-parse HEAD)"
 
 step stop "Arrêt du backend"
@@ -181,7 +240,7 @@ g checkout -q --detach "$TARGET"
 CHECKED_OUT=1
 
 step build "Construction et démarrage de $TARGET"
-compose_up
+up_or_fail
 
 step verify "Vérification de la version"
 [ "$(health_version)" = "$TO" ] || fail "le backend ne répond pas en version $TO"

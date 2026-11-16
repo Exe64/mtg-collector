@@ -20,11 +20,13 @@ check() { if eval "$2"; then ok "$1"; else ko "$1"; fi; }
 # FAKE_BROKEN; backend health reports the checked-out version; psql input is captured.
 cat > "$WORK/fake-compose" <<'FAKE'
 #!/usr/bin/env bash
-echo "compose $*" >> "$FAKE_DIR/calls"
+# `ps` (stack detection, before COMPOSE_FILE is known) is not logged.
+[ "$1" = ps ] || { echo "compose $*" >> "$FAKE_DIR/calls"; echo "${COMPOSE_FILE:-}" >> "$FAKE_DIR/compose-env"; }
 ver() { sed -n 's/^ *"version": *"\([^"]*\)".*/\1/p' backend/package.json | head -n1; }
 case "$1" in
   stop) exit 0 ;;
-  up)   [[ " ${FAKE_BROKEN:-} " == *" $(ver) "* ]] && { echo "unhealthy" >&2; exit 1; }
+  ps)   [ -z "${FAKE_LABELS:-}" ] || awk '{print "c" NR}' <<< "$FAKE_LABELS" ;;   # one id per container
+  up)   [[ " ${FAKE_BROKEN:-} " == *" $(ver) "* ]] && { echo "${FAKE_UP_ERR:-unhealthy}" >&2; exit 1; }
         [ "${FAKE_SLOW_UP:-}" = "$(ver)" ] && sleep 30
         exit 0 ;;
   exec)
@@ -33,14 +35,20 @@ case "$1" in
     else cat >> "$FAKE_DIR/psql-input"; fi ;;
 esac
 FAKE
+# Fake docker: `inspect` prints the config_files label of each fake container.
+cat > "$WORK/fake-docker" <<'FAKE'
+#!/usr/bin/env bash
+[ "$1" = inspect ] && printf '%s\n' "$FAKE_LABELS"
+FAKE
 cat > "$WORK/fake-backup" <<'FAKE'
 #!/usr/bin/env bash
+echo "${COMPOSE_FILE:-}" >> "$FAKE_DIR/backup-env"
 [ -n "${FAKE_BACKUP_FAIL:-}" ] && { echo "backup boom" >&2; exit 1; }
 f="$FAKE_DIR/magic_collection_test.sql.gz"
 echo "SELECT 'restored';" | gzip > "$f"
 echo "[backup] OK"; echo "BACKUP_FILE=$f"
 FAKE
-chmod +x "$WORK/fake-compose" "$WORK/fake-backup"
+chmod +x "$WORK/fake-compose" "$WORK/fake-docker" "$WORK/fake-backup"
 
 # --- Remote with v1.0.0, v1.1.0, v1.2.0 (+ a non-semver tag that must be ignored)
 git init -q --bare --initial-branch=main "$WORK/remote.git"
@@ -72,12 +80,12 @@ setup() { # ref
   echo '{"action":"update"}' > "$WORK/app/updates/requests/request.json"
 }
 run() {
-  FAKE_DIR="$WORK/fake" MTG_APP_DIR="$WORK/app" MTG_COMPOSE="$WORK/fake-compose" \
+  FAKE_DIR="$WORK/fake" MTG_APP_DIR="$WORK/app" MTG_COMPOSE="$WORK/fake-compose" MTG_DOCKER="$WORK/fake-docker" \
   MTG_BACKUP_SCRIPT="$WORK/fake-backup" MTG_UPDATE_LOCK="$WORK/lock" \
     timeout 60 bash "$WORK/app/deploy/updater/mtg-updater.sh" < /dev/null > "$WORK/out" 2>&1 || echo "exit=$?" >> "$WORK/out"
 }
 run_bg() {
-  FAKE_DIR="$WORK/fake" MTG_APP_DIR="$WORK/app" MTG_COMPOSE="$WORK/fake-compose" \
+  FAKE_DIR="$WORK/fake" MTG_APP_DIR="$WORK/app" MTG_COMPOSE="$WORK/fake-compose" MTG_DOCKER="$WORK/fake-docker" \
   MTG_BACKUP_SCRIPT="$WORK/fake-backup" MTG_UPDATE_LOCK="$WORK/lock" \
     bash "$WORK/app/deploy/updater/mtg-updater.sh" < /dev/null > "$WORK/out" 2>&1 &
   PID=$!
@@ -168,11 +176,67 @@ check "code inchangé (1.0.0)" '[ "$(ver)" = 1.0.0 ]'
 check "pas de restauration" '! calls | grep -q "DROP DATABASE"'
 check "backend relancé" 'calls | tail -n1 | grep -q "compose up -d --wait"'
 
+echo "T5.16 sans COMPOSE_FILE : fichiers de la stack en cours réutilisés (compose + sauvegarde)"
+setup v1.0.0; A="$WORK/app"; touch "$A/docker-compose.yml" "$A/docker-compose.vps.yml"
+FAKE_LABELS="$A/docker-compose.yml,$A/docker-compose.vps.yml
+$A/docker-compose.yml,$A/docker-compose.vps.yml" run
+check "state=succeeded" '[ "$(st state)" = succeeded ]'
+check "chaque appel compose avec les deux fichiers" '! grep -vqx "$A/docker-compose.yml,$A/docker-compose.vps.yml" "$WORK/fake/compose-env"'
+check "sauvegarde avec les deux fichiers" 'grep -qx "$A/docker-compose.yml,$A/docker-compose.vps.yml" "$WORK/fake/backup-env"'
+
+echo "T5.17 conteneurs démarrés avec des fichiers différents → refus avant arrêt"
+setup v1.0.0; A="$WORK/app"; touch "$A/docker-compose.yml" "$A/docker-compose.vps.yml"
+FAKE_LABELS="$A/docker-compose.yml,$A/docker-compose.vps.yml
+$A/docker-compose.yml" run
+check "state=failed preflight" '[ "$(st state)" = failed ] && [ "$(st step)" = preflight ]'
+check "message fichiers différents" 'grep -q "fichiers compose différents" "$WORK/app/updates/status.json"'
+check "backend jamais arrêté" '! calls | grep -q "stop backend"'
+check "code inchangé (1.0.0)" '[ "$(ver)" = 1.0.0 ]'
+
+echo "T5.18 fichier compose de la stack disparu → refus avant arrêt"
+setup v1.0.0; A="$WORK/app"; touch "$A/docker-compose.yml"
+FAKE_LABELS="$A/docker-compose.yml,$A/docker-compose.vps.yml" run
+check "state=failed preflight" '[ "$(st state)" = failed ] && [ "$(st step)" = preflight ]'
+check "message fichier introuvable" 'grep -q "introuvable : $A/docker-compose.vps.yml" "$WORK/app/updates/status.json"'
+check "backend jamais arrêté" '! calls | grep -q "stop backend"'
+
+echo "T5.19 COMPOSE_FILE (.env) différent de la stack en cours → refus avant arrêt"
+setup v1.0.0; A="$WORK/app"; touch "$A/docker-compose.yml" "$A/docker-compose.vps.yml"
+echo "COMPOSE_FILE=docker-compose.yml" > "$A/.env"
+FAKE_LABELS="$A/docker-compose.yml,$A/docker-compose.vps.yml" run
+check "state=failed preflight" '[ "$(st state)" = failed ] && [ "$(st step)" = preflight ]'
+check "message COMPOSE_FILE diffère" 'grep -q "COMPOSE_FILE (docker-compose.yml) diffère" "$WORK/app/updates/status.json"'
+check "backend jamais arrêté" '! calls | grep -q "stop backend"'
+
+echo "T5.20 COMPOSE_FILE (.env, chemins relatifs) identique à la stack → mise à jour"
+setup v1.0.0; A="$WORK/app"; touch "$A/docker-compose.yml" "$A/docker-compose.vps.yml"
+echo "COMPOSE_FILE=docker-compose.yml:./docker-compose.vps.yml" > "$A/.env"
+FAKE_LABELS="$A/docker-compose.yml,$A/docker-compose.vps.yml" run
+check "state=succeeded" '[ "$(st state)" = succeeded ]'
+check "COMPOSE_FILE non réécrit (compose lit .env)" '! grep -q , "$WORK/fake/compose-env"'
+
+echo "T5.22 dossier de l'app atteint par un lien symbolique → chemins du label exportés tels quels"
+setup v1.0.0; ln -sfn "$WORK/app" "$WORK/applink"; L="$WORK/applink"; touch "$L/docker-compose.yml" "$L/docker-compose.vps.yml"
+FAKE_LABELS="$L/docker-compose.yml,$L/docker-compose.vps.yml" run
+check "state=succeeded" '[ "$(st state)" = succeeded ]'
+check "COMPOSE_FILE non résolu (même projet compose)" 'grep -qx "$L/docker-compose.yml,$L/docker-compose.vps.yml" "$WORK/fake/compose-env"'
+echo "COMPOSE_PATH_SEPARATOR=;" > "$WORK/app/.env"; echo "COMPOSE_FILE=docker-compose.yml;docker-compose.vps.yml" >> "$WORK/app/.env"
+git -C "$WORK/app" checkout -q v1.0.0; mkdir -p "$WORK/app/updates/requests"; echo '{}' > "$WORK/app/updates/requests/request.json"
+FAKE_LABELS="$L/docker-compose.yml,$L/docker-compose.vps.yml" run
+check "séparateur de .env respecté (pas de faux refus)" '[ "$(st state)" = succeeded ]'
+
+echo "T5.21 erreur de docker compose citée dans le statut (mise à jour puis rollback)"
+ERR="Error response from daemon: Bind for 0.0.0.0:80 failed: port is already allocated"
+setup v1.0.0; FAKE_BROKEN=1.2.0 FAKE_UP_ERR="$ERR" run
+check "rolled_back avec la cause" '[ "$(st state)" = rolled_back ] && grep -q "port is already allocated" "$WORK/app/updates/status.json"'
+setup v1.0.0; FAKE_BROKEN="1.2.0 1.0.0" FAKE_UP_ERR="$ERR" run
+check "failed : cause du rollback citée" '[ "$(st state)" = failed ] && grep -q "échec du rollback (Error response" "$WORK/app/updates/status.json"'
+
 echo "T5.14 agent lancé en root sur un dépôt d'un autre utilisateur, sans SUDO_UID (cas systemd réel)"
 if [ "$(id -u)" != 0 ] && sudo -n true 2>/dev/null; then
   setup v1.0.0
   # shellcheck disable=SC2024  # redirect as the calling user on purpose
-  sudo -n env -u SUDO_UID -u SUDO_USER FAKE_DIR="$WORK/fake" MTG_APP_DIR="$WORK/app" MTG_COMPOSE="$WORK/fake-compose" \
+  sudo -n env -u SUDO_UID -u SUDO_USER FAKE_DIR="$WORK/fake" MTG_APP_DIR="$WORK/app" MTG_COMPOSE="$WORK/fake-compose" MTG_DOCKER="$WORK/fake-docker" \
     MTG_BACKUP_SCRIPT="$WORK/fake-backup" MTG_UPDATE_LOCK="$WORK/lock-root" \
     bash "$WORK/app/deploy/updater/mtg-updater.sh" < /dev/null > "$WORK/out" 2>&1 || true
   check "state=succeeded (pas de « dubious ownership »)" '[ "$(st state)" = succeeded ]'

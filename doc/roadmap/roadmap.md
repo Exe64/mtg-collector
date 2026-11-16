@@ -13,6 +13,9 @@ Backlog consolidé : plans nommés d'après leur issue GitHub (voir `doc/roadmap
 
 ## À faire
 
+- **[Issue: #38] `#38` — Agent de mise à jour : fichiers compose de la stack en cours** 🟢 · priorité haute · S — Réutilise les fichiers compose des conteneurs (label `config_files`) si `COMPOSE_FILE` absent, refus si incohérent ; vraie erreur compose dans le statut. Suite de l'incident VPS (port 80 / `docker-compose.vps.yml` ignoré).
+  [`38-agent-fichiers-compose.md`](38-agent-fichiers-compose.md)
+
 - **[Issue: #37] `#37` — Pied de page copyright et encart dons** 🟢 · priorité basse · S — Footer © Julien DUMUR / GitHub / Ko-fi / version / licence sur toutes les pages, encart « Soutenir le projet » (Ko-fi, PayPal) dans l'administration.
   [`37-footer-copyright-dons.md`](37-footer-copyright-dons.md)
 
