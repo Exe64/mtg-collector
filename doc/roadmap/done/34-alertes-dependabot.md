@@ -2,8 +2,8 @@
 plan:
   id: '34'
   name: 34-alertes-dependabot.md
-  link: https://github.com/Exe64/mtg-collector/blob/main/doc/roadmap/34-alertes-dependabot.md
-status: in-progress
+  link: https://github.com/Exe64/mtg-collector/blob/main/doc/roadmap/done/34-alertes-dependabot.md
+status: done
 date: 2026-11-16
 updated_at: 2026-11-16
 description: >
@@ -48,7 +48,7 @@ transitives d'outillage (migrations, build PWA).
 - [x] Étape 1 — Backend : override glob, `npm audit fix` (XS · standard → Sonnet)
 - [x] Étape 2 — Frontend : override glob (XS · standard → Sonnet)
 - [x] 🧪 Tests — `npm audit`, tests backend, migrations, build frontend + service worker
-- [ ] ✅ Validation — Fermer PR #26, ignorer l'alerte deepmerge, clôturer
+- [x] ✅ Validation — Fermer PR #26, ignorer l'alerte deepmerge, clôturer
 
 ## Décisions techniques
 
@@ -101,4 +101,4 @@ build PWA avec précache non vide (workbox-build via glob 14).
 ### Session 2026-11-16
 - ✅ Fait : analyse des 11 alertes, issue #34, plan créé. Override `glob: ^14.0.2`
   backend + frontend, `npm audit fix` backend (brace-expansion 1.1.22). Tests au vert.
-- 📋 Prochain : push, fermeture de la PR #26, alerte deepmerge #82 à ignorer, clôture.
+- ✅ Validation : tests au vert, `main` poussé, alerte deepmerge #82 ignorée (pas de correctif amont), issue #34 fermée. Plan clos.

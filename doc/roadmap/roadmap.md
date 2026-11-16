@@ -13,9 +13,6 @@ Backlog consolidé : plans nommés d'après leur issue GitHub (voir `doc/roadmap
 
 ## À faire
 
-- **[Issue: #34] `#34` — Alertes Dependabot** 🟢 · priorité haute · S — brace-expansion, glob, minimatch (overrides npm, audit fix) ; deepmerge sans correctif amont.
-  [`34-alertes-dependabot.md`](34-alertes-dependabot.md)
-
 - **[Issue: #32] `#32` — README vitrine et préparation du dépôt public** 🟢 · priorité moyenne · S — README anglais vitrine + README.fr.md, exploitation dans doc/, LICENSE AGPL-3.0, audit léger avant passage en public.
   [`32-readme-vitrine.md`](32-readme-vitrine.md)
 
@@ -28,6 +25,11 @@ Backlog consolidé : plans nommés d'après leur issue GitHub (voir `doc/roadmap
 ---
 
 ## Fait
+
+### Plans livrés (2026-11-16)
+
+- **[Issue: #34] `#34` — Alertes Dependabot** (2026-11-16) 🔵 — Override `glob` ^14.0.2 (backend + frontend, minimatch 11 inclus), brace-expansion 1.1.22 ; alerte deepmerge ignorée (aucun correctif publié, build seulement).
+  [`34-alertes-dependabot.md`](done/34-alertes-dependabot.md)
 
 ### Plans livrés (2026-11-15)
 
