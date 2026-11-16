@@ -1,0 +1,27 @@
+name: Release
+
+# Pushing a vX.Y.Z tag (created by `npm run release`) publishes a GitHub Release
+# with auto-generated notes. Instances detect it through `releases/latest`.
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Tag must match package.json versions
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          for f in backend/package.json frontend/package.json; do
+            v="$(jq -r .version "$f")"
+            [ "$v" = "$tag" ] || { echo "::error::$f is $v, tag is $GITHUB_REF_NAME"; exit 1; }
+          done
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes --title "$GITHUB_REF_NAME"
