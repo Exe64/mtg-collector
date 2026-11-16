@@ -81,9 +81,8 @@ build, healthcheck, rollback automatique en cas d'échec.
 - [ ] 🧪 Tests — E2E sur instance locale : tag de test, mise à jour réussie, puis échec simulé → rollback
 - [ ] ✅ Validation — Vérifier les résultats des tests et clôturer
 
-> ⚠️ 2026-11-16 : `deploy/backup-db.sh` a été supprimé (#32). L'agent de
-> l'étape 5 doit faire son propre `pg_dump` (préfixe `magic_collection_*` dans
-> `MTG_BACKUP_DIR`, cf. `doc/backups.md`) avant la mise à jour.
+> Note 2026-11-16 : l'agent de l'étape 5 réutilise `deploy/backup-db.sh` pour
+> la sauvegarde avant mise à jour.
 
 ## Décisions techniques
 

@@ -63,4 +63,4 @@ terminates TLS, then set `COOKIE_SECURE=true` and `TRUST_PROXY=2`.
 ## Next steps
 
 - [Operations](operations.md): scheduled jobs and manual commands
-- [Backups](backups.md): backup, restore and status in Administration
+- [Backups](backups.md): encrypted off-site backups and restore drill
