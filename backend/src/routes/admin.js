@@ -13,6 +13,7 @@ import { applyPriceSchedule, runDailyJob } from '../services/dailyJob.js';
 import { syncBulk, syncFrenchNames } from '../services/bulkData.js';
 import { refreshCommanderCache } from '../services/edhrec.js';
 import { getUpdateStatus } from '../services/updates.js';
+import { readAgentState, requestUpdate } from '../services/updateAgent.js';
 import { updateCheckLimiter } from '../middleware/limiters.js';
 
 const router = Router();
@@ -85,6 +86,24 @@ router.get('/updates', async (req, res, next) => {
 // POST /api/admin/updates/check → force une vérification auprès de GitHub
 router.post('/updates/check', updateCheckLimiter, async (req, res, next) => {
   try { res.json(await getUpdateStatus({ force: true })); } catch (err) { next(err); }
+});
+
+// GET /api/admin/updates/progress → état de l'agent hôte (demande en attente, statut, log)
+router.get('/updates/progress', async (req, res, next) => {
+  try { res.json(await readAgentState()); } catch (err) { next(err); }
+});
+
+// POST /api/admin/updates/apply → dépose une demande pour l'agent hôte (202)
+router.post('/updates/apply', async (req, res, next) => {
+  try {
+    const status = await getUpdateStatus();
+    if (!status.updateAvailable) return res.status(409).json({ error: 'Aucune mise à jour disponible' });
+    const { rows } = await query('SELECT email FROM users WHERE id = $1', [req.user.id]);
+    const { requestedAt } = await requestUpdate({ requestedBy: rows[0]?.email ?? null });
+    return res.status(202).json({ requested: true, requestedAt, from: status.current, to: status.latest.version });
+  } catch (err) {
+    return next(err);
+  }
 });
 
 // POST /api/admin/actions/sync-bulk  (fire-and-forget)

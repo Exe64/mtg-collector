@@ -50,6 +50,8 @@ services:
     volumes:
       # Dossier des sauvegardes monté en lecture seule (statut affiché dans Administration)
       - ${MTG_BACKUP_DIR:-./backups}:/backups:ro
+      # Échange avec l'agent hôte de mise à jour (deploy/updater/) : demande / statut
+      - ${MTG_UPDATES_DIR:-./updates}:/updates
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://localhost:3001/api/health']
       interval: 10s

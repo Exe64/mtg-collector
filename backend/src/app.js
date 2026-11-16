@@ -79,7 +79,7 @@ app.use((err, req, res, _next) => {
   (req.log || logger).error({ err }, 'erreur requête');
   const status = err.status || 500;
   // En prod, ne pas divulguer les détails internes (schéma DB, stack…) sur les 5xx.
-  const expose = status < 500 || process.env.NODE_ENV !== 'production';
+  const expose = err.expose || status < 500 || process.env.NODE_ENV !== 'production';
   res.status(status).json({ error: expose ? (err.message || 'Erreur interne') : 'Erreur interne' });
 });
 

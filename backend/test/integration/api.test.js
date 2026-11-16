@@ -21,6 +21,12 @@ test('intégration API (DB + Redis)', { skip: RUN ? false : 'RUN_DB_TESTS!=1' },
   process.env.JWT_REFRESH_SECRET ||= 'integration-refresh-integration-refresh-x';
   process.env.COOKIE_SECURE = 'false'; // supertest en HTTP
   process.env.TRUST_PROXY = '0';       // pas de proxy en test
+  const { mkdtemp } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const updatesDir = await mkdtemp(`${tmpdir()}/mtg-updates-`);
+  process.env.UPDATES_DIR = updatesDir; // dossier d'échange avec l'agent hôte
+  const { mkdir: mkdirp } = await import('node:fs/promises');
+  await mkdirp(`${updatesDir}/requests`);
 
   const request = (await import('supertest')).default;
   const { pool } = await import('../../src/config/db.js');
@@ -28,6 +34,8 @@ test('intégration API (DB + Redis)', { skip: RUN ? false : 'RUN_DB_TESTS!=1' },
   const { default: app } = await import('../../src/app.js');
 
   t.after(async () => {
+    const { rm } = await import('node:fs/promises');
+    await rm(updatesDir, { recursive: true, force: true });
     await pool.end().catch(() => {});
     await redis.quit().catch(() => {});
   });
@@ -188,6 +196,83 @@ test('intégration API (DB + Redis)', { skip: RUN ? false : 'RUN_DB_TESTS!=1' },
       reply = () => new Response(JSON.stringify({ tag_name: 'v99.0.0', body: 'long notes', html_url: 'x' }), { status: 200 });
       assert.deepEqual(await checkForUpdates(), { current: APP_VERSION, latest: '99.0.0', updateAvailable: true });
     } finally {
+      globalThis.fetch = realFetch;
+      await redis.del('updates:latest');
+    }
+  });
+
+  await t.test('updates/apply : demande déposée, verrou, statut agent, refus sans mise à jour', async () => {
+    const { readFile, writeFile, rm, stat } = await import('node:fs/promises');
+    const auth = (req) => req.set('Authorization', `Bearer ${accessToken}`);
+    const realFetch = globalThis.fetch;
+    let tag = 'v99.0.0';
+    globalThis.fetch = async (url, opts) => (String(url).startsWith('https://api.github.com/')
+      ? new Response(JSON.stringify({ tag_name: tag, html_url: 'x' }), { status: 200 })
+      : realFetch(url, opts));
+    try {
+      await auth(agent.post('/api/admin/updates/check'));
+
+      const idle = await auth(agent.get('/api/admin/updates/progress'));
+      assert.deepEqual(idle.body, { available: true, pending: null, status: null, running: false, log: [] });
+
+      const ok = await auth(agent.post('/api/admin/updates/apply'));
+      assert.equal(ok.status, 202);
+      assert.equal(ok.body.to, '99.0.0');
+      assert.ok(ok.body.requestedAt);
+      const req = JSON.parse(await readFile(`${updatesDir}/requests/request.json`, 'utf8'));
+      assert.equal(req.action, 'update');
+      assert.equal(req.target, undefined, "la cible n'est jamais transmise à l'agent");
+
+      // verrou : seconde demande refusée tant que la première n'est pas consommée
+      const dup = await auth(agent.post('/api/admin/updates/apply'));
+      assert.equal(dup.status, 409);
+      assert.match(dup.body.error, /déjà en attente/);
+      assert.ok((await auth(agent.get('/api/admin/updates/progress'))).body.pending.requestedAt);
+
+      // l'agent consomme la demande et publie son statut + log
+      await rm(`${updatesDir}/requests/request.json`);
+      const now = new Date().toISOString();
+      await writeFile(`${updatesDir}/status.json`, JSON.stringify({ state: 'running', step: 'build', from: '1.0.0', to: '99.0.0', startedAt: now, updatedAt: now }));
+      await writeFile(`${updatesDir}/update.log`, 'line 1\nline 2\n');
+      const running = await auth(agent.get('/api/admin/updates/progress'));
+      assert.equal(running.body.running, true);
+      assert.equal(running.body.status.step, 'build');
+      assert.deepEqual(running.body.log, ['line 1', 'line 2']);
+      assert.equal((await auth(agent.post('/api/admin/updates/apply'))).status, 409, 'refus pendant un run');
+
+      // statut "running" périmé (agent mort) → plus bloquant
+      const old = new Date(Date.now() - 2 * 3600 * 1000).toISOString();
+      await writeFile(`${updatesDir}/status.json`, JSON.stringify({ state: 'running', updatedAt: old }));
+      assert.equal((await auth(agent.get('/api/admin/updates/progress'))).body.running, false);
+      assert.equal((await auth(agent.post('/api/admin/updates/apply'))).status, 202);
+      await rm(`${updatesDir}/requests/request.json`);
+
+      // instance à jour → rien à appliquer
+      tag = 'v1.0.0';
+      await auth(agent.post('/api/admin/updates/check'));
+      const none = await auth(agent.post('/api/admin/updates/apply'));
+      assert.equal(none.status, 409);
+      await assert.rejects(stat(`${updatesDir}/requests/request.json`));
+    } finally {
+      globalThis.fetch = realFetch;
+      await redis.del('updates:latest');
+    }
+  });
+
+  await t.test('updates/apply : dossier agent absent → 503 explicite', async () => {
+    const { rename } = await import('node:fs/promises');
+    const auth = (req) => req.set('Authorization', `Bearer ${accessToken}`);
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async () => new Response(JSON.stringify({ tag_name: 'v99.0.0', html_url: 'x' }), { status: 200 });
+    await rename(updatesDir, `${updatesDir}.off`);
+    try {
+      await auth(agent.post('/api/admin/updates/check'));
+      assert.equal((await auth(agent.get('/api/admin/updates/progress'))).body.available, false);
+      const res = await auth(agent.post('/api/admin/updates/apply'));
+      assert.equal(res.status, 503);
+      assert.match(res.body.error, /non installé/);
+    } finally {
+      await rename(`${updatesDir}.off`, updatesDir);
       globalThis.fetch = realFetch;
       await redis.del('updates:latest');
     }
