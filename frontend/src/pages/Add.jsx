@@ -146,7 +146,6 @@ export default function Add() {
       try {
         const data = await api(`/cards/search?q=${encodeURIComponent(q.trim())}`);
         setSuggestions(data.cards || []);
-        setShowSug(true);
       } catch {
         setSuggestions([]);
       }
@@ -221,7 +220,7 @@ export default function Add() {
         <div className="relative flex-1">
           <input
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            onChange={(e) => { setQ(e.target.value); setShowSug(true); }}
             onKeyDown={onKeyDown}
             onFocus={() => suggestions.length && setShowSug(true)}
             placeholder="Rechercher une carte…"

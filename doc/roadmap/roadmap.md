@@ -13,6 +13,9 @@ Backlog consolidé : plans nommés d'après leur issue GitHub (voir `doc/roadmap
 
 ## À faire
 
+- **[Issue: #35] `#35` — Suggestions qui restent ouvertes après la recherche** 🟡 · priorité moyenne · XS — La liste d'autocomplétion de « Ajouter des cartes » ne s'ouvre plus que sur saisie.
+  [`35-suggestions-restent-ouvertes.md`](35-suggestions-restent-ouvertes.md)
+
 - **[Issue: #32] `#32` — README vitrine et préparation du dépôt public** 🟢 · priorité moyenne · S — README anglais vitrine + README.fr.md, exploitation dans doc/, LICENSE AGPL-3.0, audit léger avant passage en public.
   [`32-readme-vitrine.md`](32-readme-vitrine.md)
 
