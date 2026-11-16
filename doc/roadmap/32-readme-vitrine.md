@@ -150,4 +150,8 @@ fuites uniquement dans des fichiers non suivis et ignorés (`.env`).
   absents du dépôt public ; mot de passe du compte de test local
   dans les plans #4 et #31 (local seulement).
 - 🧪 Vérification en ligne (inline), sans sous-agent : il n'y a que de la doc.
+- ✅ Ajout (demande utilisateur) : suppression de `deploy/` (`backup-db.sh`,
+  `verify-backup.sh`, propres à l'install VPS). `doc/backups.md` réécrit en
+  `pg_dump` générique (préfixe `magic_collection_*` conservé pour l'état admin),
+  `.env.example` réduit à `MTG_BACKUP_DIR`, références README/SECURITY ajustées.
 - 📋 Prochain : étape 6 (captures à fournir dans `doc/assets/screenshots/`), puis ✅ Validation.
