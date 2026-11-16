@@ -10,7 +10,7 @@
 
 [English](README.md) · Français
 
-![Tableau de bord de MTG Collector](doc/assets/screenshots/hero.png)
+![Tableau de bord de MTG Collector](doc/assets/screenshots/mtg-collector-dashboard.png)
 
 </div>
 
@@ -32,14 +32,14 @@ des exemplaires normaux et foil en −/+. Filtres par type, rareté, couleur,
 coût de mana, état et finition, groupement par extension, édition en ligne,
 export CSV ou PDF.
 
-![Collection avec filtres et groupement par extension](doc/assets/screenshots/collection.png)
-![Ajout de cartes : toutes les éditions avec −/+](doc/assets/screenshots/add.png)
+![Collection avec filtres et groupement par extension](doc/assets/screenshots/mtg-collector-collection-with-filters.png)
+![Ajout de cartes : toutes les éditions avec −/+](doc/assets/screenshots/mtg-collector-adding-cards.png)
 
 ### Détail carte
 
 Image HD, texte oracle, prix et rulings officiels dans une seule modale.
 
-![Modale de détail carte](doc/assets/screenshots/card-modal.png)
+![Modale de détail carte](doc/assets/screenshots/mtg-collector-card-detail.png)
 
 ### Commandants
 
@@ -50,8 +50,8 @@ tu possèdes déjà et combien coûterait le reste. Un matchmaker en cinq
 questions, les combos Commander Spellbook, les cartes phares et les
 commandants similaires complètent chaque fiche.
 
-![Recherche de commandants](doc/assets/screenshots/commanders.png)
-![Fiche commandant avec combos et cartes phares](doc/assets/screenshots/commander-detail.png)
+![Recherche de commandants](doc/assets/screenshots/mtg-collector-commander-finder.jpg)
+![Fiche commandant avec combos et cartes phares](doc/assets/screenshots/mtg-collector-commander-page.png)
 
 ### Decks
 
@@ -60,7 +60,7 @@ l'édition et la finition exactes, et consulte courbe de mana, couleurs, prix
 et cartes manquantes dans ta collection, à côté d'une decklist en trois
 colonnes.
 
-![Page deck avec statistiques et decklist](doc/assets/screenshots/deck-detail.png)
+![Page deck avec statistiques et decklist](doc/assets/screenshots/mtg-collector-deck-page.png)
 
 ### Extensions et prix
 
@@ -68,8 +68,9 @@ Complétion par extension avec les numéros manquants, valeur possédée par
 extension, mouvements de prix (hausses, baisses, variations sur une période)
 et alertes de prix avec notifications dans l'application.
 
-![Complétion d'une extension](doc/assets/screenshots/set-detail.png)
-![Mouvements de prix](doc/assets/screenshots/movements.png)
+![Catalogue des extensions avec complétion par extension](doc/assets/screenshots/mtg-collector-sets-completion-2.png)
+![Complétion d'une extension](doc/assets/screenshots/mtg-collector-set-completion-1.png)
+![Mouvements de prix](doc/assets/screenshots/mtg-collector-prices-movements.png)
 
 ### Et aussi
 
@@ -80,7 +81,7 @@ et alertes de prix avec notifications dans l'application.
 - **Administration** : état du système, dernières synchros et sauvegarde, jobs à la demande, réglages globaux, gestion des comptes.
 - **PWA** : installable sur ordinateur et mobile, coquille de l'application disponible hors ligne.
 
-<p align="center"><img src="doc/assets/screenshots/admin.png" alt="Page d'administration" width="64%"> <img src="doc/assets/screenshots/mobile.png" alt="Vue mobile" width="22%"></p>
+![Page d'administration](doc/assets/screenshots/mtg-collector-admin-panel.png)
 
 ## Démarrage rapide
 

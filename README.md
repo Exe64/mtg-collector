@@ -10,7 +10,7 @@
 
 English · [Français](README.fr.md)
 
-![MTG Collector dashboard](doc/assets/screenshots/hero.png)
+![MTG Collector dashboard](doc/assets/screenshots/mtg-collector-dashboard.png)
 
 </div>
 
@@ -30,14 +30,14 @@ Search with autocomplete, see every printing of a card and add or remove
 regular and foil copies with −/+. Filter by type, rarity, colour, mana value,
 condition and finish, group by set, edit inline, export to CSV or PDF.
 
-![Collection with filters and set grouping](doc/assets/screenshots/collection.png)
-![Adding cards: every printing with −/+](doc/assets/screenshots/add.png)
+![Collection with filters and set grouping](doc/assets/screenshots/mtg-collector-collection-with-filters.png)
+![Adding cards: every printing with −/+](doc/assets/screenshots/mtg-collector-adding-cards.png)
 
 ### Card details
 
 High-resolution image, oracle text, prices and official rulings in one modal.
 
-![Card detail modal](doc/assets/screenshots/card-modal.png)
+![Card detail modal](doc/assets/screenshots/mtg-collector-card-detail.png)
 
 ### Commanders
 
@@ -47,8 +47,8 @@ colour, mana value, type, partner, price and Game Changers, sorted by EDHREC.
 what completing it would cost. A five-question matchmaker, Commander Spellbook
 combos, top cards and similar commanders complete each page.
 
-![Commander finder](doc/assets/screenshots/commanders.png)
-![Commander page with combos and top cards](doc/assets/screenshots/commander-detail.png)
+![Commander finder](doc/assets/screenshots/mtg-collector-commander-finder.jpg)
+![Commander page with combos and top cards](doc/assets/screenshots/mtg-collector-commander-page.png)
 
 ### Decks
 
@@ -56,7 +56,7 @@ Import a decklist (Moxfield, MTGO, `.txt` or a Moxfield URL), keep the exact
 printing and finish, and see mana curve, colours, price and what you are
 missing from your collection, next to a three-column decklist.
 
-![Deck page with stats and decklist](doc/assets/screenshots/deck-detail.png)
+![Deck page with stats and decklist](doc/assets/screenshots/mtg-collector-deck-page.png)
 
 ### Sets and prices
 
@@ -64,8 +64,9 @@ Per-set completion with missing collector numbers, value owned per set, price
 movements (gains, losses, variations over a period) and price alerts with
 in-app notifications.
 
-![Set completion](doc/assets/screenshots/set-detail.png)
-![Price movements](doc/assets/screenshots/movements.png)
+![Set catalogue with completion per set](doc/assets/screenshots/mtg-collector-sets-completion-2.png)
+![Set completion](doc/assets/screenshots/mtg-collector-set-completion-1.png)
+![Price movements](doc/assets/screenshots/mtg-collector-prices-movements.png)
 
 ### And also
 
@@ -76,7 +77,7 @@ in-app notifications.
 - **Administration**: system status, last syncs and backup, on-demand jobs, global settings, account management.
 - **PWA**: installable on desktop and mobile, works offline for the app shell.
 
-<p align="center"><img src="doc/assets/screenshots/admin.png" alt="Administration page" width="64%"> <img src="doc/assets/screenshots/mobile.png" alt="Mobile view" width="22%"></p>
+![Administration page](doc/assets/screenshots/mtg-collector-admin-panel.png)
 
 ## Quick start
 
