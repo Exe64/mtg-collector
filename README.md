@@ -130,6 +130,7 @@ commander cache).
 | [Installation](doc/installation.md) | Requirements, configuration, first start, HTTPS |
 | [Operations](doc/operations.md) | Scheduled jobs, manual commands, monitoring |
 | [Backups](doc/backups.md) | Encrypted off-site backups, restore and restore drill |
+| [Updating](doc/updating.md) | New-version check, one-click update with automatic rollback, publishing a release |
 | [API](backend/API.md) | REST endpoint reference |
 | [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) | How to contribute, how to report a vulnerability |
 

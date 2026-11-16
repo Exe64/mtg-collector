@@ -9,6 +9,7 @@ The backend schedules its own jobs (no host cron needed):
 | Every 12 h (00:00, 12:00), configurable in Administration | Price job | Refreshes prices from Scryfall (Cardmarket EUR), takes collection and set snapshots, evaluates price alerts, purges expired tokens |
 | Sunday 04:00 | Weekly sync | `sync:bulk` then French names |
 | Daily 05:30 | EDHREC cache | Warms the commander data cache |
+| Daily 06:15 | Update check | Looks for a newer GitHub Release, see [updating](updating.md) |
 
 Between two syncs, new cards enter the database lazily when someone adds them.
 

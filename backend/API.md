@@ -7,7 +7,7 @@ marquées **(admin)** exigent un compte administrateur. Le refresh token circule
 ## Santé
 | Méthode | Route | Réponse |
 |---|---|---|
-| GET | `/api/health` | `{ status, db, redis }` |
+| GET | `/api/health` | `{ status, db, redis, version }` |
 
 ## Authentification
 | Méthode | Route | Corps | Réponse |
@@ -143,7 +143,11 @@ Les alertes sont évaluées par le job quotidien après la MAJ des prix : seuil 
 ## Administration (admin)
 | Méthode | Route | Corps | Réponse |
 |---|---|---|---|
-| GET | `/api/admin/status` | — | `{ health, data, backup, jobs, settings }` |
+| GET | `/api/admin/status` | — | `{ version, health, data, backup, jobs, settings }` |
+| GET | `/api/admin/updates` | — | `{ current, latest: { tag, version, name, notes, url, publishedAt } \| null, checkedAt, updateAvailable, error? }` (cache Redis) |
+| POST | `/api/admin/updates/check` | — | idem, vérification forcée auprès de GitHub (limite 10/h) |
+| POST | `/api/admin/updates/apply` | — | `202 { requested, requestedAt, from, to }` / `409` (aucune mise à jour, demande en attente ou en cours) / `503` (agent non installé) — voir [doc/updating.md](../doc/updating.md) |
+| GET | `/api/admin/updates/progress` | — | `{ available, pending: { requestedAt } \| null, status: { state, step, from, to, message, startedAt, updatedAt, finishedAt } \| null, running, log[] }` |
 | POST | `/api/admin/actions/sync-bulk` | — | `202 { started }` / `409 { running }` (fire-and-forget) |
 | POST | `/api/admin/actions/sync-fr` | — | `202 { started }` / `409 { running }` (noms FR, bulk `all_cards`, fire-and-forget) |
 | POST | `/api/admin/actions/price-job` | — | `202 { started }` / `409 { running }` (fire-and-forget) |
