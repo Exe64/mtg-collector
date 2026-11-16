@@ -75,6 +75,7 @@ in-app notifications.
 - **Wishlist** with estimated cost, and a **journal** of every addition and removal, with undo.
 - **Multi-user**: isolated collections per account, accounts created by the admin, optional TOTP two-factor authentication.
 - **Administration**: system status, last syncs and backup, on-demand jobs, global settings, account management.
+- **Updates**: new releases are detected daily and shown to admins with their release notes; one click installs them (backup first, automatic rollback on failure).
 - **PWA**: installable on desktop and mobile, works offline for the app shell.
 
 ![Administration page](doc/assets/screenshots/mtg-collector-admin-panel.png)
@@ -92,6 +93,9 @@ Open `http://<your-host>/` and register: the first account becomes the
 administrator. The full guide, HTTPS included, is in
 [doc/installation.md](doc/installation.md).
 
+For one-click updates from the admin page, install the host agent once:
+`sudo ./deploy/updater/install.sh` (see [doc/updating.md](doc/updating.md)).
+
 ## Tech stack
 
 | Layer | Technology |
@@ -100,7 +104,7 @@ administrator. The full guide, HTTPS included, is in
 | Backend | Node.js, Express 5, node-cron, pino |
 | Data | PostgreSQL 16 (node-pg-migrate), Redis 8 |
 | Card data | [Scryfall](https://scryfall.com) bulk data and prices, [EDHREC](https://edhrec.com), [Commander Spellbook](https://commanderspellbook.com) |
-| Delivery | Docker Compose, GitHub Actions (lint, unit and integration tests, build) |
+| Delivery | Docker Compose, GitHub Actions (lint, unit and integration tests, build, releases on `vX.Y.Z` tags), systemd update agent |
 
 Security: short-lived JWT access tokens with rotated httpOnly refresh tokens
 and reuse detection, tiered rate limiting, strict CSP, secrets validated at
@@ -116,12 +120,17 @@ flowchart LR
   backend --> redis[(Redis cache)]
   backend -->|bulk data, prices| scryfall[Scryfall]
   backend --> edhrec[EDHREC / Commander Spellbook]
+  backend -->|latest release| github[GitHub Releases]
+  backend -.->|update request| agent["update agent (host, systemd)"]
+  agent -->|backup, checkout, rebuild| nginx
 ```
 
 nginx serves the app and proxies `/api` to the backend on the same origin, so
 there is no CORS and the refresh cookie stays httpOnly. The backend runs its
 own scheduled jobs (prices every 12 hours, weekly card sync, nightly
-commander cache).
+commander cache, daily update check). Updates are applied by a host agent:
+the backend only drops a request in a shared folder and never gets the
+Docker socket.
 
 ## Documentation
 

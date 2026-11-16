@@ -79,6 +79,7 @@ et alertes de prix avec notifications dans l'application.
 - **Wishlist** avec coût estimé, et **journal** de chaque ajout et retrait, avec annulation.
 - **Multi-utilisateur** : collections isolées par compte, comptes créés par l'admin, double authentification TOTP optionnelle.
 - **Administration** : état du système, dernières synchros et sauvegarde, jobs à la demande, réglages globaux, gestion des comptes.
+- **Mises à jour** : les nouvelles versions sont détectées chaque jour et présentées aux admins avec leurs notes de version ; un clic les installe (sauvegarde d'abord, rollback automatique en cas d'échec).
 - **PWA** : installable sur ordinateur et mobile, coquille de l'application disponible hors ligne.
 
 ![Page d'administration](doc/assets/screenshots/mtg-collector-admin-panel.png)
@@ -96,6 +97,10 @@ Ouvre `http://<ton-hôte>/` et inscris-toi : le premier compte devient
 administrateur. Le guide complet, HTTPS compris, est dans
 [doc/installation.md](doc/installation.md) (en anglais).
 
+Pour les mises à jour en un clic depuis l'administration, installe une fois
+l'agent hôte : `sudo ./deploy/updater/install.sh` (voir
+[doc/updating.md](doc/updating.md), en anglais).
+
 ## Stack technique
 
 | Couche | Technologie |
@@ -104,7 +109,7 @@ administrateur. Le guide complet, HTTPS compris, est dans
 | Backend | Node.js, Express 5, node-cron, pino |
 | Données | PostgreSQL 16 (node-pg-migrate), Redis 8 |
 | Données cartes | Bulk data et prix [Scryfall](https://scryfall.com), [EDHREC](https://edhrec.com), [Commander Spellbook](https://commanderspellbook.com) |
-| Livraison | Docker Compose, GitHub Actions (lint, tests unitaires et d'intégration, build) |
+| Livraison | Docker Compose, GitHub Actions (lint, tests unitaires et d'intégration, build, releases sur tags `vX.Y.Z`), agent de mise à jour systemd |
 
 Sécurité : access tokens JWT courts et refresh tokens httpOnly rotatés avec
 détection de réutilisation, rate limiting étagé, CSP stricte, secrets validés
@@ -120,12 +125,18 @@ flowchart LR
   backend --> redis[(Cache Redis)]
   backend -->|bulk data, prix| scryfall[Scryfall]
   backend --> edhrec[EDHREC / Commander Spellbook]
+  backend -->|dernière release| github[GitHub Releases]
+  backend -.->|demande de mise à jour| agent["agent de mise à jour (hôte, systemd)"]
+  agent -->|sauvegarde, checkout, rebuild| nginx
 ```
 
 nginx sert l'application et relaie `/api` vers le backend sur la même
 origine : pas de CORS, et le cookie de refresh reste httpOnly. Le backend
 planifie lui-même ses jobs (prix toutes les 12 heures, synchro hebdomadaire
-des cartes, cache commandants chaque nuit).
+des cartes, cache commandants chaque nuit, vérification des mises à jour
+chaque jour). Les mises à jour sont appliquées par un agent hôte : le backend
+dépose seulement une demande dans un dossier partagé et n'a jamais accès au
+socket Docker.
 
 ## Documentation
 
