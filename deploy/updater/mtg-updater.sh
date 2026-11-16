@@ -159,7 +159,7 @@ TARGET="$(g tag -l 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -
 [ -n "$TARGET" ] || fail "aucun tag de version trouvé sur $REMOTE"
 TO="${TARGET#v}"
 if ! newer "$TO" "$FROM"; then
-  set_status failed preflight "Déjà à jour ($FROM ≥ $TO) — rien à faire"
+  set_status skipped preflight "Déjà à jour ($FROM ≥ $TO) — rien à faire"
   exit 0
 fi
 PREV_REF="$(g symbolic-ref -q --short HEAD || g rev-parse HEAD)"
@@ -175,8 +175,10 @@ BACKUP_FILE="$(sed -n 's/^BACKUP_FILE=//p' <<< "$out" | tail -n1)"
 { [ -n "$BACKUP_FILE" ] && [ -s "$BACKUP_FILE" ]; } || fail "sauvegarde introuvable"
 
 step checkout "Passage à $TARGET"
-CHECKED_OUT=1
+# git checkout is all-or-nothing (e.g. refused when an untracked file would be
+# overwritten): only a successful checkout calls for a rollback.
 g checkout -q --detach "$TARGET"
+CHECKED_OUT=1
 
 step build "Construction et démarrage de $TARGET"
 compose_up

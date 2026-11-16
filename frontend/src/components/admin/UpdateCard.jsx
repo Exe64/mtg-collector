@@ -62,6 +62,7 @@ export function ReleaseNotes({ text }) {
 
 function RunResult({ status }) {
   if (!status || status.state === 'running') return null;
+  // skipped = nothing to do (already up to date): neutral, not a failure.
   const tone = { succeeded: 'text-emerald-400', rolled_back: 'text-gold-300', failed: 'text-rose-400' }[status.state] || 'text-slate-400';
   const icon = { succeeded: '✓', rolled_back: '↺', failed: '✗' }[status.state] || '•';
   return (

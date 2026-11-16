@@ -5,7 +5,9 @@ Requires=docker.service
 
 [Service]
 Type=oneshot
-ExecStart=@APP_DIR@/deploy/updater/mtg-updater.sh
+# Through bash: under SELinux, systemd may not execute a script labelled as user
+# content (repo in /home, /tmp…), but bash may read it.
+ExecStart=/bin/bash @APP_DIR@/deploy/updater/mtg-updater.sh
 TimeoutStartSec=45min
 # Time for the TERM trap to roll back (checkout + restore + rebuild) before SIGKILL
 TimeoutStopSec=20min

@@ -32,4 +32,4 @@ systemctl daemon-reload
 systemctl enable --now mtg-updater.path
 
 echo "Update agent installed: watching $UPDATES_DIR/requests/request.json"
-echo "Restart the stack once so the backend sees the folder: docker compose up -d"
+echo "If you just set or changed MTG_UPDATES_DIR in .env, recreate the backend: docker compose up -d backend"

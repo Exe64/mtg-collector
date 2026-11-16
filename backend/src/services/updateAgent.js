@@ -34,8 +34,9 @@ const isRunning = (s) => s?.state === 'running' && Date.now() - Date.parse(s.upd
 
 /** { available, pending: {requestedAt}|null, status|null, running, log[] } */
 export async function readAgentState() {
+  // requests/ is created by deploy/updater/install.sh (docker alone only creates DIR).
   let available = true;
-  try { await stat(DIR); } catch { available = false; }
+  try { await stat(join(DIR, 'requests')); } catch { available = false; }
   let pending = null;
   try { pending = { requestedAt: (await stat(REQUEST)).mtime.toISOString() }; } catch { /* none */ }
   const status = await readJson(STATUS);

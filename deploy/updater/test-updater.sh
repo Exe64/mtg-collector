@@ -43,7 +43,7 @@ FAKE
 chmod +x "$WORK/fake-compose" "$WORK/fake-backup"
 
 # --- Remote with v1.0.0, v1.1.0, v1.2.0 (+ a non-semver tag that must be ignored)
-git init -q --bare "$WORK/remote.git"
+git init -q --bare --initial-branch=main "$WORK/remote.git"
 git clone -q "$WORK/remote.git" "$WORK/seed" 2>/dev/null
 mkdir -p "$WORK/seed/backend" "$WORK/seed/deploy/updater"
 cp "$SRC/deploy/updater/mtg-updater.sh" "$WORK/seed/deploy/updater/"
@@ -52,6 +52,7 @@ git config user.email t@t; git config user.name t
 for v in 1.0.0 1.1.0 1.2.0; do
   printf '{\n  "name": "x",\n  "version": "%s"\n}\n' "$v" > backend/package.json
   if [ "$v" = 1.2.0 ]; then
+    echo "new in 1.2.0" > NEW_IN_120.md   # T5.15: collides with an untracked file
     # Shift every byte of the agent in the target version: if the running script were
     # rewritten in place, the rest of the run would execute garbage (T5.10).
     { head -n1 "$SRC/deploy/updater/mtg-updater.sh"; for i in $(seq 200); do echo "# padding $i ------------------------------"; done
@@ -118,7 +119,7 @@ check "pas de checkout ni de restauration" '! calls | grep -q "DROP DATABASE"'
 
 echo "T5.5 déjà à jour → aucune action"
 setup v1.2.0; run
-check "state=failed (déjà à jour)" '[ "$(st state)" = failed ] && grep -q "Déjà à jour" "$WORK/app/updates/status.json"'
+check "state=skipped (déjà à jour)" '[ "$(st state)" = skipped ] && grep -q "Déjà à jour" "$WORK/app/updates/status.json"'
 check "aucun appel compose" '[ -z "$(calls)" ]'
 
 echo "T5.6 modifications locales → refus sans arrêt du backend"
@@ -159,6 +160,13 @@ setup v1.0.0; FAKE_SLOW_UP=1.2.0 run_bg; sleep 2; kill -TERM "$PID"; wait "$PID"
 check "state=rolled_back" '[ "$(st state)" = rolled_back ]'
 check "message interrompu" 'grep -q "interrompu" "$WORK/app/updates/status.json"'
 check "code revenu en 1.0.0" '[ "$(ver)" = 1.0.0 ]'
+
+echo "T5.15 fichier non suivi en conflit avec la cible → checkout refusé, aucun rollback"
+setup v1.0.0; echo "local" > "$WORK/app/NEW_IN_120.md"; run
+check "state=failed step=checkout" '[ "$(st state)" = failed ] && [ "$(st step)" = checkout ]'
+check "code inchangé (1.0.0)" '[ "$(ver)" = 1.0.0 ]'
+check "pas de restauration" '! calls | grep -q "DROP DATABASE"'
+check "backend relancé" 'calls | tail -n1 | grep -q "compose up -d --wait"'
 
 echo "T5.14 agent lancé en root sur un dépôt d'un autre utilisateur, sans SUDO_UID (cas systemd réel)"
 if [ "$(id -u)" != 0 ] && sudo -n true 2>/dev/null; then

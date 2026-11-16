@@ -268,6 +268,11 @@ test('intégration API (DB + Redis)', { skip: RUN ? false : 'RUN_DB_TESTS!=1' },
     try {
       await auth(agent.post('/api/admin/updates/check'));
       assert.equal((await auth(agent.get('/api/admin/updates/progress'))).body.available, false);
+      // docker crée le dossier monté sans requests/ : toujours « non installé »
+      const { mkdir: mk, rm: rmd } = await import('node:fs/promises');
+      await mk(updatesDir);
+      assert.equal((await auth(agent.get('/api/admin/updates/progress'))).body.available, false);
+      await rmd(updatesDir, { recursive: true });
       const res = await auth(agent.post('/api/admin/updates/apply'));
       assert.equal(res.status, 503);
       assert.match(res.body.error, /non installé/);
