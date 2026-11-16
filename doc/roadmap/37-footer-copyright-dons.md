@@ -21,7 +21,7 @@ issue: https://github.com/Exe64/mtg-collector/issues/37
 
 - [x] `frontend/src/components/ui/Footer.jsx` : © Julien DUMUR · GitHub · Offrez-moi un café (Ko-fi) · version · licence AGPL · mention non officielle ; liens centralisés dans `constants.js`.
 - [x] Footer branché dans `Layout.jsx` (pages connectées) et `AuthShell.jsx` (connexion / inscription).
-- [x] `frontend/src/components/admin/SupportCard.jsx` : encart dons (Ko-fi, PayPal) en tête de `Accounts.jsx`.
+- [x] `frontend/src/components/admin/SupportCard.jsx` : encart dons (Ko-fi, PayPal) en tête de `Accounts.jsx` ; boutons à droite du texte avec logos Ko-fi / PayPal (`public/brands/`).
 - [ ] 🧪 Tests
 - [ ] ✅ Validation
 
