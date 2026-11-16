@@ -2,10 +2,10 @@
 plan:
   id: '32'
   name: 32-readme-vitrine.md
-  link: https://github.com/Exe64/mtg-collector/blob/main/doc/roadmap/32-readme-vitrine.md
-status: in-progress
+  link: https://github.com/Exe64/mtg-collector/blob/main/doc/roadmap/done/32-readme-vitrine.md
+status: done
 date: 2026-11-15
-updated_at: 2026-11-16
+updated_at: 2026-11-17
 description: >
   README vitrine en anglais (+ README.fr.md), exploitation déplacée dans doc/,
   LICENSE AGPL-3.0 et audit léger avant le passage du dépôt en public.
@@ -78,9 +78,9 @@ Optionnel : `banner.png` (1280×320). Sinon : bannière texte.
 - [x] Étape 3 — Déplacer l'exploitation vers `doc/installation.md`, `doc/operations.md`, `doc/backups.md` (S · standard → Sonnet)
 - [x] Étape 4 — `README.md` anglais vitrine : bannière, badges, pitch, héros, fonctionnalités + captures, quick start, stack, architecture, liens doc (M · standard → Sonnet)
 - [x] Étape 5 — `README.fr.md` traduction fidèle + liens croisés (S · standard → Sonnet)
-- [ ] Étape 6 — Intégrer les captures fournies (alt text), vérifier rendu clair/sombre (XS · standard → Sonnet)
-- [ ] 🧪 Tests — Liens relatifs valides, images présentes, rendu GitHub (`gh markdown`), gitleaks propre
-- [ ] ✅ Validation — Vérifier les résultats des tests et clôturer
+- [x] Étape 6 — Intégrer les captures fournies (alt text), vérifier rendu clair/sombre (XS · standard → Sonnet)
+- [x] 🧪 Tests — Liens relatifs valides, images présentes, rendu GitHub (`gh markdown`), gitleaks propre
+- [x] ✅ Validation — Vérifier les résultats des tests et clôturer
 
 ## Décisions techniques
 
@@ -127,6 +127,10 @@ fuites uniquement dans des fichiers non suivis et ignorés (`.env`).
 | 2026-11-16 | Rendu GFM `gh api markdown` README.md / README.fr.md | Rendu sans erreur | 12 titres, bloc mermaid rendu, sur les deux | ✅ |
 | 2026-11-16 | gitleaks historique (140 commits) | no leaks | no leaks found | ✅ |
 | 2026-11-16 | gitleaks répertoire de travail | Fuites seulement hors suivi | 3 `generic-api-key` dans `.env` (non suivi, ignoré) | ✅ |
+| 2026-11-17 | Captures : 11 fichiers référencés dans README.md / README.fr.md | 0 image manquante | 11/11 présentes, 0 inutilisée, 6,9 Mo | ✅ |
+| 2026-11-17 | Rendu GFM après intégration des captures | 11 `<img>` par README | 11 / 11 | ✅ |
+| 2026-11-17 | Revue visuelle des captures (données perso) | Aucun e-mail ni donnée sensible | Admin : liste des comptes hors champ, seul le pseudo « Exe » visible | ✅ |
+| 2026-11-17 | gitleaks historique (après restauration de `deploy/`) | no leaks | no leaks found | ✅ |
 | 2026-11-16 | `backups/` ignoré | `git check-ignore` positif | `.gitignore:8:backups/` | ✅ |
 
 ## Journal de session
@@ -155,3 +159,13 @@ fuites uniquement dans des fichiers non suivis et ignorés (`.env`).
   (cron de prod sur le VPS, réutilisables par l'agent #33). `.env.example` :
   chemins perso `/home/rocky` remplacés par des exemples neutres.
 - 📋 Prochain : étape 6 (captures à fournir dans `doc/assets/screenshots/`), puis ✅ Validation.
+
+### Session 2026-11-17
+- ✅ Fait : étape 6. Captures fournies avec leurs propres noms
+  (`mtg-collector-*.png`, commandants en `.jpg`) : README adaptés aux noms,
+  pas de renommage. Pas de capture mobile → ligne admin seule. Capture
+  supplémentaire du catalogue des extensions ajoutée à la section Sets.
+  Captures en thème sombre, lisibles sur les deux thèmes GitHub.
+- ✅ Validation : tous les tests ✅ (section ## Tests). Plan clôturé.
+- 📋 Hors plan, à faire par l'utilisateur : passer le dépôt en public, puis
+  activer Private vulnerability reporting sur le dépôt.

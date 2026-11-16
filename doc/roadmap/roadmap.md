@@ -1,7 +1,7 @@
 # Roadmap Magic Collection Manager
 
 > Backlog actif. L'historique détaillé est archivé dans `_archives/`.
-> Dernière mise à jour : 2026-11-16.
+> Dernière mise à jour : 2026-11-17.
 
 ## Contexte
 
@@ -12,9 +12,6 @@ Backlog consolidé : plans nommés d'après leur issue GitHub (voir `doc/roadmap
 ---
 
 ## À faire
-
-- **[Issue: #32] `#32` — README vitrine et préparation du dépôt public** 🟢 · priorité moyenne · S — README anglais vitrine + README.fr.md, exploitation dans doc/, LICENSE AGPL-3.0, audit léger avant passage en public.
-  [`32-readme-vitrine.md`](32-readme-vitrine.md)
 
 - **[Issue: #33] `#33` — Mise à jour depuis l'application** 🟢 · priorité moyenne · L — Release GitHub sur tag, détection dans l'admin, mise à jour en un clic via agent hôte systemd, sauvegarde et rollback automatique. Dépend de #32.
   [`33-mise-a-jour-depuis-app.md`](33-mise-a-jour-depuis-app.md)
@@ -27,6 +24,9 @@ Backlog consolidé : plans nommés d'après leur issue GitHub (voir `doc/roadmap
 ## Fait
 
 ### Plans livrés (2026-11-16)
+
+- **[Issue: #32] `#32` — README vitrine et préparation du dépôt public** (2026-11-17) 🔵 — README anglais vitrine + README.fr.md avec captures, guides installation / exploitation / sauvegardes dans doc/, LICENSE AGPL-3.0, SECURITY.md, CONTRIBUTING.md, audit gitleaks propre.
+  [`32-readme-vitrine.md`](done/32-readme-vitrine.md)
 
 - **[Issue: #35] `#35` — Suggestions qui restent ouvertes après la recherche** (2026-11-16) 🔵 — La liste d'autocomplétion de « Ajouter des cartes » ne s'ouvre plus que sur saisie, plus après Entrée ou clic sur une suggestion.
   [`35-suggestions-restent-ouvertes.md`](done/35-suggestions-restent-ouvertes.md)
