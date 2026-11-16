@@ -44,4 +44,4 @@ Stack démarrée avec `docker-compose.yml` + `docker-compose.vps.yml` (Traefik, 
 | 8 | Docker réel (projet jetable base + override) : `ps -aq` avec le seul fichier de base, label, `COMPOSE_FILE` à virgules | conteneurs de l'override vus, chemins absolus, `config --services` complet | ✅ |
 | 9 | shellcheck `deploy/release.sh deploy/updater/*.sh` | aucun avertissement | ✅ |
 | 10 | Revue adversariale | — | 2 défauts (realpath → autre projet compose via symlink ; séparateur de `.env` ignoré) corrigés, couverts par T5.22 |
-| 11 | Sur le VPS : prochaine mise à jour depuis l'admin | `succeeded`, frontend joignable via Traefik | ⏳ reporté : premier run réel de l'agent corrigé à la prochaine release (VPS sain, `COMPOSE_FILE` désormais dans `.env`) |
+| 11 | Sur le VPS : prochaine mise à jour depuis l'admin | `succeeded`, frontend joignable via Traefik | ✅ 2026-11-16 17:30 : mise à jour 1.1.2 → 1.1.3 depuis l'admin réussie (agent corrigé, sauvegarde chiffrée créée), app joignable |
