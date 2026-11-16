@@ -2,8 +2,8 @@
 plan:
   id: '35'
   name: 35-suggestions-restent-ouvertes.md
-  link: https://github.com/Exe64/mtg-collector/blob/main/doc/roadmap/35-suggestions-restent-ouvertes.md
-status: in-progress
+  link: https://github.com/Exe64/mtg-collector/blob/main/doc/roadmap/done/35-suggestions-restent-ouvertes.md
+status: done
 date: 2026-11-16
 updated_at: 2026-11-16
 description: >
@@ -27,14 +27,14 @@ relance l'effet, qui la rouvre aussi.
 ## Étapes
 
 - [x] Ouvrir la liste uniquement sur saisie (`onChange`), plus dans l'effet.
-- [ ] 🧪 Tests
-- [ ] ✅ Validation
+- [x] 🧪 Tests
+- [x] ✅ Validation (2026-11-16, validé par l'utilisateur)
 
 ## Tests
 
 | # | Procédure | Attendu | Résultat |
 |---|---|---|---|
 | 1 | `npm run build` (frontend) | Build OK | ✅ build + eslint OK |
-| 2 | Taper « Lightning Bolt » puis Entrée tout de suite | Résultats affichés, liste fermée | — (manuel) |
-| 3 | Taper « Light », cliquer une suggestion | Liste fermée, versions affichées | — (manuel) |
-| 4 | Retaper dans le champ | La liste se rouvre | — (manuel) |
+| 2 | Taper « Lightning Bolt » puis Entrée tout de suite | Résultats affichés, liste fermée | ✅ validé manuellement |
+| 3 | Taper « Light », cliquer une suggestion | Liste fermée, versions affichées | ✅ validé manuellement |
+| 4 | Retaper dans le champ | La liste se rouvre | ✅ validé manuellement |

@@ -13,9 +13,6 @@ Backlog consolidé : plans nommés d'après leur issue GitHub (voir `doc/roadmap
 
 ## À faire
 
-- **[Issue: #35] `#35` — Suggestions qui restent ouvertes après la recherche** 🟡 · priorité moyenne · XS — La liste d'autocomplétion de « Ajouter des cartes » ne s'ouvre plus que sur saisie.
-  [`35-suggestions-restent-ouvertes.md`](35-suggestions-restent-ouvertes.md)
-
 - **[Issue: #32] `#32` — README vitrine et préparation du dépôt public** 🟢 · priorité moyenne · S — README anglais vitrine + README.fr.md, exploitation dans doc/, LICENSE AGPL-3.0, audit léger avant passage en public.
   [`32-readme-vitrine.md`](32-readme-vitrine.md)
 
@@ -30,6 +27,9 @@ Backlog consolidé : plans nommés d'après leur issue GitHub (voir `doc/roadmap
 ## Fait
 
 ### Plans livrés (2026-11-16)
+
+- **[Issue: #35] `#35` — Suggestions qui restent ouvertes après la recherche** (2026-11-16) 🔵 — La liste d'autocomplétion de « Ajouter des cartes » ne s'ouvre plus que sur saisie, plus après Entrée ou clic sur une suggestion.
+  [`35-suggestions-restent-ouvertes.md`](done/35-suggestions-restent-ouvertes.md)
 
 - **[Issue: #36] `#36` — Codes de secours MFA** (2026-11-16) 🔵 — Codes de secours acceptés à la désactivation et à la connexion (`verifyTotp` ne lève plus sur un code non numérique) ; téléchargement .txt des codes après activation.
   [`36-mfa-codes-secours.md`](done/36-mfa-codes-secours.md)
