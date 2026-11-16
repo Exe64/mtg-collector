@@ -1,7 +1,7 @@
 import { Heart } from 'lucide-react';
 import { AUTHOR_LINKS } from '../../constants';
 
-const btn = 'inline-flex items-center gap-2.5 rounded-lg border h-11 pl-2 pr-4 text-sm font-medium';
+const btn = 'inline-flex items-center gap-3 rounded-xl border h-14 pl-2.5 pr-6 text-base font-semibold';
 const ext = { target: '_blank', rel: 'noopener noreferrer' };
 
 // Encart « Soutenir le projet » de l'administration : texte à gauche, boutons à droite
@@ -18,14 +18,14 @@ export default function SupportCard() {
           par un don : il finance le temps passé à corriger, améliorer et publier de nouvelles versions.
         </p>
       </div>
-      <div className="flex flex-wrap sm:flex-col gap-2 shrink-0">
+      <div className="flex flex-wrap gap-3 shrink-0">
         <a href={AUTHOR_LINKS.kofi} {...ext} className={`${btn} border-gold-500/40 text-gold-200 hover:bg-gold-500/10`}>
-          <img src="/brands/kofi.png" alt="" width="28" height="28" className="rounded-md" />
+          <img src="/brands/kofi.png" alt="" width="40" height="40" className="rounded-lg" />
           Ko-fi
         </a>
         <a href={AUTHOR_LINKS.paypal} {...ext} className={`${btn} border-white/15 text-slate-200 hover:bg-white/5`}>
-          <span className="w-7 h-7 rounded-md bg-white flex items-center justify-center">
-            <img src="/brands/paypal.png" alt="" width="17" height="20" />
+          <span className="w-10 h-10 rounded-lg bg-white flex items-center justify-center">
+            <img src="/brands/paypal.png" alt="" width="24" height="28" />
           </span>
           PayPal
         </a>
