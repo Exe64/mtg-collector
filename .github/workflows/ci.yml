@@ -87,3 +87,13 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+
+  # Agent de mise à jour hôte (deploy/updater/) : lint shell + dry-run avec faux docker compose
+  updater:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: ShellCheck
+        run: shellcheck deploy/release.sh deploy/updater/*.sh
+      - name: Dry-run de l'agent (faux docker compose, remote git jetable)
+        run: ./deploy/updater/test-updater.sh

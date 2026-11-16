@@ -76,9 +76,9 @@ build, healthcheck, rollback automatique en cas d'échec.
 - [x] Étape 6 — UI admin : carte Version, notes rendues, bouton + confirmation, statut live, badge admin (M · standard → Sonnet)
 
 **Lot 3 — doc et tests**
-- [ ] Étape 7 — `doc/updating.md` (installation agent, sécurité, rollback, mode manuel), `API.md`, lien README (S · standard → Sonnet)
-- [ ] Étape 8 — Tests unitaires/intégration (semver, cache, verrou, cycle request/status, routes admin) + dry-run de l'agent avec faux `docker compose` (M · standard → Sonnet)
-- [ ] 🧪 Tests — E2E sur instance locale : tag de test, mise à jour réussie, puis échec simulé → rollback
+- [x] Étape 7 — `doc/updating.md` (installation agent, sécurité, rollback, mode manuel), `API.md`, lien README (S · standard → Sonnet)
+- [x] Étape 8 — Tests unitaires/intégration (semver, cache, verrou, cycle request/status, routes admin) + dry-run de l'agent avec faux `docker compose` (M · standard → Sonnet)
+- [x] 🧪 Tests — E2E sur instance locale : tag de test, mise à jour réussie, puis échec simulé → rollback
 - [ ] ✅ Validation — Vérifier les résultats des tests et clôturer
 
 > Note 2026-11-16 : l'agent de l'étape 5 réutilise `deploy/backup-db.sh` pour
@@ -103,6 +103,8 @@ build, healthcheck, rollback automatique en cas d'échec.
 | Git côté agent | Commandes git via `runuser -u <propriétaire du dépôt>` | Root sur dépôt d'un autre utilisateur = « dubious ownership » + fichiers root |
 | Tests E2E | Dépôt bare local + tags de test + faux `docker compose` | Rien n'est poussé sur GitHub |
 | `/api/health` | Ajout d'un champ `version` uniquement | Healthcheck compose inchangé |
+| Lancement de l'agent | `ExecStart=/bin/bash <script>` | SELinux : systemd ne peut exécuter un script étiqueté contenu utilisateur |
+| E2E | Instance séparée (projet `mtge2e`, port 8033) au lieu de l'instance locale | Ne pas détacher le HEAD du dépôt de dev ni arrêter l'instance principale |
 
 ## Tests
 
@@ -193,6 +195,41 @@ cd /srv/dev/mtg-collector/frontend
 
 **Résultats attendus (étape 6) :** lint/build OK ; pastille dorée sur « Outils » (et « Plus » en mobile) ; carte Version (installée / dernière / vérifier), notes rendues ; confirmation mentionnant sauvegarde, 1–3 min d'indisponibilité, restauration auto ; `request.json` sans cible ; bandeau d'étape ; résultat `rolled_back` + journal ; mobile sans débordement ; backend arrêté → carte minimale qui se reconnecte, puis versions rafraîchies et invitation à recharger.
 
+**Étape 7 — Documentation**
+
+```bash
+cd /srv/dev/mtg-collector
+# T7.1 liens relatifs + ancres (doc/updating.md, README*, backend/API.md, doc/operations.md)
+python3 $SCRATCH/verify-links.py
+# T7.2 doc/updating.md référencé
+grep -n "updating.md" README.md README.fr.md doc/operations.md backend/API.md
+```
+
+**Étape 8 — Tests en CI**
+
+```bash
+# T8.1 lint du workflow CI (job `updater` : shellcheck + test-updater.sh)
+docker run --rm -v "$PWD":/repo:ro -w /repo --entrypoint /usr/local/bin/actionlint rhysd/actionlint:1.7.7 .github/workflows/ci.yml
+# T8.3 dry-run de l'agent dans un environnement git vierge (comme un runner)
+HOME=$SCRATCH/vhome GIT_CONFIG_NOSYSTEM=1 ./deploy/updater/test-updater.sh
+```
+
+**Résultats attendus (étapes 7–8) :** 0 lien cassé ; actionlint muet ; `ALL PASS`.
+
+**🧪 Tests finaux — E2E sur instance séparée (agent systemd réel, SELinux enforcing)**
+
+```bash
+# Instance jetable : clone dans /tmp/mtg-updater-e2e (MTG_E2E_DIR), projet compose mtge2e, 127.0.0.1:8033,
+# remote git local avec tags de test (v0.8.0 → v0.9.0 avec migration, v0.9.1 migration cassée),
+# sauvegardes chiffrées, agent installé par install.sh. L'instance principale (:80) n'est pas touchée.
+./deploy/updater/e2e-updater.sh            # A : mise à jour via POST /admin/updates/apply → succeeded
+                           # B : v0.9.1 cassée → rolled_back (code + base recréée + données restaurées)
+                           # C : double demande → 409
+./deploy/updater/e2e-updater.sh cleanup    # désinstalle l'agent, supprime l'instance
+```
+
+**Résultats attendus (🧪) :** `E2E ALL PASS` ; instance principale intacte ; nettoyage complet.
+
 **Étape 3 — Service `updates`**
 
 ```bash
@@ -239,6 +276,13 @@ REDIS_URL=redis://127.0.0.1:1 node -e "import('./src/services/updates.js').then(
 | 2026-11-16 | T6.2 parcours navigateur | confirmation, demande sans cible, pas de débordement | conformes (Vérificateur) | ✅ |
 | 2026-11-16 | T6.3 captures (menu, carte, en cours, rollback, mobile) | conformes | conformes (Vérificateur) | ✅ |
 | 2026-11-16 | T6.4 après revue : backend arrêté à l'ouverture, retour en 1.1.0 | carte minimale + reconnexion, versions rafraîchies, « Recharger » | conformes | ✅ |
+| 2026-11-16 | T7.1 liens / T7.2 références | 0 lien cassé, 4 références | 51/51 liens OK, 4 références (Vérificateur) ; 52/52 après révision | ✅ |
+| 2026-11-16 | T8.1–T8.3 CI `updater` | actionlint muet, ALL PASS en git vierge | conformes (Vérificateur) | ✅ |
+| 2026-11-16 | T5.15 + revue doc (checkout refusé sans rollback, `skipped`, `available` = `requests/`) | ALL PASS, 61/61 | conformes | ✅ |
+| 2026-11-16 | 🧪 E2E run 1 | agent déclenché | ❌ `203/EXEC Permission denied` : SELinux interdit à systemd d'exécuter un script `user_tmp_t` → `ExecStart=/bin/bash <script>` | ❌ |
+| 2026-11-16 | 🧪 E2E run 2 (A/B/C) | ALL PASS | 22/22 ✅ : A succeeded 0.8.0→0.9.0, B rolled_back (oid base changé, données restaurées), C 409 | ✅ |
+| 2026-11-16 | 🧪 E2E rejoué par le Vérificateur + non-régression + nettoyage | ALL PASS, instance :80 intacte, 0 unité / 0 conteneur résiduel | 19/19 ✅, log preflight→stop→backup→checkout→build→rollback, 4 conteneurs `mtg-collector-*` Up, nettoyage complet | ✅ |
+| 2026-11-16 | 🧪 `deploy/updater/e2e-updater.sh` (version commitée) | ALL PASS | ALL PASS, nettoyage OK | ✅ |
 | 2026-11-16 | T2.5 release live | release `v1.0.0` publiée, détectée | workflow OK, release stable, `releases/latest` = v1.0.0 ; instance 1.0.0 à jour, 0.9.0 → mise à jour proposée | ✅ |
 
 ## Journal de session
@@ -257,4 +301,7 @@ REDIS_URL=redis://127.0.0.1:1 node -e "import('./src/services/updates.js').then(
 - ✅ Étape 4 : `updateAgent.js`, routes `GET /updates/progress`, `POST /updates/apply`, montage `/updates`. Revue : dossier root + `requests/`, `running` écrit avant consommation, cible retirée de la demande. Vérificateur PASS.
 - ✅ Étape 5 : `deploy/updater/` (agent, unités systemd, `install.sh`, `test-updater.sh`), `BACKUP_FILE=` dans `backup-db.sh`. Revue : git en tant que propriétaire, trap TERM, `rm -rf` de la demande, guard git. Vérificateur PASS.
 - ✅ Étape 6 : `UpdateCard` (version, notes, mise à jour, suivi, journal), pastille admin, `__APP_VERSION__` (Vite). Revue : polling quand backend injoignable, rafraîchissement en fin de run, fin de suivi sur `requestedAt` serveur, rechargement via le service worker, région live permanente. Vérificateur PASS.
-- 📋 Prochain : Lot 3 (doc, tests complémentaires, E2E).
+- ✅ Étape 7 : `doc/updating.md` + liens README/operations/API/.env.example. Revue d'exactitude doc ↔ code : 15 écarts corrigés (HEAD détachée, cible = plus haut tag du remote, variables de sauvegarde dans `.env`, droits du dossier de sauvegarde, demande orpheline…), dont 3 dans le code (checkout refusé sans rollback, état `skipped`, `available` = `requests/`).
+- ✅ Étape 8 : job CI `updater` (shellcheck + dry-run). Les tests unitaires/intégration prévus existent déjà (étapes 3–5).
+- ✅ 🧪 E2E : 1ᵉʳ run ❌ (SELinux : exec refusé → unité via `/bin/bash`), 2ᵉ run 22/22 ✅, rejoué par le Vérificateur (PASS), script commité `deploy/updater/e2e-updater.sh`.
+- 📋 Prochain : ✅ Validation et clôture (plan → `done/`, roadmap, issue #33).
