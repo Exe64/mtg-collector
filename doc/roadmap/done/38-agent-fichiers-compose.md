@@ -2,8 +2,8 @@
 plan:
   id: '38'
   name: 38-agent-fichiers-compose.md
-  link: https://github.com/Exe64/mtg-collector/blob/main/doc/roadmap/38-agent-fichiers-compose.md
-status: in-progress
+  link: https://github.com/Exe64/mtg-collector/blob/main/doc/roadmap/done/38-agent-fichiers-compose.md
+status: done
 date: 2026-11-16
 updated_at: 2026-11-16
 description: >
@@ -28,7 +28,7 @@ Stack démarrée avec `docker-compose.yml` + `docker-compose.vps.yml` (Traefik, 
 - [x] Agent : message de statut avec la dernière erreur de `docker compose up` (mise à jour et rollback).
 - [x] Tests `test-updater.sh` (T5.16+) + doc `doc/updating.md`.
 - [x] 🧪 Tests
-- [ ] ✅ Validation
+- [x] ✅ Validation (utilisateur, 2026-11-16 : « ça fonctionne parfaitement »)
 
 ## Tests
 
@@ -44,4 +44,4 @@ Stack démarrée avec `docker-compose.yml` + `docker-compose.vps.yml` (Traefik, 
 | 8 | Docker réel (projet jetable base + override) : `ps -aq` avec le seul fichier de base, label, `COMPOSE_FILE` à virgules | conteneurs de l'override vus, chemins absolus, `config --services` complet | ✅ |
 | 9 | shellcheck `deploy/release.sh deploy/updater/*.sh` | aucun avertissement | ✅ |
 | 10 | Revue adversariale | — | 2 défauts (realpath → autre projet compose via symlink ; séparateur de `.env` ignoré) corrigés, couverts par T5.22 |
-| 11 | Sur le VPS : prochaine mise à jour depuis l'admin | `succeeded`, frontend joignable via Traefik | ⏳ à la prochaine release |
+| 11 | Sur le VPS : prochaine mise à jour depuis l'admin | `succeeded`, frontend joignable via Traefik | ⏳ reporté : premier run réel de l'agent corrigé à la prochaine release (VPS sain, `COMPOSE_FILE` désormais dans `.env`) |

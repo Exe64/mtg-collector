@@ -13,9 +13,6 @@ Backlog consolidé : plans nommés d'après leur issue GitHub (voir `doc/roadmap
 
 ## À faire
 
-- **[Issue: #38] `#38` — Agent de mise à jour : fichiers compose de la stack en cours** 🟢 · priorité haute · S — Réutilise les fichiers compose des conteneurs (label `config_files`) si `COMPOSE_FILE` absent, refus si incohérent ; vraie erreur compose dans le statut. Suite de l'incident VPS (port 80 / `docker-compose.vps.yml` ignoré).
-  [`38-agent-fichiers-compose.md`](38-agent-fichiers-compose.md)
-
 - **[Issue: #37] `#37` — Pied de page copyright et encart dons** 🟢 · priorité basse · S — Footer © Julien DUMUR / GitHub / Ko-fi / version / licence sur toutes les pages, encart « Soutenir le projet » (Ko-fi, PayPal) dans l'administration.
   [`37-footer-copyright-dons.md`](37-footer-copyright-dons.md)
 
@@ -27,6 +24,9 @@ Backlog consolidé : plans nommés d'après leur issue GitHub (voir `doc/roadmap
 ## Fait
 
 ### Plans livrés (2026-11-16)
+
+- **[Issue: #38] `#38` — Agent de mise à jour : fichiers compose de la stack en cours** (2026-11-16) 🔵 — L'agent reprend les fichiers compose des conteneurs en cours (label `config_files`), refuse avant tout arrêt si incohérent, et cite la vraie erreur de `docker compose` dans le statut. Suite de l'incident VPS (port 80 / `docker-compose.vps.yml` ignoré).
+  [`38-agent-fichiers-compose.md`](done/38-agent-fichiers-compose.md)
 
 - **[Issue: #33] `#33` — Mise à jour depuis l'application** (2026-11-16) 🔵 — Version unique + `npm run release`, release GitHub sur tag `vX.Y.Z` (v1.0.0 publiée), détection quotidienne dans l'admin, mise à jour en un clic via agent hôte systemd (sauvegarde, checkout du tag, rebuild, rollback automatique code + base), suivi live, doc `updating.md`, E2E systemd/SELinux.
   [`33-mise-a-jour-depuis-app.md`](done/33-mise-a-jour-depuis-app.md)
