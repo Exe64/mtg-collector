@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { deckStats, savedDeckText, groupByType, formatLabel } from './logic.js';
+import { deckStats, savedDeckText, groupByType, formatLabel, groupByFormat } from './logic.js';
 
 const card = (name, o = {}) => ({ name, zone: 'main', qty: 1, cmc: 2, colors: ['R'], type_line: 'Instant', ...o });
 
@@ -36,4 +36,15 @@ test('groupByType et formatLabel', () => {
   assert.deepEqual(groupByType([card('B'), card('A')]).map(([g, l]) => [g, l.map((c) => c.name)]), [['Éphémères', ['A', 'B']]]);
   assert.equal(formatLabel('paupercommander'), 'Pauper Commander');
   assert.equal(formatLabel('inconnu'), 'inconnu');
+});
+
+test('groupByFormat : formats par libellé alphabétique, ordre reçu conservé', () => {
+  const decks = [
+    { id: 1, format: 'modern' }, { id: 2, format: 'commander' }, { id: 3, format: 'modern' },
+    { id: 4, format: 'paupercommander' }, { id: 5, format: 'casual' },
+  ];
+  assert.deepEqual(groupByFormat(decks).map(([f, l]) => [f, l.map((d) => d.id)]), [
+    ['commander', [2]], ['casual', [5]], ['modern', [1, 3]], ['paupercommander', [4]],
+  ]);
+  assert.deepEqual(groupByFormat([]), []);
 });

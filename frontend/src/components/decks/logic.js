@@ -12,6 +12,16 @@ export const FORMATS = [
 export const COMMANDER_FORMATS = new Set(['commander', 'duel', 'predh', 'paupercommander']);
 export const formatLabel = (f) => FORMATS.find(([v]) => v === f)?.[1] || f;
 
+/** Decks groupés par format (libellés alphabétiques), ordre reçu conservé → [[format, decks]]. */
+export function groupByFormat(decks) {
+  const map = new Map();
+  for (const d of decks) {
+    if (!map.has(d.format)) map.set(d.format, []);
+    map.get(d.format).push(d);
+  }
+  return [...map].sort(([a], [b]) => formatLabel(a).localeCompare(formatLabel(b), 'fr'));
+}
+
 // Zones d'un deck, dans l'ordre d'affichage ; `header` = en-tête de la liste texte.
 export const ZONES = [
   ['commander', 'Commandant', 'Commander'], ['main', 'Principal', 'Deck'],

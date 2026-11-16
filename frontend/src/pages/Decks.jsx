@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, ListChecks } from 'lucide-react';
 import { api } from '../api/client';
 import { artCrop, identityTint } from '../constants';
 import Modal from '../components/ui/Modal';
 import { ColorPips, CoverageBar } from '../components/commanders/parts';
-import { FORMATS, formatLabel } from '../components/decks/logic';
+import { FORMATS, formatLabel, groupByFormat } from '../components/decks/logic';
 
 const field = 'w-full rounded-lg bg-slate-800 border border-edge px-3 py-2 text-sm';
 const SOURCES = [['empty', 'Vide'], ['text', 'Liste'], ['url', 'Moxfield']];
@@ -128,6 +128,13 @@ export default function Decks() {
   const [decks, setDecks] = useState(null);
   const [error, setError] = useState(null);
   const [creating, setCreating] = useState(false);
+  const [params, setParams] = useSearchParams();
+
+  const groups = groupByFormat(decks || []);
+  // Format inconnu dans l'URL (deck supprimé, lien obsolète) → tous les formats.
+  const format = groups.some(([f]) => f === params.get('format')) ? params.get('format') : '';
+  const shown = format ? groups.filter(([f]) => f === format) : groups;
+  const pickFormat = (f) => setParams(f ? { format: f } : {}, { replace: true });
 
   useEffect(() => {
     api('/decks').then((r) => setDecks(r.decks)).catch((e) => setError(e.message));
@@ -155,11 +162,24 @@ export default function Decks() {
           <p className="text-sm">Colle une liste, importe un deck Moxfield, ou pars d'un commandant avec « Construire avec ».</p>
         </div>
       )}
-      {decks?.length > 0 && (
-        <ul className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-          {decks.map((d) => <DeckTile key={d.id} d={d} />)}
-        </ul>
+      {groups.length > 1 && (
+        <select value={format} onChange={(e) => pickFormat(e.target.value)} aria-label="Format" className="mb-4 rounded-lg bg-slate-800 border border-edge px-3 py-2 text-sm">
+          <option value="">Tous les formats ({decks.length})</option>
+          {groups.map(([f, list]) => <option key={f} value={f}>{formatLabel(f)} ({list.length})</option>)}
+        </select>
       )}
+      {shown.map(([f, list]) => (
+        <section key={f} className="mb-6" aria-label={formatLabel(f)}>
+          {shown.length > 1 && (
+            <h2 className="font-display text-xl font-semibold text-slate-200 mb-2">
+              {formatLabel(f)} <span className="text-sm font-normal text-slate-400">({list.length})</span>
+            </h2>
+          )}
+          <ul className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+            {list.map((d) => <DeckTile key={d.id} d={d} />)}
+          </ul>
+        </section>
+      ))}
       {creating && <NewDeck onClose={() => setCreating(false)} />}
     </div>
   );
