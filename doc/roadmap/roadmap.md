@@ -13,12 +13,12 @@ Backlog consolidé : plans nommés d'après leur issue GitHub (voir `doc/roadmap
 
 ## À faire
 
-- **[Issue: #4] `#4` — Trouver un commandant** 🟢 · priorité moyenne · L — Page « Commandants » façon find-commander de Manamancer : commandants légaux ou légendes de la collection, données EDHREC et Commander Spellbook en cache.
-  [`4-trouver-un-commandant.md`](4-trouver-un-commandant.md)
-
 ---
 
 ## Fait
+
+- **[Issue: #4] `#4` — Trouver un commandant** (2026-11-16) 🔵 — Page « Commandants » façon find-commander de Manamancer : catalogue légal filtrable (classement EDHREC), Ma collection (% du deck moyen possédé et coût pour compléter), thèmes et typal, Matchmaker, présélection et comparaison ; fiche en page dédiée avec decklist complète, variantes EDHREC (thème, Budget / Cher, niveaux 1-5), combos Commander Spellbook ; possession par carte, toutes éditions. Cache EDHREC / Spellbook en base (7 j).
+  [`4-trouver-un-commandant.md`](done/4-trouver-un-commandant.md)
 
 - **[Issue: #39] `#39` — Decks : filtrer et grouper par format** (2026-11-16) 🔵 — Page Decks : une section par format (ordre alphabétique) et un filtre par format mémorisé dans l'URL (`?format=`) (v1.2.0).
   [`39-decks-filtre-format.md`](done/39-decks-filtre-format.md)

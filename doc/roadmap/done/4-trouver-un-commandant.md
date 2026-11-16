@@ -2,8 +2,8 @@
 plan:
   id: '4'
   name: 4-trouver-un-commandant.md
-  link: https://github.com/Exe64/mtg-collector/blob/main/doc/roadmap/4-trouver-un-commandant.md
-status: active
+  link: https://github.com/Exe64/mtg-collector/blob/main/doc/roadmap/done/4-trouver-un-commandant.md
+status: done
 date: 2026-10-20
 description: >
   Page « Commandants » calquée sur l'outil find-commander de Manamancer : trouver
@@ -80,7 +80,7 @@ Aider à choisir son prochain commandant, parmi tous les commandants légaux ou 
 - [x] Étape 13 — Backend : `GET /api/commanders/:id/deck?theme=&budget=&bracket=` (deck moyen EDHREC par thème, prix Budget / Cher, niveau 1-5), cache 7 j par combinaison, nombre de decks ; « Manquantes en wishlist » suit la variante (S · standard → Sonnet)
 - [x] Étape 14 — Frontend : sélecteurs Prix / Puissance / Thème au-dessus de la decklist, titre de variante, choix dans l'URL, lien vers les autres commandants du thème, combinaison absente signalée (M · standard → Sonnet)
 - [x] 🧪 Tests — Rédiger et exécuter la procédure de test
-- [ ] ✅ Validation — Vérifier les résultats des tests et clôturer
+- [x] ✅ Validation — Vérifier les résultats des tests et clôturer
 
 ## Décisions techniques
 
@@ -159,6 +159,7 @@ Puis, connecté avec le compte de test : appels API (catalogue, Ma collection, t
 | 2026-10-22 | Possession : cartes « Art Series » | ne valent pas la carte | passe 1 : Sol Ring pointait « Sol Ring // Sol Ring » (Art Series) ❌ ; après filtre `PLAYABLE` : LEA ; couverture Atraxa 78 % → 76 % (2 cartes n'étaient « possédées » que via Art Series) ; Vérif deck : Sol Ring = LEA seul ; tests 20/20 | ✅ PASS |
 | 2026-10-22 | Étape 13 : `GET /api/commanders/:id/deck` (Atraxa) | variantes combinables, cache, combinaison absente, validation | Infect 3 729 decks (71 %) ; Cher 4 576 ; cEDH 193 ; Optimized + Infect + Cher 40 decks (78 %) ; 2e appel 0,25 s contre 1,1 s ; thème inconnu → `deck: null` ; `bracket=bad`, `theme=BAD!` → 400 ; wishlist variante cEDH : 17 manquantes, 8 ajoutées (9 déjà présentes) | ✅ PASS |
 | 2026-10-22 | Étape 14 : parcours navigateur desktop + mobile | puce de thème → deck du thème, sélecteurs Prix / Puissance / Thème, URL, combinaison absente signalée, retour à la liste | « Deck Infect » (3 729 decks) ; « Deck Infect · Cher · 4 · Optimized », URL `theme=infect&budget=expensive&bracket=optimized`, 98 lignes ; Aggro · Cher · cEDH → « EDHREC n'a pas de deck pour cette combinaison » ; « Commandants » → `/commanders` ; débordement 0 ; aucune erreur console ; tests frontend 8/8, backend 20/20 | ✅ PASS |
+| 2026-11-16 | ✅ Validation en prod (lots 1 à 4) | fonctionnement conforme | retour utilisateur « tout bon » | ✅ validé utilisateur |
 
 ## Journal de session
 
@@ -177,3 +178,6 @@ Puis, connecté avec le compte de test : appels API (catalogue, Ma collection, t
 - ✅ Fait : possession par carte et non par édition (exemplaire possédé ouvert depuis la decklist, total toutes éditions dans la modale, cartes « Art Series » exclues de la possession, Vérif deck compris)
 - ✅ Fait : étapes 13-14, variantes de deck (thème du commandant affiché, Budget / Cher, niveaux de puissance 1-5)
 - 📋 Prochain : validation utilisateur puis clôture
+
+### Session 2026-11-16
+- ✅ Validation : retour utilisateur « tout bon » après mise en prod des lots 1 à 4 ; plan clôturé
