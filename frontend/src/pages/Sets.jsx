@@ -16,6 +16,18 @@ const TYPES = [
   { value: 'masterpiece', label: 'Masterpieces' },
   { value: 'funny', label: 'Un-sets (funny)' },
   { value: 'starter', label: 'Starter' },
+  { value: 'token', label: 'Tokens' },
+  { value: 'memorabilia', label: 'Memorabilia' },
+  { value: 'alchemy', label: 'Alchemy' },
+  { value: 'eternal', label: 'Eternal' },
+  { value: 'minigame', label: 'Minijeux' },
+  { value: 'planechase', label: 'Planechase' },
+  { value: 'archenemy', label: 'Archenemy' },
+  { value: 'premium_deck', label: 'Premium Decks' },
+  { value: 'arsenal', label: 'Arsenal' },
+  { value: 'spellbook', label: 'Spellbook' },
+  { value: 'treasure_chest', label: 'Treasure Chest' },
+  { value: 'vanguard', label: 'Vanguard' },
 ];
 
 export default function Sets() {
