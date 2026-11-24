@@ -281,7 +281,7 @@ export default function Add() {
         <>
           {/* Mobile : cartes */}
           <ul className="sm:hidden space-y-2">
-            {results.map((c) => <ResultCard key={c.scryfall_id} card={c} owned={owned[c.scryfall_id]} onAdjust={adjustOwned} />)}
+            {results.map((c) => <ResultCard key={`${c.scryfall_id}:${c.set}`} card={c} owned={owned[c.scryfall_id]} onAdjust={adjustOwned} />)}
           </ul>
           {/* Desktop : tableau */}
           <div className="hidden sm:block overflow-x-auto rounded-lg border border-slate-800">
@@ -297,7 +297,7 @@ export default function Add() {
                 </tr>
               </thead>
               <tbody>
-                {results.map((c) => <ResultRow key={c.scryfall_id} card={c} owned={owned[c.scryfall_id]} onAdjust={adjustOwned} />)}
+                {results.map((c) => <ResultRow key={`${c.scryfall_id}:${c.set}`} card={c} owned={owned[c.scryfall_id]} onAdjust={adjustOwned} />)}
               </tbody>
             </table>
           </div>

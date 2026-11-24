@@ -37,7 +37,12 @@ router.get('/search', requireAuth, async (req, res, next) => {
         const prev = seen.get(k);
         if (!prev || (prev.lang !== 'en' && c.lang === 'en')) seen.set(k, c);
       }
-      cards = [...seen.values()];
+      cards = [...seen.values()].flatMap((c) => {
+        if (c.set !== '3ed') return [c];
+        // Foreign White Border (Cardmarket) : même carte que Revised, listée comme édition à part
+        const fwb = { ...c, set: 'fwb', set_name: 'Foreign White Border' };
+        return String(set).toLowerCase() === 'fwb' ? [fwb] : [c, fwb];
+      });
     }
 
     res.json({
