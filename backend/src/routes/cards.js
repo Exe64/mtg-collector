@@ -29,6 +29,13 @@ router.get('/search', requireAuth, async (req, res, next) => {
 
     let cards = data.data.map(toClientCard);
     if (unique === 'prints') {
+      // Impressions étrangères de Revised = Foreign White Border (Cardmarket) ; on garde leur visuel
+      const foreign3ed = new Map();
+      for (const c of cards) {
+        if (c.set === '3ed' && c.lang !== 'en' && (!foreign3ed.has(c.collector_number) || c.lang === 'fr')) {
+          foreign3ed.set(c.collector_number, c);
+        }
+      }
       // include_multilingual renvoie chaque langue comme une impression distincte :
       // une seule ligne par (set, n° de collecteur), anglais préféré.
       const seen = new Map();
@@ -40,7 +47,12 @@ router.get('/search', requireAuth, async (req, res, next) => {
       cards = [...seen.values()].flatMap((c) => {
         if (c.set !== '3ed') return [c];
         // Foreign White Border (Cardmarket) : même carte que Revised, listée comme édition à part
-        const fwb = { ...c, set: 'fwb', set_name: 'Foreign White Border' };
+        // Même carte que Revised (prix compris) ; les exemplaires non anglais comptent pour FWB
+        const img = foreign3ed.get(c.collector_number);
+        const fwb = {
+          ...c, set: 'fwb', set_name: 'Foreign White Border', fwb: true,
+          image_small: img?.image_small || c.image_small, image: img?.image || c.image,
+        };
         return String(set).toLowerCase() === 'fwb' ? [fwb] : [c, fwb];
       });
     }

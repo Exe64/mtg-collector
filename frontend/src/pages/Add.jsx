@@ -2,33 +2,48 @@ import { useState, useEffect, useRef } from 'react';
 import { api } from '../api/client';
 import { useCardModal } from '../stores/cardModal';
 import CardPrice from '../components/ui/CardPrice';
-import { CONDITIONS, identityStyle } from '../constants';
+import { CONDITIONS, LANGUAGES, identityStyle } from '../constants';
 
 // Ajout/retrait rapide partagé entre la ligne (desktop) et la carte (mobile).
 // Les compteurs possédés (nonfoil/foil) sont gérés par le parent ; on ne pilote
 // ici que l'état (condition) choisi pour les +/-.
+// Clé des compteurs : la ligne Foreign White Border partage la carte Revised mais compte à part.
+const ownedKey = (card) => (card.fwb ? `${card.scryfall_id}:fwb` : card.scryfall_id);
+const FWB_LANGS = LANGUAGES.filter((l) => ['fr', 'de', 'it'].includes(l.value));
+
 function useQuickAdd(card, onAdjust) {
   const [condition, setCondition] = useState('NM');
+  const [language, setLanguage] = useState(card.fwb ? 'fr' : 'en');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
 
   async function adjust(finish, delta) {
     setBusy(true);
     setErr(null);
-    onAdjust(card.scryfall_id, finish, delta); // optimiste
+    onAdjust(ownedKey(card), finish, delta); // optimiste
     try {
       await api('/collection/adjust', {
         method: 'POST',
-        body: { scryfall_id: card.scryfall_id, delta, finish, condition },
+        body: { scryfall_id: card.scryfall_id, delta, finish, condition, language },
       });
     } catch (e) {
-      onAdjust(card.scryfall_id, finish, -delta); // rollback
+      onAdjust(ownedKey(card), finish, -delta); // rollback
       setErr(e.message);
     } finally {
       setBusy(false);
     }
   }
-  return { condition, setCondition, busy, err, adjust };
+  return { condition, setCondition, language, setLanguage, busy, err, adjust };
+}
+
+// Langue de l'exemplaire, sur la ligne Foreign White Border uniquement
+function LangSel({ c }) {
+  return (
+    <select value={c.language} onChange={(e) => c.setLanguage(e.target.value)} aria-label="Langue"
+      className="ml-1 bg-slate-900 border border-edge rounded px-1 py-0.5 text-xs">
+      {FWB_LANGS.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
+    </select>
+  );
 }
 
 function CondSel({ value, onChange }) {
@@ -77,7 +92,10 @@ function ResultRow({ card, owned, onAdjust }) {
       <td className="p-2 text-right text-sm">
         <CardPrice card={card} className="justify-end text-right whitespace-nowrap" />
       </td>
-      <td className="p-2"><CondSel value={c.condition} onChange={(e) => c.setCondition(e.target.value)} /></td>
+      <td className="p-2 whitespace-nowrap">
+        <CondSel value={c.condition} onChange={(e) => c.setCondition(e.target.value)} />
+        {card.fwb && <LangSel c={c} />}
+      </td>
       <td className="p-2">
         <QtyCtl label="Normale" accent="indigo" count={o.nonfoil || 0} disabled={c.busy}
           onMinus={() => c.adjust('nonfoil', -1)} onPlus={() => c.adjust('nonfoil', 1)} />
@@ -112,6 +130,7 @@ function ResultCard({ card, owned, onAdjust }) {
       </div>
       <div className="flex items-center gap-3 mt-2 flex-wrap">
         <CondSel value={c.condition} onChange={(e) => c.setCondition(e.target.value)} />
+        {card.fwb && <LangSel c={c} />}
         <QtyCtl label="Normale" accent="indigo" count={o.nonfoil || 0} disabled={c.busy}
           onMinus={() => c.adjust('nonfoil', -1)} onPlus={() => c.adjust('nonfoil', 1)} />
         {cardCanFoil(card) && (
@@ -155,12 +174,16 @@ export default function Add() {
 
   // Récupère les quantités possédées (par finition) pour les résultats affichés
   useEffect(() => {
-    const ids = results.map((c) => c.scryfall_id).filter((id) => !(id in owned));
+    const ids = [...new Set(results.filter((c) => !(ownedKey(c) in owned)).map((c) => c.scryfall_id))];
     if (!ids.length) return;
     api('/collection/owned-ids', { method: 'POST', body: { ids } })
       .then((d) => setOwned((o) => {
         const next = { ...o };
-        for (const id of ids) next[id] = d.owned[id] || { nonfoil: 0, foil: 0 };
+        for (const id of ids) {
+          const { fwb, ...base } = d.owned[id] || {};
+          next[id] = { nonfoil: 0, foil: 0, ...base };
+          next[`${id}:fwb`] = fwb || { nonfoil: 0, foil: 0 };
+        }
         return next;
       }))
       .catch(() => {});
@@ -281,7 +304,7 @@ export default function Add() {
         <>
           {/* Mobile : cartes */}
           <ul className="sm:hidden space-y-2">
-            {results.map((c) => <ResultCard key={`${c.scryfall_id}:${c.set}`} card={c} owned={owned[c.scryfall_id]} onAdjust={adjustOwned} />)}
+            {results.map((c) => <ResultCard key={`${c.scryfall_id}:${c.set}`} card={c} owned={owned[ownedKey(c)]} onAdjust={adjustOwned} />)}
           </ul>
           {/* Desktop : tableau */}
           <div className="hidden sm:block overflow-x-auto rounded-lg border border-slate-800">
@@ -297,7 +320,7 @@ export default function Add() {
                 </tr>
               </thead>
               <tbody>
-                {results.map((c) => <ResultRow key={`${c.scryfall_id}:${c.set}`} card={c} owned={owned[c.scryfall_id]} onAdjust={adjustOwned} />)}
+                {results.map((c) => <ResultRow key={`${c.scryfall_id}:${c.set}`} card={c} owned={owned[ownedKey(c)]} onAdjust={adjustOwned} />)}
               </tbody>
             </table>
           </div>

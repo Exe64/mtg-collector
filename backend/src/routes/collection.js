@@ -239,17 +239,23 @@ router.post('/owned-ids', async (req, res, next) => {
       .filter((id) => typeof id === 'string' && UUID_RE.test(id))
       .slice(0, 300);
     if (!ids.length) return res.json({ owned: {} });
+    // Revised (3ed) : les exemplaires non anglais sont des Foreign White Border, comptés à part
     const { rows } = await query(
       `SELECT c.scryfall_id,
-              COALESCE(SUM(e.quantity) FILTER (WHERE e.finish = 'nonfoil'), 0)::int AS nonfoil,
-              COALESCE(SUM(e.quantity) FILTER (WHERE e.finish <> 'nonfoil'), 0)::int AS foil
-       FROM collection_entries e JOIN cards c ON c.id = e.card_id
+              COALESCE(SUM(e.quantity) FILTER (WHERE e.finish = 'nonfoil' AND NOT fwb), 0)::int AS nonfoil,
+              COALESCE(SUM(e.quantity) FILTER (WHERE e.finish <> 'nonfoil' AND NOT fwb), 0)::int AS foil,
+              COALESCE(SUM(e.quantity) FILTER (WHERE e.finish = 'nonfoil' AND fwb), 0)::int AS fwb_nonfoil,
+              COALESCE(SUM(e.quantity) FILTER (WHERE e.finish <> 'nonfoil' AND fwb), 0)::int AS fwb_foil
+       FROM collection_entries e JOIN cards c ON c.id = e.card_id,
+            LATERAL (SELECT c.set_code = '3ed' AND e.language <> 'en' AS fwb) f
        WHERE e.user_id = $1 AND c.scryfall_id = ANY($2::uuid[])
        GROUP BY c.scryfall_id`,
       [req.user.id, ids],
     );
     const owned = {};
-    for (const r of rows) owned[r.scryfall_id] = { nonfoil: r.nonfoil, foil: r.foil };
+    for (const r of rows) {
+      owned[r.scryfall_id] = { nonfoil: r.nonfoil, foil: r.foil, fwb: { nonfoil: r.fwb_nonfoil, foil: r.fwb_foil } };
+    }
     return res.json({ owned });
   } catch (err) {
     return next(err);
