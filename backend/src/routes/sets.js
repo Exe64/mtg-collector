@@ -4,7 +4,7 @@ import { query } from '../config/db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { cached } from '../services/cache.js';
 import * as scryfall from '../services/scryfall.js';
-import { toClientSet, dbSetToClient, upsertSets } from '../services/sets.js';
+import { toClientSet, dbSetToClient, upsertSets, realSet } from '../services/sets.js';
 import { toClientCard, dbCardToClient } from '../services/cards.js';
 
 const router = Router();
@@ -38,7 +38,7 @@ router.get('/', requireAuth, async (req, res, next) => {
 // GET /api/sets/:code/cards   (DB-first : toutes les cartes du set, tri par n° de collecteur)
 router.get('/:code/cards', requireAuth, async (req, res, next) => {
   try {
-    const { code } = req.params;
+    const code = realSet(req.params.code);
     const local = await query(
       `SELECT * FROM cards WHERE lower(set_code) = lower($1)
        ORDER BY NULLIF(regexp_replace(collector_number, '[^0-9]', '', 'g'), '')::int NULLS LAST, collector_number`,

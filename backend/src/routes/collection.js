@@ -10,6 +10,7 @@ import { logChanges, getLog, undoLogEntry, applyDelta, entryChanges, logEntryCha
 import { getSettings } from '../services/settings.js';
 import { getSnapshots, getSetSnapshots } from '../services/snapshots.js';
 import { UNIT_EUR } from '../services/pricing.js';
+import { realSet, SET_ALIASES } from '../services/sets.js';
 
 const router = Router();
 router.param('id', intParam);
@@ -134,6 +135,8 @@ router.get('/owned-by-set', async (req, res, next) => {
     );
     const ownedBySet = {};
     for (const r of rows) ownedBySet[r.set_code] = { owned: r.owned, value: Number(r.value_eur) };
+    // Stats communes : l'alias reprend celles de son édition cible
+    for (const [alias, target] of Object.entries(SET_ALIASES)) if (ownedBySet[target]) ownedBySet[alias] = ownedBySet[target];
     res.json({ ownedBySet });
   } catch (err) {
     next(err);
@@ -177,7 +180,7 @@ router.get('/owned', async (req, res, next) => {
     const params = [req.user.id];
     let setCond = '';
     if (req.query.set) {
-      params.push(req.query.set);
+      params.push(realSet(req.query.set));
       setCond = `AND lower(c.set_code) = lower($${params.length})`;
     }
     const { rows } = await query(

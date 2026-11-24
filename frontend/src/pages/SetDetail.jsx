@@ -180,7 +180,7 @@ export default function SetDetail() {
       }
       if (!cancelled) {
         setCards(all);
-        setSetName(name);
+        setSetName((cur) => cur || name);
         setLoading(false);
       }
     })();

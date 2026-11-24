@@ -55,3 +55,11 @@ test('format ManaBox : Scryfall ID + condition underscore + Set code', () => {
   assert.equal(r.condition, 'NM');
   assert.equal(r.finish, 'nonfoil');
 });
+
+test('normalizeRow : Foreign White Border (Cardmarket) → 3ed, langue conservée', () => {
+  for (const edition of ['Foreign White Border', 'FWB']) {
+    const r = normalizeRow({ Count: '1', Name: 'Taiga', Edition: edition, Language: 'Italian' });
+    assert.equal(r.set, '3ed');
+    assert.equal(r.language, 'it');
+  }
+});

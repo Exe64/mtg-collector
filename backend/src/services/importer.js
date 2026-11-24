@@ -2,6 +2,7 @@ import { query, pool } from '../config/db.js';
 import * as scryfall from './scryfall.js';
 import { mapScryfallCard, upsertCard, ensureCard } from './cards.js';
 import { logChanges } from './collectionLog.js';
+import { realSet } from './sets.js';
 
 const CONDITION_MAP = {
   M: 'MT', MT: 'MT', MINT: 'MT',
@@ -31,7 +32,9 @@ function pick(row, ...keys) {
 export function normalizeRow(row) {
   const quantity = parseInt(pick(row, 'Count', 'Quantity', 'quantity', 'qty') || '', 10);
   const name = String(pick(row, 'Name', 'name') || '').trim();
-  const set = String(pick(row, 'Edition', 'Set', 'Set code', 'set', 'set_code') || '').trim();
+  const setRaw = String(pick(row, 'Edition', 'Set', 'Set code', 'set', 'set_code') || '').trim();
+  // « Foreign White Border » (Cardmarket) → Revised côté Scryfall ; la langue de la ligne est conservée
+  const set = realSet(/^foreign white border$/i.test(setRaw) ? 'fwb' : setRaw);
   const collector = String(pick(row, 'Collector Number', 'collector_number') || '').trim();
   // Résolution exacte si un identifiant Scryfall est présent (export ManaBox, etc.)
   const scryfallId = String(pick(row, 'Scryfall ID', 'scryfall_id', 'scryfallId') || '').trim();

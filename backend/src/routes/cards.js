@@ -5,6 +5,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { cached } from '../services/cache.js';
 import * as scryfall from '../services/scryfall.js';
 import { toClientCard, dbCardToClient, ensureCard } from '../services/cards.js';
+import { realSet } from '../services/sets.js';
 
 const router = Router();
 
@@ -13,7 +14,7 @@ router.get('/search', requireAuth, async (req, res, next) => {
   try {
     const { q = '', set, page = 1 } = req.query;
     let scryQuery = String(q).trim();
-    if (set) scryQuery += ` set:${set}`;
+    if (set) scryQuery += ` set:${realSet(set)}`;
     scryQuery = scryQuery.trim();
     if (!scryQuery) return res.json({ cards: [], total: 0, page: 1, hasMore: false });
 

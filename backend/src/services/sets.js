@@ -2,6 +2,11 @@ import { query } from '../config/db.js';
 import { logger } from '../config/logger.js';
 import * as scryfall from './scryfall.js';
 
+// Éditions Cardmarket sans équivalent Scryfall : mêmes cartes (et mêmes stats) que l'édition cible.
+const SET_ALIAS = { fwb: '3ed' };
+export const realSet = (code) => SET_ALIAS[String(code).toLowerCase()] || code;
+export const SET_ALIASES = SET_ALIAS;
+
 const MTGJSON_SETLIST = 'https://mtgjson.com/api/v5/SetList.json';
 
 /** Upsert en lot des extensions dans la table `sets`. */
